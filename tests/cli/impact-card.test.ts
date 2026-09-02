@@ -4,7 +4,7 @@ import {formatImpactCard, editMagnitude} from '../../src/cli/hook.js';
 import type {ImpactSlice} from '../../src/optimizer/reverse-slice.js';
 
 describe('impact card', () => {
-  test('formatImpactCard renders owner, breaks, and tests for a touched file', () => {
+  test('[covers:F-d6b93648/AC-ee0f17] formatImpactCard renders owner, breaks, and tests for a touched file', () => {
     const slice: ImpactSlice = {
       focus: {id: 'F-abc123', title: 'Login'},
       impacted: [
@@ -38,7 +38,7 @@ describe('impact card', () => {
     expect(moduleCard).toContain('co-owner');
   });
 
-  test('formatImpactCard is empty when the file touches no feature', () => {
+  test('[covers:F-d6b93648/AC-ee0f17] formatImpactCard is empty when the file touches no feature', () => {
     const slice: ImpactSlice = {
       focus: {module: 'src/x.ts'},
       impacted: [],
@@ -50,7 +50,7 @@ describe('impact card', () => {
     expect(formatImpactCard(slice, 'src/x.ts')).toBe('');
   });
 
-  test('a blank ledger discloses itself; a dense ledger does not; the empty-card path stays empty (F-c6a32fff)', () => {
+  test('[covers:F-c6a32fff/AC-10b1a2f8] a blank ledger discloses itself; a dense ledger does not; the empty-card path stays empty (F-c6a32fff)', () => {
     const blank: ImpactSlice = {
       focus: {module: 'src/x.ts', owners: ['F-aaa']},
       impacted: [],
@@ -85,7 +85,7 @@ describe('impact card', () => {
     expect(formatImpactCard(ownerless, 'src/x.ts')).toBe('');
   });
 
-  test('editMagnitude measures Edit, Write, and MultiEdit changed-char size', () => {
+  test('[covers:F-d6b93648/AC-e49483] editMagnitude measures Edit, Write, and MultiEdit changed-char size', () => {
     expect(editMagnitude({content: 'abcde'})).toBe(5);
     expect(editMagnitude({new_string: 'abc'})).toBe(3);
     expect(
@@ -94,7 +94,7 @@ describe('impact card', () => {
     expect(editMagnitude({})).toBe(0);
   });
 
-  test('ai_hints and the developer persona steer agents to the working-set tools', () => {
+  test('[covers:F-d6b93648/AC-a42705] ai_hints and the developer persona steer agents to the working-set tools', () => {
     const specText = readFileSync('spec.yaml', 'utf8');
     expect(specText).toContain('clad_get_working_set');
 

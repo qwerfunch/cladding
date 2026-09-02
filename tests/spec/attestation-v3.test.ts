@@ -63,7 +63,7 @@ describe('F6 v3 attestation freshness', () => {
     })).toEqual({state: 'fresh'});
   });
 
-  test('reads v1 and v2 compatibility sections and gives v3 seals precedence', () => {
+  test('[covers:F-6f0a2106/AC-6f0a2109] reads v1 and v2 compatibility sections and gives v3 seals precedence', () => {
     const target = seal('F-target');
     const cwd = mkdtempSync(join(tmpdir(), 'clad-attestation-v3-'));
     mkdirSync(join(cwd, 'spec'));
@@ -75,7 +75,7 @@ describe('F6 v3 attestation freshness', () => {
     expect(featureAttestationV3(parsed, 'F-target', expected(target))).toEqual({state: 'fresh'});
   });
 
-  test('uses a legacy v2 marker for a sibling that has no valid v3 row', () => {
+  test('[covers:F-6f0a2106/AC-6f0a2109] uses a legacy v2 marker for a sibling that has no valid v3 row', () => {
     const cwd = mkdtempSync(join(tmpdir(), 'clad-attestation-v3-mixed-'));
     mkdirSync(join(cwd, 'src'));
     writeFileSync(join(cwd, 'src', 'sibling.ts'), 'export const sibling = true;\n');

@@ -26,7 +26,7 @@ describe('computeLayout3d — coverage and tuple shape', () => {
 });
 
 describe('computeLayout3d — finiteness', () => {
-  test('every coordinate is finite', () => {
+  test('[covers:F-77f7ead0/AC-3c4d5e6f] every coordinate is finite', () => {
     const nodes: Node[] = Array.from({length: 25}, (_, i) => ({id: 'n' + i}));
     const edges: Edge[] = nodes
       .slice(1)
@@ -42,7 +42,7 @@ describe('computeLayout3d — finiteness', () => {
 });
 
 describe('computeLayout3d — bounded', () => {
-  test('default opts: abs(coord) <= 4000', () => {
+  test('[covers:F-77f7ead0/AC-3c4d5e6f] default opts: abs(coord) <= 4000', () => {
     const nodes: Node[] = Array.from({length: 50}, (_, i) => ({id: 'n' + i}));
     const edges: Edge[] = Array.from({length: 80}, (_, i) => ({
       from: 'n' + (i % 50),
@@ -72,7 +72,7 @@ describe('computeLayout3d — bounded', () => {
 });
 
 describe('computeLayout3d — determinism', () => {
-  test('two calls with identical input are deep-equal', () => {
+  test('[covers:F-77f7ead0/AC-3c4d5e6f] two calls with identical input are deep-equal', () => {
     const nodes: Node[] = Array.from({length: 30}, (_, i) => ({id: 'node-' + i}));
     const edges: Edge[] = Array.from({length: 40}, (_, i) => ({
       from: 'node-' + (i % 30),

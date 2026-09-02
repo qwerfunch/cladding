@@ -448,7 +448,7 @@ describe('createFeature — EARS-shape validation at creation (Lever ①)', () =
 // ─── F-b84c38 — spec authorship lands in the ledger ───
 
 describe('createFeature ledger emission (F-b84c38)', () => {
-  test('feature_created carries id, slug, and identity', () => {
+  test('[covers:F-b84c38/AC-88923c] feature_created carries id, slug, and identity', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-new-ev-'));
     try {
       writeLegacyRoot(dir);

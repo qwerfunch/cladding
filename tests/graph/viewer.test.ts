@@ -27,7 +27,7 @@ describe('F-02343cd1 — SSoT-tier coloring + slug labels + self-contained HTML 
     writeFileSync(full, content, 'utf8');
   };
 
-  test('assigns tier by kind and parses doc banner; feature label prefers slug', () => {
+  test('[covers:F-02343cd1/AC-5bab5d89] assigns tier by kind and parses doc banner; feature label prefers slug', () => {
     const spec = {
       schema: '0.1',
       project: {name: 'x', language: 'typescript'},
@@ -72,7 +72,7 @@ describe('F-02343cd1 — SSoT-tier coloring + slug labels + self-contained HTML 
     expect(extractTierFromDoc('docs/nope.md', tmp)).toBeUndefined();
   });
 
-  test('tier color mapping is stable and the legend counts per tier', () => {
+  test('[covers:F-02343cd1/AC-a00ff60c] tier color mapping is stable and the legend counts per tier', () => {
     expect(getTierColor('A')).toBe(TIER_META.A.color);
     expect(getTierColor('B')).toBe(TIER_META.B.color);
     expect(getTierColor(undefined)).toBe(CODE_COLOR);
@@ -115,7 +115,7 @@ describe('F-02343cd1 — SSoT-tier coloring + slug labels + self-contained HTML 
     expect(leg.find((e) => e.key === 'D')).toBeUndefined();
   });
 
-  test('emits one self-contained offline html embedding the graph, deterministically', () => {
+  test('[covers:F-02343cd1/AC-1aeddbd7][covers:F-02343cd1/AC-ba8f9036] emits one self-contained offline html embedding the graph, deterministically', () => {
     const g: KnowledgeGraph = {
       nodes: [
         {id: 'feature:F-1', kind: 'feature', label: 'my-slug', tier: 'A', status: 'done', detail: 'My Feature'},
@@ -155,7 +155,7 @@ describe('F-02343cd1 — SSoT-tier coloring + slug labels + self-contained HTML 
     expect(toHtmlShell(g)).toBe(toHtmlShell(g));
   });
 
-  test('sidebar groups kinds into spec/code/test/docs zones and labels tiers as a filter', () => {
+  test('[covers:F-5b188856/AC-21ae30] sidebar groups kinds into spec/code/test/docs zones and labels tiers as a filter', () => {
     const g: KnowledgeGraph = {
       nodes: [{id: 'feature:F-1', kind: 'feature', label: 's', tier: 'A', status: 'done', detail: 'F'}],
       edges: [],

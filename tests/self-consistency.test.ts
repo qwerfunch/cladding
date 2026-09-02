@@ -236,7 +236,7 @@ describe('glossary is the terminology SSoT (F-7ce18e)', () => {
     expect(row.korean.trim(), `${label} needs a Korean correspondence`).not.toBe('');
   };
 
-  test('[covers:F-7ce18e/AC-f708a4] every public CLI verb registered in clad.ts has exact glossary metadata', () => {
+  test('[covers:F-7ce18e/AC-f708a4][covers:F-7ce18e/AC-2087c9] every public CLI verb registered in clad.ts has exact glossary metadata', () => {
     const cli = read('src/cli/clad.ts');
     // Commander registrations: capture the first command token, retaining
     // internal hyphens while stopping before argument syntax or the closing quote.
@@ -312,7 +312,7 @@ describe('glossary is the terminology SSoT (F-7ce18e)', () => {
     ]);
   });
 
-  test('[covers:F-7ce18e/AC-f708a4] every MCP tool registered in server.ts has exact glossary metadata', () => {
+  test('[covers:F-7ce18e/AC-f708a4][covers:F-7ce18e/AC-2087c9][covers:F-7ce18e/AC-c034ed] every MCP tool registered in server.ts has exact glossary metadata', () => {
     const server = read('src/serve/server.ts');
     const tools = [...server.matchAll(/server\.registerTool\(\s*'(clad_[a-z_]+)'/g)].map((m) => m[1]);
     expect(new Set(tools).size).toBeGreaterThanOrEqual(8);
@@ -321,7 +321,7 @@ describe('glossary is the terminology SSoT (F-7ce18e)', () => {
     }
   });
 
-  test('[covers:F-7ce18e/AC-f708a4] every event type has exact glossary metadata', () => {
+  test('[covers:F-7ce18e/AC-f708a4][covers:F-7ce18e/AC-c034ed] every event type has exact glossary metadata', () => {
     // Strip // comments BEFORE matching — the union's doc comments quote
     // payload values ('scan_artifacts' etc.) and contain semicolons that
     // would truncate a naive capture.
@@ -338,7 +338,7 @@ describe('glossary is the terminology SSoT (F-7ce18e)', () => {
     }
   });
 
-  test('[covers:F-7ce18e/AC-f708a4] every registered detector id has exact glossary metadata', () => {
+  test('[covers:F-7ce18e/AC-f708a4][covers:F-7ce18e/AC-c034ed] every registered detector id has exact glossary metadata', () => {
     const ids = allDetectors.map((detector) => detector.name);
     expect(new Set(ids).size, 'allDetectors must not contain duplicate ids').toBe(ids.length);
     expect(ids.length).toBeGreaterThanOrEqual(41);

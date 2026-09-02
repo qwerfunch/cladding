@@ -39,7 +39,7 @@ function touch(rel: string): void {
 }
 
 describe('nodeHealth (live SSoT conformance)', () => {
-  test('maps an untested done-AC finding to its feature node', () => {
+  test('[covers:F-af45042a/AC-2590c81a] maps an untested done-AC finding to its feature node', () => {
     writeSpec([]); // done AC with NO test_refs → MISSING_TESTS / UNTESTED_AC fire
     const graph = buildGraph(loadSpec(dir), dir);
     const health = nodeHealth(graph, dir);
@@ -51,7 +51,7 @@ describe('nodeHealth (live SSoT conformance)', () => {
     expect(hv.count).toBeGreaterThan(0);
   });
 
-  test('a healthy feature (resolving test_ref) is absent from the health map', () => {
+  test('[covers:F-af45042a/AC-2590c81a] a healthy feature (resolving test_ref) is absent from the health map', () => {
     writeSpec(['tests/x.test.ts#it works']);
     touch('tests/x.test.ts'); // the cited test exists → no missing/untested finding
     const graph = buildGraph(loadSpec(dir), dir);
@@ -65,7 +65,7 @@ describe('nodeHealth (live SSoT conformance)', () => {
     }
   });
 
-  test('returns a plain object keyed by graph node id', () => {
+  test('[covers:F-af45042a/AC-3d67e1c9] returns a plain object keyed by graph node id', () => {
     writeSpec([]);
     const graph = buildGraph(loadSpec(dir), dir);
     const health = nodeHealth(graph, dir);

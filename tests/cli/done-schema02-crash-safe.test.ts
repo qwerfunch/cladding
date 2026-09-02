@@ -94,7 +94,7 @@ afterEach(() => {
 });
 
 describe('F6 schema-0.2 completion transaction', () => {
-  test('does not install a prospective overlay before the prepared gate starts, then commits status, projections, v3, and success event once', () => {
+  test('[covers:F-6f0a2106/AC-6f0a2110] does not install a prospective overlay before the prepared gate starts, then commits status, projections, v3, and success event once', () => {
     const root = workspace();
     const before = canonicalManifest(root);
     let snapshot: ReturnType<typeof captureAttestationInputSnapshot> | undefined;
@@ -137,7 +137,7 @@ describe('F6 schema-0.2 completion transaction', () => {
     expect(events[0]).toMatchObject({type: 'done_attempted', payload: {feature: FEATURE, kept: true, worst: 0}});
   });
 
-  test('RED, thrown, missing-receipt, self-cert refusal, and writer failure leave canonical artifacts and event ledger byte-exact', () => {
+  test('[covers:F-6f0a2106/AC-6f0a2110] RED, thrown, missing-receipt, self-cert refusal, and writer failure leave canonical artifacts and event ledger byte-exact', () => {
     const attempts: readonly [string, (root: string) => ReturnType<typeof runDone>][] = [
       ['red', (root) => runDone(root, FEATURE, {checkStages: () => ({worst: 1})})],
       ['throw', (root) => runDone(root, FEATURE, {checkStages: () => { throw new Error('gate failure'); }})],

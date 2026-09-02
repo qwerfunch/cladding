@@ -39,14 +39,14 @@ describe('attestation (F-a5228c)', () => {
   });
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
-  test('absent attestation → ONE info finding naming the path to attested state (never blanket RED)', () => {
+  test('[covers:F-a5228c/AC-b3fe0c] absent attestation → ONE info finding naming the path to attested state (never blanket RED)', () => {
     const findings = staleAttestation.run({cwd: dir});
     expect(findings.length).toBe(1);
     expect(findings[0].severity).toBe('info');
     expect(findings[0].message).toContain('clad check --tier=pre-push --strict');
   });
 
-  test('a GREEN-stamped attestation matches → silent; editing a module → warn naming the feature', () => {
+  test('[covers:F-a5228c/AC-4d16d1] a GREEN-stamped attestation matches → silent; editing a module → warn naming the feature', () => {
     expect(writeAttestation(dir, loadSpec(dir))).toBe(true);
     expect(staleAttestation.run({cwd: dir}).length).toBe(0);
 
@@ -58,7 +58,7 @@ describe('attestation (F-a5228c)', () => {
     expect(findings[0].message).toContain('changed since the last attested verification');
   });
 
-  test('v2 stale detector message names the drifted module (F-b0f898a6 · AC-ec3d293e)', () => {
+  test('[covers:F-b0f898a6/AC-ec3d293e] v2 stale detector message names the drifted module (F-b0f898a6 · AC-ec3d293e)', () => {
     expect(writeAttestation(dir, loadSpec(dir))).toBe(true);
     writeFileSync(join(dir, 'src', 'm.ts'), 'export const v = 3; // drifted\n');
     const findings = staleAttestation.run({cwd: dir});
@@ -69,7 +69,7 @@ describe('attestation (F-a5228c)', () => {
     expect(findings[0].message).toContain('F-aaaa11');
   });
 
-  test('a done feature missing from an existing attestation warns (never-attested shipped code)', () => {
+  test('[covers:F-a5228c/AC-4d16d1] a done feature missing from an existing attestation warns (never-attested shipped code)', () => {
     writeAttestation(dir, loadSpec(dir));
     writeFileSync(
       join(dir, 'spec', 'features', 'y-bbbb22.yaml'),

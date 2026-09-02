@@ -73,7 +73,7 @@ describe('Spec 0.2 migration baseline schema', () => {
     }
   });
 
-  test('gives a new node no exemption and revokes only the edited node', () => {
+  test('[covers:F-182eaa53/AC-dacbffda] gives a new node no exemption and revokes only the edited node', () => {
     expect(hasLegacyExemption(baseline, 'criterion:F-aaaaaaaa/AC-new00001')).toBe(false);
     const remaining = remainingLegacyExemptions(baseline, [{
       subject: 'criterion:F-aaaaaaaa/AC-11111111',

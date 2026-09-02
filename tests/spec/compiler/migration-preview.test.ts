@@ -46,7 +46,7 @@ function workspaceManifest(root: string, directory: string = root): readonly {re
 }
 
 describe('Spec compiler migration preview', () => {
-  test('copies authored text and raw selectors without inferring schema 0.2 meaning', () => {
+  test('[covers:F-14c9d647/AC-fba49136] copies authored text and raw selectors without inferring schema 0.2 meaning', () => {
     const root = workspace();
     const feature = join(root, 'spec', 'features', 'migration-aaaaaaaa.yaml');
     writeFileSync(feature, `${readFileSync(feature, 'utf8')}  - id: AC-cccccccc\n    text: "The system shall preserve a sibling record."\n`);
@@ -172,7 +172,7 @@ describe('Spec compiler migration preview', () => {
     expect(() => previewSchema02Migration(root)).toThrow('filename/body identity');
   });
 
-  test('retains direct sequential/direct six-hex and slugged eight-hex legacy shard identities', () => {
+  test('[covers:F-4f4a12c3/AC-4f4a1204] retains direct sequential/direct six-hex and slugged eight-hex legacy shard identities', () => {
     const root = workspace();
     const feature = join(root, 'spec', 'features', 'migration-aaaaaaaa.yaml');
     writeFileSync(join(root, 'spec', 'features', 'F-001.yaml'), readFileSync(feature, 'utf8').replaceAll('F-aaaaaaaa', 'F-001'));

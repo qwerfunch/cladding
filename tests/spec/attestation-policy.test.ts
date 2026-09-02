@@ -222,7 +222,7 @@ describe('attestation policy stamp', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('writes and reads the policy stamp deterministically', () => {
+  test('[covers:F-caff8598/AC-a4d41de9] writes and reads the policy stamp deterministically', () => {
     expect(writeAttestation(dir, spec, policy)).toBe(true);
     const path = join(dir, 'spec', 'attestation.yaml');
     const first = readFileSync(path, 'utf8');
@@ -243,7 +243,7 @@ describe('attestation policy stamp', () => {
     expect(featureAttestation(attestation!, dir, spec.features[0])).toEqual({state: 'fresh'});
   });
 
-  test('reads legacy v1 and v2 attestations without policy as unknown', () => {
+  test('[covers:F-caff8598/AC-734d8d3b] reads legacy v1 and v2 attestations without policy as unknown', () => {
     const path = join(dir, 'spec', 'attestation.yaml');
     writeFileSync(path, 'attested:\n  F-a11ce001: aaaaaaaaaaaaaaaa\n');
     const v1 = readAttestation(dir);
@@ -771,7 +771,7 @@ describe('attestation policy stamp', () => {
     expect(() => readFileSync(join(dir, 'spec', 'attestation.yaml'), 'utf8')).toThrow();
   });
 
-  test('refuses source, test, and runner-config interleaves from a sealed runtime snapshot', () => {
+  test('[covers:F-6f0a2106/AC-6f0a2111] refuses source, test, and runner-config interleaves from a sealed runtime snapshot', () => {
     mkdirSync(join(dir, 'tests'), {recursive: true});
     mkdirSync(join(dir, '.cladding'), {recursive: true});
     const inputs = new Map<string, string>([
@@ -812,7 +812,7 @@ describe('attestation policy stamp', () => {
     assertStale(() => rmSync(baseline));
   });
 
-  test('detector catalog fingerprint is deterministic and configuration-sensitive', () => {
+  test('[covers:F-caff8598/AC-1f6b157b] detector catalog fingerprint is deterministic and configuration-sensitive', () => {
     const catalog = [
       {name: 'FIRST'},
       {name: 'SECOND', subprocess: true as const},

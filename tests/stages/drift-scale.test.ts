@@ -34,7 +34,7 @@ function scaffold(dir: string, shards: number): void {
 }
 
 describe('run-scoped spec cache (F-cd0415)', () => {
-  test('primed cache returns the same object; cleared cache reads fresh from disk', () => {
+  test('[covers:F-cd0415/AC-c42c1d][covers:F-cd0415/AC-e49feb] primed cache returns the same object; cleared cache reads fresh from disk', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-cache-'));
     try {
       scaffold(dir, 2);
@@ -49,7 +49,7 @@ describe('run-scoped spec cache (F-cd0415)', () => {
     }
   });
 
-  test('runDrift clears the cache afterwards — later loadSpec sees later edits', () => {
+  test('[covers:F-cd0415/AC-c42c1d] runDrift clears the cache afterwards — later loadSpec sees later edits', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-cache-run-'));
     try {
       scaffold(dir, 2);
@@ -92,7 +92,7 @@ describe('run-scoped spec cache (F-cd0415)', () => {
       }
     }, 60_000);
 
-    test('5000-shard drift pass completes within the hard latency budget', {timeout: 20_000}, () => {
+    test('[covers:F-cd0415/AC-a8cf33] 5000-shard drift pass completes within the hard latency budget', {timeout: 20_000}, () => {
       const t0 = performance.now();
       const report = runDrift({cwd: dir});
       const elapsed = performance.now() - t0;
@@ -108,7 +108,7 @@ describe('run-scoped spec cache (F-cd0415)', () => {
       }
     });
 
-    test('flushes complete strict JSON beyond 64 KiB before preserving the report exit code', {timeout: 30_000}, () => {
+    test('[covers:F-003/AC-006] flushes complete strict JSON beyond 64 KiB before preserving the report exit code', {timeout: 30_000}, () => {
       const child = spawnSync(
         resolve('node_modules', '.bin', 'tsx'),
         [resolve('src', 'stages', 'drift.ts'), '--strict'],

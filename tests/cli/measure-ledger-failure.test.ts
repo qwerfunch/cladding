@@ -79,7 +79,7 @@ describe('clad measure ledger persistence failure', () => {
     expect(exit).toHaveBeenCalledWith(0);
   });
 
-  test('registers measure and prints the efficiency report', async () => {
+  test('[covers:F-16138071/AC-d18961] registers measure and prints the efficiency report', async () => {
     await createProgram().parseAsync(['measure'], {from: 'user'});
 
     expect(chunks.join('')).toBe([

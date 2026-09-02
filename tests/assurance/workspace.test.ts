@@ -298,7 +298,7 @@ describe('F6 workspace profile closure', () => {
     expect(migrationBaselineCandidatesFromWorkspace(staticCwd, staticCompilation, ['feature:F-dd8dc994'])).toEqual([]);
   });
 
-  test('keeps a required missing binding sealed but locally unobserved', () => {
+  test('[covers:F-6f0a2106/AC-6f0a2111] keeps a required missing binding sealed but locally unobserved', () => {
     const cwd = fixture();
     const compilation = compileSpecWorkspace(cwd);
     const request = {scopeAddresses: ['feature:F-aaaaaaaa'], oracleRequiredSubjects: new Set<string>(), requiresHuman: false};
@@ -433,7 +433,7 @@ describe('F6 workspace profile closure', () => {
     expect(workspaceProfileSnapshot(cwd, compilation, {...request, closureInput: stale}).complete).toBe(true);
   });
 
-  test('seals declared runner controls and fails closed for an unknown control', () => {
+  test('[covers:F-6f0a2106/AC-6f0a2111] seals declared runner controls and fails closed for an unknown control', () => {
     const cwd = fixture();
     const compilation = compileSpecWorkspace(cwd);
     const request = {
@@ -603,7 +603,7 @@ describe('F6 workspace profile closure', () => {
     expect(after.controls).toEqual(before.controls);
   });
 
-  test('seals nested legacy/config-module controls and their transitive bytes', () => {
+  test('[covers:F-6f0a2106/AC-6f0a2111] seals nested legacy/config-module controls and their transitive bytes', () => {
     const cwd = fixture();
     const compilation = compileSpecWorkspace(cwd);
     const request = {
@@ -741,7 +741,7 @@ describe('F6 workspace profile closure', () => {
     expect(freshResolver.controls).not.toEqual(first.controls);
   });
 
-  test('fails closed for dynamic, unresolved, out-of-root, symlinked, and nested unknown controls', () => {
+  test('[covers:F-6f0a2106/AC-6f0a2111] fails closed for dynamic, unresolved, out-of-root, symlinked, and nested unknown controls', () => {
     const cases: ReadonlyArray<(cwd: string) => void> = [
       (cwd) => writeFileSync(join(cwd, 'eslint.config.js'), 'const target = process.env.ESLINT_CONFIG; module.exports = require(target);\n'),
       (cwd) => writeFileSync(join(cwd, 'eslint.config.js'), 'const environment = process.env; export default environment.CI ? [] : [];\n'),
@@ -1037,7 +1037,7 @@ describe('F6 workspace profile closure', () => {
       .toEqual([expect.objectContaining({criterion: 'F-aaaaaaaa/AC-aaaaaaaa'})]);
   });
 
-  test('does not rebind an old passing JUnit result when this Unit run skips its exact case', () => {
+  test('[covers:F-6f0a2106/AC-6f0a2111] does not rebind an old passing JUnit result when this Unit run skips its exact case', () => {
     const cwd = fixture();
     mkdirSync(join(cwd, 'tests'), {recursive: true});
     const selector = '[covers:F-aaaaaaaa/AC-aaaaaaaa] verifies current output';

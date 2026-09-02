@@ -116,7 +116,7 @@ function isMiss(r: WorkingSetShape | MissShape): r is MissShape {
 }
 
 describe('working-set', () => {
-  test('resolves id, slug, and module path (multi-owner picks first + lists co-owners)', () => {
+  test('[covers:F-06dfdad6/AC-62d89e] resolves id, slug, and module path (multi-owner picks first + lists co-owners)', () => {
     const spec = makeSpec([
       feature({id: 'F-bbb222', slug: 'beta', title: 'Beta', modules: ['src/shared.ts']}),
       feature({id: 'F-aaa111', slug: 'alpha', title: 'Alpha', modules: ['src/shared.ts']}),
@@ -144,7 +144,7 @@ describe('working-set', () => {
     expect(bySlug.must_edit.id).toBe('F-aaa111');
   });
 
-  test('unknown query returns a not_found miss', () => {
+  test('[covers:F-06dfdad6/AC-62d89e] unknown query returns a not_found miss', () => {
     const spec = makeSpec([feature({id: 'F-aaa111', slug: 'alpha', title: 'Alpha'})]);
     const r = buildWorkingSet(spec, 'F-nope') as WorkingSetShape | MissShape;
     expect(isMiss(r)).toBe(true);
@@ -155,7 +155,7 @@ describe('working-set', () => {
     expect(typeof r.discovery).toBe('string');
   });
 
-  test('fuses forward needs + backward breaks + verify + guidance into one payload', () => {
+  test('[covers:F-06dfdad6/AC-d2b3c8] fuses forward needs + backward breaks + verify + guidance into one payload', () => {
     const spec = makeSpec([
       feature({id: 'F-base', slug: 'base', title: 'Base', depends_on: []}),
       feature({
@@ -201,7 +201,7 @@ describe('working-set', () => {
     expect(Array.isArray(r.breaks_if_changed.regression_tests)).toBe(true);
   });
 
-  test('flags EARS unwanted/state acceptance criteria as high-risk', () => {
+  test('[covers:F-06dfdad6/AC-d2b3c8] flags EARS unwanted/state acceptance criteria as high-risk', () => {
     const spec = makeSpec([
       feature({
         id: 'F-aaa111',
@@ -271,7 +271,7 @@ describe('working-set', () => {
     expect(loose.needs.map((n) => n.id)).toContain('F-base');
   });
 
-  test('is deterministic for identical spec + files', () => {
+  test('[covers:F-06dfdad6/AC-833f1c] is deterministic for identical spec + files', () => {
     const dir = makeTmp();
     writeFileSync(join(dir, 'mod.ts'), 'export const v = 1;\n', 'utf8');
     const spec = makeSpec([
@@ -290,7 +290,7 @@ describe('working-set', () => {
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
   });
 
-  test('blank-ledger radius: no-known-dependents, coverage null (not 0), denominator + ledger surfaced (F-c6a32fff)', () => {
+  test('[covers:F-c6a32fff/AC-67150016] blank-ledger radius: no-known-dependents, coverage null (not 0), denominator + ledger surfaced (F-c6a32fff)', () => {
     // Zero depends_on and zero test_refs anywhere — the freshly-adopted state.
     const spec = makeSpec([
       feature({id: 'F-aaa111', slug: 'alpha', title: 'Alpha', acceptance_criteria: [ac({id: 'AC-001', test_refs: []})]}),
@@ -311,7 +311,7 @@ describe('working-set', () => {
     expect(breaks.ledger?.fallback_hint).toContain('unknown, not safe');
   });
 
-  test('a module query seeds ALL co-owners — their dependents and tests reach breaks_if_changed', () => {
+  test('[covers:F-06dfdad6/AC-d2b3c8] a module query seeds ALL co-owners — their dependents and tests reach breaks_if_changed', () => {
     // v0.7.0 regression: only the alphabetically-first owner was seeded, so a
     // shared file's other owners contributed nothing to the blast radius
     // (src/cli/clad.ts on cladding-self: impacted 0 vs 83). Simulation

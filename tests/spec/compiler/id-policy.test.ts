@@ -18,7 +18,7 @@ import {
 import {extractScenarios} from '../../../src/cli/scan/intent-onboarding.js';
 
 describe('Spec 0.2 ID policy', () => {
-  test('keeps sequential and six-or-more-hex records readable while writers emit exactly eight lowercase hex', () => {
+  test('[covers:F-182eaa53/AC-34749728] keeps sequential and six-or-more-hex records readable while writers emit exactly eight lowercase hex', () => {
     expect(isReadableId('feature', 'F-001')).toBe(true);
     expect(isReadableId('feature', 'F-a1b2c3')).toBe(true);
     expect(isReadableId('criterion', 'AC-a1b2c3d4e5')).toBe(true);

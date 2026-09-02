@@ -83,7 +83,7 @@ describe('F6 assurance reducer', () => {
     expect(reduceAssurancePlan(JSON.parse(JSON.stringify(plan)))).toMatchObject({state: 'unresolved', profile_complete: false});
   });
 
-  test('reduces hard, report, unobserved, NA, and failure-dominant obligations without a vacuous green', () => {
+  test('[covers:F-6f0a2106/AC-6f0a2102] reduces hard, report, unobserved, NA, and failure-dominant obligations without a vacuous green', () => {
     const failed = authorityReduce({
       profile: cumulativeProfile, configuredAssuranceLevel: 'L2', scopeSha256: 's', inputSha256: 'i',
       scopeAddresses: ['project'],

@@ -29,7 +29,7 @@ function signedBlindReceipt(): {receipt: BlindReceipt; trust: ReturnType<typeof 
 }
 
 describe('portable receipt protocol', () => {
-  test('uses deterministic JCS bytes, a framed detached signature, and explicit offline currentness', () => {
+  test('[covers:F-2883ff4d/AC-2883ff06] uses deterministic JCS bytes, a framed detached signature, and explicit offline currentness', () => {
     const {receipt, trust} = signedBlindReceipt();
     const serialized = serializePortableReceipt(receipt);
     expect(serialized).toBe(`${canonicalizeJson(receipt)}\n`);
@@ -44,7 +44,7 @@ describe('portable receipt protocol', () => {
     })).toMatchObject({assurance: 'invalid', currentness: 'stale', reason: 'expected_digest_mismatch'});
   });
 
-  test('rejects YAML aliases, unknown claims, invalid timestamps, and persisted derived fields', () => {
+  test('[covers:F-2883ff4d/AC-2883ff05] rejects YAML aliases, unknown claims, invalid timestamps, and persisted derived fields', () => {
     expect(() => parsePortableReceiptYaml('a: &anchor {x: 1}\nb: *anchor\n')).toThrow(/aliases|anchors/i);
     const {receipt} = signedBlindReceipt();
     expect(() => parsePortableReceiptYaml(serializePortableReceipt({...receipt, assurance: 'verified'} as unknown as BlindReceipt))).toThrow(/Unknown receipt field/);

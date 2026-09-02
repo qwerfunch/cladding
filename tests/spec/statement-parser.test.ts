@@ -12,7 +12,7 @@ function valid(statement: string) {
 }
 
 describe('Spec 0.2 strict statement parser', () => {
-  test('P01 ubiquitous', () => {
+  test('[covers:F-14c9d647/AC-b431ecb1] P01 ubiquitous', () => {
     expect(valid('The system shall retain an audit record.')).toMatchObject({pattern: 'ubiquitous', modal: 'shall'});
   });
 
@@ -59,7 +59,7 @@ describe('Spec 0.2 strict statement parser', () => {
     expect(parseStrictStatement('The system shall persist the form and shall notify the user.')).toMatchObject({status: 'invalid', issues: [expect.objectContaining({code: 'MODAL_COUNT'})]});
   });
 
-  test('P10 fragment/unbalanced rejection', () => {
+  test('[covers:F-14c9d647/AC-b431ecb1] P10 fragment/unbalanced rejection', () => {
     expect(parseStrictStatement('The system shall.')).toMatchObject({status: 'invalid', issues: [expect.objectContaining({code: 'EMPTY_RESPONSE'})]});
     expect(parseStrictStatement('When (an event occurs, the system shall record it.')).toMatchObject({status: 'invalid', issues: [expect.objectContaining({code: 'UNBALANCED_PROTECTED_SPAN'})]});
   });

@@ -20,7 +20,7 @@ const input = {
 };
 
 describe('F6 closure authority', () => {
-  test('seals schema 0.1 and 0.2 closures with selective freshness and explicit missing sentinels', () => {
+  test('[covers:F-6f0a2106/AC-6f0a2104] seals schema 0.1 and 0.2 closures with selective freshness and explicit missing sentinels', () => {
     const legacy = contractClosure(input, 'F-a');
     expect(JSON.stringify(legacy.records)).toContain('Exact legacy text');
     expect(JSON.stringify(legacy.records)).not.toContain('purpose');
@@ -29,7 +29,7 @@ describe('F6 closure authority', () => {
     expect(verificationClosure(input, 'F-a/AC-a').records.map((entry) => entry.address)).toContain('receipt:receipt-a');
   });
 
-  test('does not stale a criterion subject closure for an unrelated sibling criterion', () => {
+  test('[covers:F-0b8f23c5/AC-0b8f2304][covers:F-6f0a2106/AC-6f0a2105] does not stale a criterion subject closure for an unrelated sibling criterion', () => {
     const before = subjectClosure(input, 'F-a/AC-a').sha256;
     const changed = {...input, features: [{...input.features[0], criteria: [input.features[0].criteria[0], {...input.features[0].criteria[1], text: 'Changed sibling'}]}, input.features[1]]};
     expect(subjectClosure(changed, 'F-a/AC-a').sha256).toBe(before);
@@ -142,7 +142,7 @@ describe('F6 closure authority', () => {
     expect(unknownRunner.complete).toBe(false);
   });
 
-  test('hashes exact required scenario intent for every referenced criterion while excluding off advisory and unrelated scenarios', () => {
+  test('[covers:F-0b8f23c5/AC-0b8f2304] hashes exact required scenario intent for every referenced criterion while excluding off advisory and unrelated scenarios', () => {
     const schema02 = {
       schemaVersion: '0.2' as const,
       features: [

@@ -785,7 +785,7 @@ describe('cli/clad — createProgram', () => {
   // `work` was removed outright back in 0.6.0. All four must stay gone: never
   // registered as a command name, never as an alias — the successor verb is
   // the only spelling.
-  test('removed aliases stay removed; successors are the only spelling', () => {
+  test('[covers:F-7ce18e/AC-614993] removed aliases stay removed; successors are the only spelling', () => {
     const program = clad.createProgram();
     const names = program.commands.map((c) => c.name());
     const aliases = program.commands.flatMap((c) => c.aliases());

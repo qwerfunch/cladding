@@ -79,7 +79,7 @@ function seedProject(): void {
 }
 
 describe('SessionStart — context card', () => {
-  test('full card: index counts + in-progress list + last gate + stop-block + tools + policy line', () => {
+  test('[covers:F-1d23a6/AC-29e900] full card: index counts + in-progress list + last gate + stop-block + tools + policy line', () => {
     seedProject();
     appendEvent(
       cwd,
@@ -312,7 +312,7 @@ describe('Stop — deterministic trio with fingerprint-keyed demotion', () => {
     expect(driftStub).not.toHaveBeenCalled();
   });
 
-  test('fresh failure records complete attribution without changing block output', () => {
+  test('[covers:F-1aab1bba/AC-28df4cc4][covers:F-1d23a6/AC-973837] fresh failure records complete attribution without changing block output', () => {
     driftStub.mockImplementation(() => TWO_FINDINGS);
     const out = runHookEvent('Stop', {stop_hook_active: false}, cwd);
     const doc = JSON.parse(out) as {decision: string; reason: string};
@@ -343,7 +343,7 @@ describe('Stop — deterministic trio with fingerprint-keyed demotion', () => {
     });
   });
 
-  test('identical second run stays empty and records the known-failing exit', () => {
+  test('[covers:F-1aab1bba/AC-5c94711a][covers:F-1d23a6/AC-973837] identical second run stays empty and records the known-failing exit', () => {
     driftStub.mockImplementation(() => TWO_FINDINGS);
     expect(runHookEvent('Stop', {stop_hook_active: false}, cwd)).not.toBe('');
     expect(runHookEvent('Stop', {stop_hook_active: false}, cwd)).toBe('');
@@ -387,7 +387,7 @@ describe('Stop — deterministic trio with fingerprint-keyed demotion', () => {
     expect((JSON.parse(out) as {decision: string}).decision).toBe('block');
   });
 
-  test('clean run → empty and the persisted stop-block.json is removed', () => {
+  test('[covers:F-1d23a6/AC-973837] clean run → empty and the persisted stop-block.json is removed', () => {
     mkdirSync(join(cwd, '.cladding'), {recursive: true});
     writeFileSync(join(cwd, '.cladding', 'stop-block.json'), JSON.stringify({fingerprint: 'old', count: 1, first: 'X'}), 'utf8');
     expect(runHookEvent('Stop', {stop_hook_active: false}, cwd)).toBe('');
@@ -443,7 +443,7 @@ describe('PostToolUse — debounced drift nudge', () => {
     expect(driftStub).not.toHaveBeenCalled();
   });
 
-  test('impact card fires for a host-style ABSOLUTE file_path and shows the repo-relative path', () => {
+  test('[covers:F-d6b93648/AC-ee0f17] impact card fires for a host-style ABSOLUTE file_path and shows the repo-relative path', () => {
     // v0.7.0 regression: hosts send tool_input.file_path absolute while the
     // module index keys are repo-relative — the card never rendered in real
     // usage (0/361 on cladding-self). Locks the relativization seam.
@@ -496,13 +496,13 @@ describe('fallback safety — a spec-less cwd is not ours to gate (F-c6a32fff)',
   // falsely BLOCKED with ABSENCE_OF_GOVERNANCE and wrote .cladding/ state into
   // a tree that never adopted cladding. These run UNSTUBBED-equivalent: the
   // guard must fire before runDrift, so the stubs must never be called.
-  test('Stop in a spec-less cwd → silence, no drift run, no .cladding/ writes', () => {
+  test('[covers:F-c6a32fff/AC-85daff2d] Stop in a spec-less cwd → silence, no drift run, no .cladding/ writes', () => {
     expect(runHookEvent('Stop', {stop_hook_active: false}, cwd)).toBe('');
     expect(driftStub).not.toHaveBeenCalled();
     expect(existsSync(join(cwd, '.cladding'))).toBe(false);
   });
 
-  test('PostToolUse in a spec-less cwd → silence, no drift run, no stamp write', () => {
+  test('[covers:F-c6a32fff/AC-85daff2d] PostToolUse in a spec-less cwd → silence, no drift run, no stamp write', () => {
     const out = runHookEvent(
       'PostToolUse',
       {tool_name: 'Edit', tool_input: {file_path: 'src/foo.ts', new_string: 'x'.repeat(50)}},
@@ -513,7 +513,7 @@ describe('fallback safety — a spec-less cwd is not ours to gate (F-c6a32fff)',
     expect(existsSync(join(cwd, '.cladding'))).toBe(false);
   });
 
-  test('SessionStart over an unparseable spec with no other count source → honest counts-unavailable line', () => {
+  test('[covers:F-c6a32fff/AC-10b1a2f8] SessionStart over an unparseable spec with no other count source → honest counts-unavailable line', () => {
     writeFileSync(join(cwd, 'spec.yaml'), 'features:\n  - id: F-x\n   badly: indented\n', 'utf8');
     const out = runHookEvent('SessionStart', {}, cwd);
     expect(out).toContain('spec.yaml present but unparseable — counts unavailable');

@@ -171,7 +171,7 @@ describe('reverse-slice / impact (F-7794a6bc)', () => {
     expect(bounded.impacted.map((i) => i.id)).toEqual(['B']);
   });
 
-  test('BLANK ledger: impacted:[] carries zero-counts + fallback hints — unknown, not safe (F-c6a32fff)', () => {
+  test('[covers:F-c6a32fff/AC-30e00a5c] BLANK ledger: impacted:[] carries zero-counts + fallback hints — unknown, not safe (F-c6a32fff)', () => {
     // The state of every freshly adopted project: features exist, no edges declared.
     const spec = mkSpec([
       {id: 'F-aaa111', title: 'A', status: 'done', modules: ['src/a.ts']},
@@ -186,7 +186,7 @@ describe('reverse-slice / impact (F-7794a6bc)', () => {
     expect(slice.ledger?.regression_hint).toContain('run the full suite');
   });
 
-  test('DENSE ledger: a verified leaf shows real edge counts and NO hints — distinguishable from blank', () => {
+  test('[covers:F-c6a32fff/AC-30e00a5c] DENSE ledger: a verified leaf shows real edge counts and NO hints — distinguishable from blank', () => {
     const spec = mkSpec([
       {
         id: 'F-aaa111',

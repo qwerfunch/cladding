@@ -22,7 +22,7 @@ describe('Spec 0.2 legacy statement scanner', () => {
     expect(scanLegacyStatement('System shall persist.')).toMatchObject({status: 'conflict', reason: 'MALFORMED_EARS'});
   });
 
-  test('L04 deterministic seeded arbitrary-input no-throw', () => {
+  test('[covers:F-14c9d647/AC-fba49136] L04 deterministic seeded arbitrary-input no-throw', () => {
     let seed = 0x5eedc0de;
     const next = (): string => {
       seed = (seed * 1664525 + 1013904223) >>> 0;

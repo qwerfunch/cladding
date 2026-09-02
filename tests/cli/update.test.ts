@@ -67,7 +67,7 @@ describe('runUpdate', () => {
 // ─── F-b43066 — token_budget_per_session deprecation drains via the report ───
 
 describe('deprecation report (F-b43066)', () => {
-  test('flags ai_hints.token_budget_per_session as deprecated, report-only (code stays 0)', async () => {
+  test('[covers:F-b43066/AC-3da6fd] flags ai_hints.token_budget_per_session as deprecated, report-only (code stays 0)', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-update-dep-'));
     try {
       writeFileSync(
@@ -84,7 +84,7 @@ describe('deprecation report (F-b43066)', () => {
     }
   });
 
-  test('clean spec produces no deprecation lines', async () => {
+  test('[covers:F-b43066/AC-3da6fd] clean spec produces no deprecation lines', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-update-clean-'));
     try {
       writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nproject:\n  name: x\n  language: typescript\nfeatures: []\n');

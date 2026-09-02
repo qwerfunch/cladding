@@ -133,7 +133,7 @@ describe('runDone', () => {
 
   // ── F-37b4a8 — index status fidelity: clad done re-syncs the committed index ──
 
-  test('a kept flip re-syncs the feature index to status: done', () => {
+  test('[covers:F-37b4a8/AC-e3ad59] a kept flip re-syncs the feature index to status: done', () => {
     const path = writeShard(dir);
     writeFeatureIndexProjection(dir); // index starts mirroring the shard (in_progress)
     expect(readFileSync(join(dir, 'spec', 'index.yaml'), 'utf8')).toContain('status: in_progress');
@@ -144,7 +144,7 @@ describe('runDone', () => {
     expect(readFileSync(path, 'utf8')).toContain('status: done'); // shard kept done
   });
 
-  test('a reverted (red gate) flip re-syncs the index back to the original status', () => {
+  test('[covers:F-37b4a8/AC-e3ad59] a reverted (red gate) flip re-syncs the index back to the original status', () => {
     writeShard(dir);
     writeFeatureIndexProjection(dir);
     runDone(dir, FEATURE_ID, {checkStages: () => ({worst: 1}), onIndex: writeFeatureIndexProjection});
@@ -154,7 +154,7 @@ describe('runDone', () => {
     expect(indexAfter).not.toContain('status: done');
   });
 
-  test('the index is refreshed before the gate runs so the status-aware detector sees a consistent index', () => {
+  test('[covers:F-37b4a8/AC-e3ad59] the index is refreshed before the gate runs so the status-aware detector sees a consistent index', () => {
     writeShard(dir);
     writeFeatureIndexProjection(dir);
     let indexSaidDoneAtGateTime = false;
@@ -539,7 +539,7 @@ describe('runDone ledger emission (F-b84c38)', () => {
   });
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
-  test('records done_attempted blockers on GREEN and RED gates', () => {
+  test('[covers:F-1aab1bba/AC-3cb0ca39][covers:F-b84c38/AC-ac4a10] records done_attempted blockers on GREEN and RED gates', () => {
     runDone(dir, FEATURE_ID, {
       checkStages: () => ({
         worst: 0,

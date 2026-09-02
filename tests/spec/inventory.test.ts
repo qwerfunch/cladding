@@ -192,7 +192,7 @@ describe('inventory churn diet (F-6e49fd24)', () => {
 
   // AC-f2004981 — the block emits ONLY the four count fields, never last_synced.
   // Even when a caller hands a stray last_synced, the writer must drop it.
-  test('AC-f2004981 · upserted inventory block emits only count fields, never last_synced', () => {
+  test('[covers:F-6e49fd24/AC-f2004981] AC-f2004981 · upserted inventory block emits only count fields, never last_synced', () => {
     const body = 'schema: "0.1"\nproject:\n  name: x\n  language: typescript\nfeatures: []\n';
     const out = upsertInventoryBlock(body, {
       features: 5,
@@ -213,7 +213,7 @@ describe('inventory churn diet (F-6e49fd24)', () => {
 
   // AC-f2004981 — re-running sync with unchanged counts must leave spec.yaml
   // byte-for-byte identical (the whole point: no date stamp to conflict on).
-  test('AC-f2004981 · re-syncing unchanged counts leaves spec.yaml byte-identical', () => {
+  test('[covers:F-6e49fd24/AC-f2004981] AC-f2004981 · re-syncing unchanged counts leaves spec.yaml byte-identical', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-churn-'));
     try {
       writeFileSync(
@@ -242,7 +242,7 @@ describe('inventory churn diet (F-6e49fd24)', () => {
   // AC-d9915fe5 — a legacy last_synced line inside the block is dropped on the
   // next upsert, while ALL surrounding hand-authored content (before AND after
   // the block) is preserved.
-  test('AC-d9915fe5 · a legacy last_synced line is dropped on next upsert, all other content preserved', () => {
+  test('[covers:F-6e49fd24/AC-d9915fe5] AC-d9915fe5 · a legacy last_synced line is dropped on next upsert, all other content preserved', () => {
     const body = [
       'schema: "0.1"',
       'project:',
@@ -348,7 +348,7 @@ describe('renderFeatureIndexYaml (F-37b4a8)', () => {
   const shard = (id: string, slug: string, status: string, modules: number): string =>
     `id: ${id}\nslug: ${slug}\nstatus: ${status}\nmodules:\n${Array.from({length: modules}, (_, i) => `  - src/m${i}.ts`).join('\n')}\n`;
 
-  test('emits an id-sorted, Tier-C-bannered, one-line-per-feature index', () => {
+  test('[covers:F-37b4a8/AC-9f9309] emits an id-sorted, Tier-C-bannered, one-line-per-feature index', () => {
     mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
     writeFileSync(join(dir, 'spec', 'features', 'b-zz9999.yaml'), shard('F-zz9999', 'b-feat', 'done', 2));
     writeFileSync(join(dir, 'spec', 'features', 'a-aa1111.yaml'), shard('F-aa1111', 'a-feat', 'in_progress', 1));
@@ -380,7 +380,7 @@ describe('renderFeatureIndexYaml (F-37b4a8)', () => {
     expect(renderFeatureIndexYaml(dir)).toContain('F-aaaaaaaa: {slug: account-recovery, status: planned, modules: 0}');
   });
 
-  test('regeneration is idempotent (byte-identical on unchanged shards)', () => {
+  test('[covers:F-37b4a8/AC-9f9309] regeneration is idempotent (byte-identical on unchanged shards)', () => {
     mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
     writeFileSync(join(dir, 'spec', 'features', 'a-aa1111.yaml'), shard('F-aa1111', 'a-feat', 'done', 0));
     writeFeatureIndexProjection(dir);
@@ -389,7 +389,7 @@ describe('renderFeatureIndexYaml (F-37b4a8)', () => {
     expect(readFileSync(join(dir, 'spec', 'index.yaml'), 'utf8')).toBe(first);
   });
 
-  test('unsharded project (no spec/features/) gets no index file', () => {
+  test('[covers:F-37b4a8/AC-7e3086] unsharded project (no spec/features/) gets no index file', () => {
     mkdirSync(join(dir, 'spec'), {recursive: true});
     expect(writeFeatureIndexProjection(dir)).toBe(false);
     expect(existsSync(join(dir, 'spec', 'index.yaml'))).toBe(false);

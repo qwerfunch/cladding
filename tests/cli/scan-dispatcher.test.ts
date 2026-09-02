@@ -185,12 +185,12 @@ describe('selectDispatcher', () => {
 // ─── F-b43066 — current-generation defaults + config-file model override ───
 
 describe('model resolution (F-b43066)', () => {
-  test('defaults are current-generation with a 16k output ceiling', () => {
+  test('[covers:F-b43066/AC-3c366e] defaults are current-generation with a 16k output ceiling', () => {
     expect(DEFAULT_MODEL).toBe('claude-sonnet-4-6');
     expect(DEFAULT_MAX_TOKENS).toBe(16384);
   });
 
-  test('precedence: explicit opts.model > config agent.model > built-in default', () => {
+  test('[covers:F-b43066/AC-5119fe] precedence: explicit opts.model > config agent.model > built-in default', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-model-'));
     try {
       // no config → default
@@ -206,7 +206,7 @@ describe('model resolution (F-b43066)', () => {
     }
   });
 
-  test('a malformed config file degrades to the default (never throws)', () => {
+  test('[covers:F-b43066/AC-5119fe] a malformed config file degrades to the default (never throws)', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-model-bad-'));
     try {
       mkdirSync(join(dir, '.cladding'), {recursive: true});

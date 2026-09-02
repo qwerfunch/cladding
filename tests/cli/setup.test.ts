@@ -87,7 +87,7 @@ describe('project-scoped runHostSetup', () => {
     expect(getCurrentCladdingVersion(pkgRoot)).toBe('0.9.4');
   });
 
-  test('default detection wires nothing on a machine with no supported host', async () => {
+  test('[covers:F-80d19d/AC-001] default detection wires nothing on a machine with no supported host', async () => {
     const bareHome = mkdtempSync(join(tmpdir(), 'clad-barehome-'));
     try {
       const result = await runHostSetup({home: bareHome, projectRoot: project, pkgRoot, quiet: true, activate: false});
@@ -160,7 +160,7 @@ describe('project-scoped runHostSetup', () => {
     expect(cli.stdout).toBe('["check","--strict"]');
   });
 
-  test('is idempotent and stores setup status under the project', async () => {
+  test('[covers:F-80d19d/AC-002] is idempotent and stores setup status under the project', async () => {
     await runHostSetup({home, projectRoot: project, pkgRoot, version: '0.9.0', quiet: true, activate: false});
     const second = await runHostSetup({home, projectRoot: project, pkgRoot, version: '0.9.0', quiet: true, activate: false});
 
@@ -211,7 +211,7 @@ describe('project-scoped runHostSetup', () => {
     expect(settings.mcpServers?.cladding?.args).toEqual(['.cladding/host/serve.cjs']);
   });
 
-  test('Gemini setup preserves a conflicting Cladding entry unless force is explicit', async () => {
+  test('[covers:F-80d19d/AC-009] Gemini setup preserves a conflicting Cladding entry unless force is explicit', async () => {
     mkdirSync(join(project, '.gemini'), {recursive: true});
     const settingsPath = join(project, '.gemini', 'settings.json');
     writeFileSync(settingsPath, JSON.stringify({mcpServers: {cladding: {command: 'custom'}}}));
@@ -240,7 +240,7 @@ describe('project-scoped runHostSetup', () => {
     expect(readFileSync(settingsPath, 'utf8')).toContain('.cladding/host/serve.cjs');
   });
 
-  test('preserves a conflicting user MCP entry unless force is explicit', async () => {
+  test('[covers:F-80d19d/AC-009] preserves a conflicting user MCP entry unless force is explicit', async () => {
     mkdirSync(join(project, '.cursor'), {recursive: true});
     writeFileSync(join(project, '.cursor', 'mcp.json'), JSON.stringify({mcpServers: {cladding: {command: 'custom'}}}));
 
@@ -253,7 +253,7 @@ describe('project-scoped runHostSetup', () => {
     expect(readFileSync(join(project, '.cursor', 'mcp.json'), 'utf8')).toContain('.cladding/host/serve.cjs');
   });
 
-  test('Cursor permissions preserve unrelated allow and deny entries', async () => {
+  test('[covers:F-80d19d/AC-011] Cursor permissions preserve unrelated allow and deny entries', async () => {
     mkdirSync(join(project, '.cursor'), {recursive: true});
     writeFileSync(
       join(project, '.cursor', 'cli.json'),
@@ -283,7 +283,7 @@ describe('project-scoped runHostSetup', () => {
     ]);
   });
 
-  test('[covers:F-0f4dd6/AC-018] removes only provably-owned legacy global wires', async () => {
+  test('[covers:F-0f4dd6/AC-018][covers:F-80d19d/AC-012] removes only provably-owned legacy global wires', async () => {
     mkdirSync(join(home, '.agents', 'skills'), {recursive: true});
     mkdirSync(join(home, '.gemini', 'config', 'plugins'), {recursive: true});
     mkdirSync(join(home, '.gemini', 'extensions'), {recursive: true});
@@ -307,7 +307,7 @@ describe('project-scoped runHostSetup', () => {
     expect(readFileSync(join(home, '.codex', 'config.toml'), 'utf8')).toContain('other');
   });
 
-  test('delta-wires a host that appears after the first run, leaving wired ones untouched', async () => {
+  test('[covers:F-80d19d/AC-003] delta-wires a host that appears after the first run, leaving wired ones untouched', async () => {
     rmSync(join(home, '.cursor'), {recursive: true, force: true});
     const first = await runHostSetup({home, projectRoot: project, pkgRoot, quiet: true, activate: false});
     expect(first.wiring.cursor).toBe('skipped-not-selected');
@@ -320,7 +320,7 @@ describe('project-scoped runHostSetup', () => {
     expect(existsSync(join(project, '.cursor', 'mcp.json'))).toBe(true);
   });
 
-  test('re-wires the project runtime when the engine root changes (upgrade path)', async () => {
+  test('[covers:F-80d19d/AC-004] re-wires the project runtime when the engine root changes (upgrade path)', async () => {
     await runHostSetup({home, projectRoot: project, pkgRoot, quiet: true, activate: false});
     const pkgRoot2 = mkdtempSync(join(tmpdir(), 'clad-pkg2-'));
     try {
@@ -339,7 +339,7 @@ describe('project-scoped runHostSetup', () => {
     }
   });
 
-  test('re-creates a deleted project runtime as a repair, no separate flag', async () => {
+  test('[covers:F-80d19d/AC-005] re-creates a deleted project runtime as a repair, no separate flag', async () => {
     await runHostSetup({home, projectRoot: project, pkgRoot, quiet: true, activate: false});
     rmSync(join(project, '.cladding', 'host', 'serve.cjs'));
     const result = await runHostSetup({home, projectRoot: project, pkgRoot, quiet: true, activate: false});
@@ -347,7 +347,7 @@ describe('project-scoped runHostSetup', () => {
     expect(existsSync(join(project, '.cladding', 'host', 'serve.cjs'))).toBe(true);
   });
 
-  test('hostWireNotice guides toward clad setup and surfaces version skew without blocking', () => {
+  test('[covers:F-80d19d/AC-006][covers:F-80d19d/AC-007] hostWireNotice guides toward clad setup and surfaces version skew without blocking', () => {
     expect(hostWireNotice(null, '0.9.0')).toContain('clad setup');
     const skew = hostWireNotice('0.8.3', '0.9.0');
     expect(skew).toContain('0.8.3');
@@ -355,7 +355,7 @@ describe('project-scoped runHostSetup', () => {
     expect(hostWireNotice('0.9.0', '0.9.0')).toBeNull();
   });
 
-  test('codex legacy cleanup preserves user comments and formatting outside the cladding entry', async () => {
+  test('[covers:F-80d19d/AC-012] codex legacy cleanup preserves user comments and formatting outside the cladding entry', async () => {
     mkdirSync(join(home, '.codex'), {recursive: true});
     const before = [
       '# precious top comment',
@@ -385,7 +385,7 @@ describe('project-scoped runHostSetup', () => {
     expect(after).toContain('# cladding block below');
   });
 
-  test('cursor legacy cleanup drops an emptied mcpServers object instead of leaving an orphan', async () => {
+  test('[covers:F-80d19d/AC-012] cursor legacy cleanup drops an emptied mcpServers object instead of leaving an orphan', async () => {
     mkdirSync(join(home, '.cursor'), {recursive: true});
     writeFileSync(join(home, '.cursor', 'mcp.json'), `${JSON.stringify({
       mcpServers: {cladding: {command: 'node', args: [join(pkgRoot, 'dist', 'clad.js'), 'serve']}},
@@ -440,7 +440,7 @@ describe('project-scoped runHostSetup', () => {
     }
   });
 
-  test('report explains the project boundary and normal post-init development', async () => {
+  test('[covers:F-80d19d/AC-010] report explains the project boundary and normal post-init development', async () => {
     const result = await runHostSetup({home, projectRoot: project, pkgRoot, quiet: true, activate: false});
     const report = renderSetupReport(result);
     expect(report).toContain('project activation');

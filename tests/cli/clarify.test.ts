@@ -102,7 +102,7 @@ describe('runClarifyCommand', () => {
     expect(readFileSync(join(dir, target), 'utf8')).toContain('S-abcdef12');
   });
 
-  test('review resolution leaves a proposal untouched when a concurrent schema 0.2 migration wins', () => {
+  test('[covers:F-4f4a12c3/AC-4f4a1204] review resolution leaves a proposal untouched when a concurrent schema 0.2 migration wins', () => {
     seedState(dir, []);
     const target = 'spec/scenarios/checkout-abcdef12.yaml';
     mkdirSync(join(dir, '.cladding', 'scan'), {recursive: true});

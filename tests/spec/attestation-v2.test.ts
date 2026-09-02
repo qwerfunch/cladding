@@ -93,7 +93,7 @@ describe('attestation v2 write format (F-b0f898a6 · AC-35f55851)', () => {
   });
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
-  test('emits two sorted sections in order (modules then features), LF-terminated, shared module once, constant ok markers', () => {
+  test('[covers:F-b0f898a6/AC-35f55851] emits two sorted sections in order (modules then features), LF-terminated, shared module once, constant ok markers', () => {
     expect(stamp(dir, specOf([fA, fB]))).toBe(true);
     const text = readText(dir);
     const lines = text.split('\n');
@@ -126,7 +126,7 @@ describe('attestation v2 write format (F-b0f898a6 · AC-35f55851)', () => {
     expect(featureLines).toEqual(['  F-aaaa1111: ok', '  F-bbbb2222: ok']);
   });
 
-  test('rewrites byte-identically when the module tree is unchanged', () => {
+  test('[covers:F-b0f898a6/AC-35f55851] rewrites byte-identically when the module tree is unchanged', () => {
     stamp(dir, specOf([fA, fB]));
     const first = readText(dir);
     stamp(dir, specOf([fA, fB]));
@@ -134,7 +134,7 @@ describe('attestation v2 write format (F-b0f898a6 · AC-35f55851)', () => {
     expect(second).toBe(first);
   });
 
-  test('editing one shared module file changes exactly one module line and zero feature-marker lines', () => {
+  test('[covers:F-b0f898a6/AC-35f55851] editing one shared module file changes exactly one module line and zero feature-marker lines', () => {
     stamp(dir, specOf([fA, fB]));
     const before = readText(dir);
 
@@ -193,7 +193,7 @@ describe('attestation dual reader + adopter transition (F-b0f898a6 · AC-458c003
     writeFileSync(join(dir, ...ATT), body, 'utf8');
   }
 
-  test('reads a v1 file and preserves its verdicts: matching tree-hash fresh, mismatch stale, absent entry unattested', () => {
+  test('[covers:F-b0f898a6/AC-458c0035] reads a v1 file and preserves its verdicts: matching tree-hash fresh, mismatch stale, absent entry unattested', () => {
     // A real v1 record: feature id → tree-hash over all its module bytes.
     const tree = moduleTreeHash(dir, F.modules ?? []);
     writeV1({[F.id]: tree});
@@ -214,7 +214,7 @@ describe('attestation dual reader + adopter transition (F-b0f898a6 · AC-458c003
     expect(featureAttestation(readAttestation(dir)!, dir, F)).toEqual({state: 'unattested'});
   });
 
-  test('a Frankenstein file with a stale v1 hash but fresh v2 sections resolves v2-wins (fresh)', () => {
+  test('[covers:F-b0f898a6/AC-458c0035] a Frankenstein file with a stale v1 hash but fresh v2 sections resolves v2-wins (fresh)', () => {
     const body =
       'attested:\n' +
       `  ${F.id}: ${'0'.repeat(16)}\n` + // stale v1 hash
@@ -233,7 +233,7 @@ describe('attestation dual reader + adopter transition (F-b0f898a6 · AC-458c003
     expect(featureAttestation(att!, dir, F)).toEqual({state: 'fresh'});
   });
 
-  test('a GREEN write crosses a v1 file over to pure v2 with no manual step', () => {
+  test('[covers:F-b0f898a6/AC-458c0035] a GREEN write crosses a v1 file over to pure v2 with no manual step', () => {
     writeV1({[F.id]: moduleTreeHash(dir, F.modules ?? [])});
     expect(readAttestation(dir)!.v1).not.toBeNull(); // starts as v1
 
@@ -264,12 +264,12 @@ describe('attestation v2 staleness (F-b0f898a6 · AC-ec3d293e)', () => {
   });
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
-  test('fresh only when the marker is present and every module hash matches', () => {
+  test('[covers:F-b0f898a6/AC-ec3d293e] fresh only when the marker is present and every module hash matches', () => {
     stamp(dir, specOf([F]));
     expect(featureAttestation(readAttestation(dir)!, dir, F)).toEqual({state: 'fresh'});
   });
 
-  test('a byte-edited module is stale and the verdict names that module', () => {
+  test('[covers:F-b0f898a6/AC-ec3d293e] a byte-edited module is stale and the verdict names that module', () => {
     stamp(dir, specOf([F]));
     // Edit only src/b.ts; src/a.ts still matches, so the FIRST drift is b.
     writeFileSync(join(dir, 'src', 'b.ts'), 'export const b = 2; // changed\n');
@@ -279,7 +279,7 @@ describe('attestation v2 staleness (F-b0f898a6 · AC-ec3d293e)', () => {
     });
   });
 
-  test('a done feature with modules but no marker is never-attested', () => {
+  test('[covers:F-b0f898a6/AC-ec3d293e] a done feature with modules but no marker is never-attested', () => {
     // Attest ONLY feature F; a hand-flipped done feature G is not in the file.
     stamp(dir, specOf([F]));
     writeFileSync(join(dir, 'src', 'g.ts'), 'export const g = 1;\n');
@@ -287,7 +287,7 @@ describe('attestation v2 staleness (F-b0f898a6 · AC-ec3d293e)', () => {
     expect(featureAttestation(readAttestation(dir)!, dir, G)).toEqual({state: 'unattested'});
   });
 
-  test('a v2 file with duplicate module lines does not crash and the last line wins', () => {
+  test('[covers:F-b0f898a6/AC-ec3d293e] a v2 file with duplicate module lines does not crash and the last line wins', () => {
     const body =
       'attested_modules:\n' +
       '  src/a.ts: aaaaaaaaaaaaaaaa\n' +
@@ -310,7 +310,7 @@ describe('.gitattributes merge-driver pin (F-b0f898a6 · AC-d6e6f792)', () => {
     '.gitattributes',
   );
 
-  test('spec/attestation.yaml has no merge driver while spec/index.yaml keeps merge=union', () => {
+  test('[covers:F-b0f898a6/AC-d6e6f792] spec/attestation.yaml has no merge driver while spec/index.yaml keeps merge=union', () => {
     const text = readFileSync(gitattributesPath, 'utf8');
     const lines = text
       .split('\n')

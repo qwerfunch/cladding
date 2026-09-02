@@ -51,7 +51,7 @@ afterEach(() => {
 });
 
 describe('PostToolUse requests the interactive profile (AC-b49435f8)', () => {
-  test('a source edit runs drift with profile: interactive', () => {
+  test('[covers:F-6ed216f3/AC-b49435f8] a source edit runs drift with profile: interactive', () => {
     runHookEvent('PostToolUse', {tool_name: 'Edit', tool_input: {file_path: 'src/foo.ts'}}, cwd);
     expect(driftStub).toHaveBeenCalledTimes(1);
     expect(driftStub.mock.calls[0][0]).toMatchObject({profile: 'interactive'});
@@ -59,7 +59,7 @@ describe('PostToolUse requests the interactive profile (AC-b49435f8)', () => {
 });
 
 describe('PostToolUse renders the deferred subprocess detectors (AC-870a2ed8)', () => {
-  test('the drift line names how many subprocess detectors were deferred to commit', () => {
+  test('[covers:F-6ed216f3/AC-870a2ed8] the drift line names how many subprocess detectors were deferred to commit', () => {
     // The interactive report carries the skip list; the caller surfaces it as a
     // suffix on the error drift line, so coverage deferred to commit is visible,
     // not silently lost.
@@ -91,7 +91,7 @@ describe('PostToolUse renders the deferred subprocess detectors (AC-870a2ed8)', 
 });
 
 describe('Stop requests the full detector suite (AC-b49435f8)', () => {
-  test('the Stop gate runs drift with no interactive profile (strict, full)', () => {
+  test('[covers:F-6ed216f3/AC-b49435f8] the Stop gate runs drift with no interactive profile (strict, full)', () => {
     runHookEvent('Stop', {stop_hook_active: false}, cwd);
     expect(driftStub).toHaveBeenCalledTimes(1);
     const arg = driftStub.mock.calls[0][0];

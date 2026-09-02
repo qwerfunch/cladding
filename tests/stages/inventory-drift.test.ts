@@ -93,7 +93,7 @@ describe('INVENTORY_DRIFT detector', () => {
 // ─── F-37b4a8 — stale committed index is drift ───
 
 describe('index staleness (F-37b4a8)', () => {
-  test('flags a committed index whose id set disagrees with shards, names both directions, cures with clad sync', () => {
+  test('[covers:F-37b4a8/AC-f1a3f5] flags a committed index whose id set disagrees with shards, names both directions, cures with clad sync', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-invdrift-idx-'));
     try {
       mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
@@ -114,7 +114,7 @@ describe('index staleness (F-37b4a8)', () => {
     }
   });
 
-  test('a regenerated (fresh) index produces no index finding', () => {
+  test('[covers:F-37b4a8/AC-f1a3f5] a regenerated (fresh) index produces no index finding', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-invdrift-fresh-'));
     try {
       mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
@@ -128,7 +128,7 @@ describe('index staleness (F-37b4a8)', () => {
     }
   });
 
-  test('flags a committed index whose row status disagrees with the shard, cured by clad sync', () => {
+  test('[covers:F-37b4a8/AC-f1a3f5] flags a committed index whose row status disagrees with the shard, cured by clad sync', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-invdrift-status-'));
     try {
       mkdirSync(join(dir, 'spec', 'features'), {recursive: true});

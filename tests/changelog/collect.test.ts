@@ -122,7 +122,7 @@ describe('changelog/collect', () => {
     return manifest.groups.flatMap((g) => g.features);
   }
 
-  test('classifies a shard that flipped to done vs one added as done since the ref', () => {
+  test('[covers:F-904495a5/AC-2c3f34] classifies a shard that flipped to done vs one added as done since the ref', () => {
     mutate();
     const manifest = collectChangelog(dir, 'v0');
     const byId = new Map(allFeatures(manifest).map((f) => [f.id, f]));
@@ -139,7 +139,7 @@ describe('changelog/collect', () => {
     expect(gamma?.title).toBe('Gamma flow v2');
   });
 
-  test('groups classified features by capability and routes unmatched ones to uncategorized', () => {
+  test('[covers:F-904495a5/AC-2c3f34] groups classified features by capability and routes unmatched ones to uncategorized', () => {
     mutate();
     const manifest = collectChangelog(dir, 'v0');
     expect(manifest.groups.map((g) => g.capability)).toEqual(['cap-alpha', 'uncategorized']);
@@ -150,7 +150,7 @@ describe('changelog/collect', () => {
     expect(uncategorized.features.map((f) => f.id)).toEqual(['F-bbb002']);
   });
 
-  test('diffs the inventory counts between the ref and the worktree', () => {
+  test('[covers:F-904495a5/AC-2c3f34] diffs the inventory counts between the ref and the worktree', () => {
     mutate();
     const manifest = collectChangelog(dir, 'v0');
     expect(manifest.inventory.before.features).toBe(2);
@@ -158,7 +158,7 @@ describe('changelog/collect', () => {
     expect(manifest.inventory.before.capabilities).toBe(1);
   });
 
-  test('picks up unsharded feat/fix commits that name no feature id', () => {
+  test('[covers:F-904495a5/AC-2c3f34] picks up unsharded feat/fix commits that name no feature id', () => {
     mutate();
     const manifest = collectChangelog(dir, 'v0');
     const subjects = manifest.unsharded_commits.map((c) => c.subject);
@@ -176,13 +176,13 @@ describe('changelog/collect', () => {
     expect(allFeatures(manifest).map((f) => f.id)).not.toContain('F-ddd004');
   });
 
-  test('throws a clear error naming an invalid since ref instead of returning empty', () => {
+  test('[covers:F-904495a5/AC-f38358][covers:F-c58263b8/AC-65b3d185] throws a clear error naming an invalid since ref instead of returning empty', () => {
     mutate();
     expect(() => collectChangelog(dir, 'no-such-ref')).toThrow(/no-such-ref/);
     expect(() => collectChangelog(dir, 'no-such-ref')).toThrow(/never a silently empty changelog/);
   });
 
-  test('defaultSinceRef returns the latest tag and throws a clear error when no tag exists', () => {
+  test('[covers:F-904495a5/AC-f38358] defaultSinceRef returns the latest tag and throws a clear error when no tag exists', () => {
     expect(defaultSinceRef(dir)).toBe('v0');
     const untagged = mkdtempSync(join(tmpdir(), 'clad-changelog-notag-'));
     try {
@@ -195,7 +195,7 @@ describe('changelog/collect', () => {
     }
   });
 
-  test('is deterministic — two runs produce byte-identical JSON', () => {
+  test('[covers:F-904495a5/AC-2c3f34] is deterministic — two runs produce byte-identical JSON', () => {
     mutate();
     const first = JSON.stringify(collectChangelog(dir, 'v0'), null, 2);
     const second = JSON.stringify(collectChangelog(dir, 'v0'), null, 2);

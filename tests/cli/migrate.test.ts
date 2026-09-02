@@ -140,7 +140,7 @@ function oversizedMigrationResolutions(root: string) {
 }
 
 describe('clad migrate', () => {
-  test('previews schema 0.2 migration without writing', () => {
+  test('[covers:F-14c9d647/AC-6413ee0c] previews schema 0.2 migration without writing', () => {
     const root = workspace();
     const before = workspaceManifest(root);
     const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
@@ -171,7 +171,7 @@ describe('clad migrate', () => {
     expect(workspaceManifest(root)).toEqual(before);
   });
 
-  test('refuses apply without writing', () => {
+  test('[covers:F-14c9d647/AC-6413ee0c] refuses apply without writing', () => {
     const root = workspace();
     const before = workspaceManifest(root);
     vi.spyOn(process.stderr, 'write').mockImplementation(() => true);

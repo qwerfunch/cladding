@@ -56,7 +56,7 @@ describe('report/sarif — toSarif (AC-46e8c26f)', () => {
     });
   });
 
-  test('emits exactly one result per error|warn finding and excludes info', () => {
+  test('[covers:F-f6cc5e5a/AC-46e8c26f] emits exactly one result per error|warn finding and excludes info', () => {
     const log = sarif([
       {detector: 'D_ERR', severity: 'error', message: 'boom', path: 'src/a.ts', line: 3},
       {detector: 'D_WARN', severity: 'warn', message: 'careful', path: 'src/b.ts'},
@@ -71,7 +71,7 @@ describe('report/sarif — toSarif (AC-46e8c26f)', () => {
     expect(log.runs[0].tool.driver.rules.map((r) => r.id)).not.toContain('D_INFO');
   });
 
-  test('ruleId is the detector name and level maps error→error, warn→warning', () => {
+  test('[covers:F-f6cc5e5a/AC-46e8c26f] ruleId is the detector name and level maps error→error, warn→warning', () => {
     const log = sarif([
       {detector: 'ALPHA', severity: 'error', message: 'e'},
       {detector: 'BETA', severity: 'warn', message: 'w'},
@@ -81,7 +81,7 @@ describe('report/sarif — toSarif (AC-46e8c26f)', () => {
     expect(byRule.get('BETA')).toBe('warning');
   });
 
-  test('physicalLocation is built from a present path, and startLine defaults to 1', () => {
+  test('[covers:F-f6cc5e5a/AC-46e8c26f] physicalLocation is built from a present path, and startLine defaults to 1', () => {
     const log = sarif([
       {detector: 'WITH_LINE', severity: 'error', message: 'm', path: 'src/x.ts', line: 42},
       {detector: 'NO_LINE', severity: 'warn', message: 'm', path: 'src/y.ts'},
@@ -131,7 +131,7 @@ describe('report/sarif — toSarif (AC-46e8c26f)', () => {
     expect(ableLines).toEqual([1, 5]);
   });
 
-  test('stamps SARIF version 2.1.0 and a $schema, with a single run', () => {
+  test('[covers:F-f6cc5e5a/AC-46e8c26f] stamps SARIF version 2.1.0 and a $schema, with a single run', () => {
     const log = sarif([{detector: 'D', severity: 'error', message: 'm'}]);
     expect(log.version).toBe('2.1.0');
     expect(typeof log.$schema).toBe('string');

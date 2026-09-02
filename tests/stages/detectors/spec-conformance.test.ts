@@ -184,7 +184,7 @@ describe('SPEC_CONFORMANCE detector', () => {
 // ─── F-551a1c — graduated mandate reports, never blocks; the denominator is named ───
 
 describe('graduated report-only mandate (F-551a1c)', () => {
-  test('a grown undeclared-policy project: missing unwanted-AC oracle is INFO (report), and the untagged denominator is named', () => {
+  test('[covers:F-551a1c/AC-7bb981] a grown undeclared-policy project: missing unwanted-AC oracle is INFO (report), and the untagged denominator is named', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-sc-grad-'));
     try {
       mkdirSync(join(dir, 'spec', 'features'), {recursive: true});

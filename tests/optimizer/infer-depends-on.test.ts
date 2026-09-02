@@ -34,7 +34,7 @@ function feature(
 }
 
 describe('inferDependsOn', () => {
-  test("infers A->B when A's module imports a file owned by B", () => {
+  test("[covers:F-2be3e3bb/AC-ffcc0e] infers A->B when A's module imports a file owned by B", () => {
     const spec = makeSpec([
       feature('F-a', ['backend/pkg/a.py']),
       feature('F-b', ['backend/pkg/b.py']),
@@ -52,7 +52,7 @@ describe('inferDependsOn', () => {
     expect(result.suggestions['F-a']).toContain('F-b');
   });
 
-  test('emits no edge for stdlib/third-party/unowned imports', () => {
+  test('[covers:F-2be3e3bb/AC-ffcc0e] emits no edge for stdlib/third-party/unowned imports', () => {
     const spec = makeSpec([feature('F-a', ['backend/pkg/a.py'])]);
     const read: Reader = (p) =>
       p === 'backend/pkg/a.py'
@@ -64,7 +64,7 @@ describe('inferDependsOn', () => {
     expect(result.edges).toEqual([]);
   });
 
-  test('never emits a self-edge when a feature imports its own module', () => {
+  test('[covers:F-2be3e3bb/AC-ffcc0e] never emits a self-edge when a feature imports its own module', () => {
     const spec = makeSpec([
       feature('F-a', ['backend/pkg/a.py', 'backend/pkg/util.py']),
     ]);
@@ -78,7 +78,7 @@ describe('inferDependsOn', () => {
     expect(result.edges).toEqual([]);
   });
 
-  test('skips imports of modules owned by multiple features by default', () => {
+  test('[covers:F-2be3e3bb/AC-84b71a] skips imports of modules owned by multiple features by default', () => {
     const spec = makeSpec([
       feature('F-a', ['backend/pkg/a.py']),
       feature('F-b', ['backend/pkg/shared.py']),

@@ -85,7 +85,7 @@ afterEach(() => {
 });
 
 describe('Spec compiler scenario v2 contract', () => {
-  test('keeps schema 0.1 scenarios compatible while compiling strict schema 0.2 scenario nodes, projections, and source-bearing feature edges', () => {
+  test('[covers:F-0b8f23c5/AC-0b8f2301] keeps schema 0.1 scenarios compatible while compiling strict schema 0.2 scenario nodes, projections, and source-bearing feature edges', () => {
     const legacy = mkdtempSync(join(tmpdir(), 'clad-schema-01-scenarios-'));
     temporary.push(legacy);
     mkdirSync(join(legacy, 'spec', 'scenarios'), {recursive: true});
@@ -126,7 +126,7 @@ describe('Spec compiler scenario v2 contract', () => {
     }]);
   });
 
-  test('blocks malformed scenarios and forbidden legacy or unknown fields under every policy', () => {
+  test('[covers:F-0b8f23c5/AC-0b8f2302] blocks malformed scenarios and forbidden legacy or unknown fields under every policy', () => {
     for (const policy of ['off', 'advisory', 'required'] as const) {
       const root = workspace(policy);
       writeScenario(root, 'invalid-bbbbbbbb.yaml', [
@@ -152,7 +152,7 @@ describe('Spec compiler scenario v2 contract', () => {
     }
   });
 
-  test('blocks unresolved scenario feature refs under every policy', () => {
+  test('[covers:F-0b8f23c5/AC-0b8f2302] blocks unresolved scenario feature refs under every policy', () => {
     for (const policy of ['off', 'advisory', 'required'] as const) {
       const root = workspace(policy);
       writeScenario(root, 'unresolved-bbbbbbbb.yaml', [
@@ -168,7 +168,7 @@ describe('Spec compiler scenario v2 contract', () => {
     }
   });
 
-  test('applies the off advisory and required truth table to absent, missing-field, typed-hollow, and valid scenario coverage', () => {
+  test('[covers:F-0b8f23c5/AC-0b8f2302][covers:F-0b8f23c5/AC-0b8f2303] applies the off advisory and required truth table to absent, missing-field, typed-hollow, and valid scenario coverage', () => {
     const expected = {
       off: {absent: {blocking: false, advisory: false}, missing: {blocking: false, advisory: false}, hollow: {blocking: false, advisory: false}, valid: {blocking: false, advisory: false}},
       advisory: {absent: {blocking: false, advisory: true}, missing: {blocking: false, advisory: true}, hollow: {blocking: false, advisory: true}, valid: {blocking: false, advisory: false}},

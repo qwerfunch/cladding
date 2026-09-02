@@ -507,7 +507,7 @@ describe('typed F4 specification transaction', () => {
     }
   });
 
-  test('rejects a reviewed migration when the inventory test-file census changes', () => {
+  test('[covers:F-4f4a12c3/AC-4f4a1204] rejects a reviewed migration when the inventory test-file census changes', () => {
     const root = migrationSource();
     mkdirSync(join(root, 'tests'), {recursive: true});
     writeFileSync(join(root, 'tests', 'before.test.ts'), 'export {};\n');
@@ -570,7 +570,7 @@ describe('typed F4 specification transaction', () => {
     })]);
   });
 
-  test('fails closed for a broken Git context but permits the same clean-room migration outside Git', () => {
+  test('[covers:F-4f4a12c3/AC-4f4a1204] fails closed for a broken Git context but permits the same clean-room migration outside Git', () => {
     const root = migrationSource();
     const preview = previewSchema02Migration(root);
     const confirmed = migrationConfirmations(preview);

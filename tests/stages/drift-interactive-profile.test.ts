@@ -53,7 +53,7 @@ describe('runDrift interactive profile — in-process only + skip list (AC-870a2
   });
   afterEach(() => clearDetectors());
 
-  test('interactive: only in-process detectors run; subprocess detectors are listed as skipped, their findings dropped', () => {
+  test('[covers:F-6ed216f3/AC-870a2ed8] interactive: only in-process detectors run; subprocess detectors are listed as skipped, their findings dropped', () => {
     const a = spawner('SPAWN_A');
     const b = spawner('SPAWN_B');
     registerDetector(inproc('INPROC_1'));
@@ -76,7 +76,7 @@ describe('runDrift interactive profile — in-process only + skip list (AC-870a2
     expect(b.spy).not.toHaveBeenCalled();
   });
 
-  test('full (default) profile: nothing skipped; subprocess detectors run and contribute findings', () => {
+  test('[covers:F-6ed216f3/AC-870a2ed8] full (default) profile: nothing skipped; subprocess detectors run and contribute findings', () => {
     const a = spawner('SPAWN_A');
     registerDetector(inproc('INPROC_1'));
     registerDetector(a.detector);
@@ -93,7 +93,7 @@ describe('runDrift interactive profile — in-process only + skip list (AC-870a2
     expect(a.spy).toHaveBeenCalledTimes(1);
   });
 
-  test('the real registry subprocess partition = the two adapters, surfaced (not silently dropped) on skippedDetectors', () => {
+  test('[covers:F-6ed216f3/AC-870a2ed8] the real registry subprocess partition = the two adapters, surfaced (not silently dropped) on skippedDetectors', () => {
     // Discovered from the shipping registry — never hardcoded, so this stays
     // correct as the subprocess partition changes.
     const discovered = allDetectors.filter((d) => d.subprocess).map((d) => d.name);
@@ -121,7 +121,7 @@ describe('runDrift never executes a subprocess-flagged detector under interactiv
   });
   afterEach(() => clearDetectors());
 
-  test('a subprocess detector run() executes under full but NEVER under interactive (fixture spy proves non-execution)', () => {
+  test('[covers:F-6ed216f3/AC-7ecad295] a subprocess detector run() executes under full but NEVER under interactive (fixture spy proves non-execution)', () => {
     const s = spawner('WOULD_SPAWN');
     registerDetector(inproc('PURE'));
     registerDetector(s.detector);
@@ -139,7 +139,7 @@ describe('runDrift never executes a subprocess-flagged detector under interactiv
     expect(inter.skippedDetectors).toContain('WOULD_SPAWN');
   });
 
-  test('the real madge/secretlint detectors cross no execa boundary under interactive; they would under full (execa spy)', () => {
+  test('[covers:F-6ed216f3/AC-7ecad295] the real madge/secretlint detectors cross no execa boundary under interactive; they would under full (execa spy)', () => {
     // The strongest form: bind to the real detectors AND the actual spawn
     // primitive. A typescript fixture makes detectToolchain register the arch +
     // secret gates, so under FULL the detectors reach execaSync (mocked — no real

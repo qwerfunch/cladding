@@ -21,7 +21,7 @@ describe('repairTestRefs (F-c037ae)', () => {
   const shard = (refsLine: string): string =>
     `id: F-aaaa11\nslug: login-flow\ntitle: t\nstatus: done\nmodules:\n  - src/login.ts\nacceptance_criteria:\n  - id: AC-001\n    ears: ubiquitous\n    text: t\n${refsLine}`;
 
-  test('REPAIR: a moved ref with a unique basename match is rewritten in place, anchor preserved', () => {
+  test('[covers:F-c037ae/AC-07fa86] REPAIR: a moved ref with a unique basename match is rewritten in place, anchor preserved', () => {
     writeFileSync(join(dir, 'tests', 'cli', 'login.test.ts'), 'export {};\n');
     writeFileSync(
       join(dir, 'spec', 'features', 'login-flow-aaaa11.yaml'),
@@ -38,7 +38,7 @@ describe('repairTestRefs (F-c037ae)', () => {
     expect(body).not.toContain('tests/old/');
   });
 
-  test('REPAIR never guesses: two same-basename candidates leave the shard byte-identical', () => {
+  test('[covers:F-c037ae/AC-3e4d09] REPAIR never guesses: two same-basename candidates leave the shard byte-identical', () => {
     mkdirSync(join(dir, 'tests', 'unit'), {recursive: true});
     writeFileSync(join(dir, 'tests', 'cli', 'login.test.ts'), 'export {};\n');
     writeFileSync(join(dir, 'tests', 'unit', 'login.test.ts'), 'export {};\n');
@@ -51,7 +51,7 @@ describe('repairTestRefs (F-c037ae)', () => {
     expect(readFileSync(join(dir, 'spec', 'features', 'login-flow-aaaa11.yaml'), 'utf8')).toBe(original);
   });
 
-  test('SUGGEST: a done AC with no refs gains a derived: candidate matched by slug', () => {
+  test('[covers:F-c037ae/AC-c78837] SUGGEST: a done AC with no refs gains a derived: candidate matched by slug', () => {
     writeFileSync(join(dir, 'tests', 'cli', 'login-flow.test.ts'), 'export {};\n');
     writeFileSync(join(dir, 'spec', 'features', 'login-flow-aaaa11.yaml'), shard(''));
 
@@ -64,7 +64,7 @@ describe('repairTestRefs (F-c037ae)', () => {
     expect(body).toContain('- "derived:tests/cli/login-flow.test.ts"');
   });
 
-  test('resolved refs and non-done features are left byte-identical', () => {
+  test('[covers:F-c037ae/AC-3e4d09] resolved refs and non-done features are left byte-identical', () => {
     writeFileSync(join(dir, 'tests', 'cli', 'login.test.ts'), 'export {};\n');
     const resolved = shard('    test_refs:\n      - "tests/cli/login.test.ts"\n');
     writeFileSync(join(dir, 'spec', 'features', 'login-flow-aaaa11.yaml'), resolved);

@@ -71,7 +71,7 @@ afterEach(() => {
 });
 
 describe('schema 0.2 project, capability, and architecture contracts', () => {
-  test('preserves explicit project identity and shipped policies without hidden defaults', () => {
+  test('[covers:F-94285dd8/AC-00d84b33] preserves explicit project identity and shipped policies without hidden defaults', () => {
     const root = schema02Workspace();
     writeFileSync(join(root, 'spec.yaml'), [
       'schema: "0.2"', 'project:', '  name: catalog-fixture', '  language: typescript', '  description: A fixture project.', '  version: 0.10.0', '  repository: https://example.test/catalog', '  onboarding_seeded: true',
@@ -107,7 +107,7 @@ describe('schema 0.2 project, capability, and architecture contracts', () => {
     ]));
   });
 
-  test('accepts deliberate empty links, blocks missing and unknown links, and never unions legacy capability owners', () => {
+  test('[covers:F-94285dd8/AC-10b158d6] accepts deliberate empty links, blocks missing and unknown links, and never unions legacy capability owners', () => {
     const root = schema02Workspace();
     writeSchema02Feature(root, 'direct-bbbbbbbb.yaml', [
       'id: F-bbbbbbbb', 'title: Direct', 'status: planned', 'purpose: Contribute directly to project purpose.', 'modules: []', 'depends_on: []', 'capability_refs: []', 'acceptance_criteria: []', '',
@@ -140,7 +140,7 @@ describe('schema 0.2 project, capability, and architecture contracts', () => {
     ]));
   });
 
-  test('materializes catalog and architecture nodes with authored edge direction and a deterministic typed contract', () => {
+  test('[covers:F-94285dd8/AC-2ca57e75] materializes catalog and architecture nodes with authored edge direction and a deterministic typed contract', () => {
     const root = schema02Workspace();
     writeSchema02Feature(root, 'boundary-bbbbbbbb.yaml', [
       'id: F-bbbbbbbb', 'title: Boundary', 'status: planned', 'purpose: Keep constraints accountable.', 'modules: []', 'depends_on: []', 'capability_refs: []', 'acceptance_criteria:',
@@ -198,7 +198,7 @@ describe('schema 0.2 project, capability, and architecture contracts', () => {
     ]));
   });
 
-  test('rejects noncanonical architecture spellings, duplicate rules, and unresolved constraint references', () => {
+  test('[covers:F-94285dd8/AC-2ca57e75] rejects noncanonical architecture spellings, duplicate rules, and unresolved constraint references', () => {
     const root = schema02Workspace();
     writeFileSync(join(root, 'spec', 'architecture.yaml'), [
       'schema: "0.2"', 'source: spec.yaml', 'layers: {foundation: [spec]}', 'forbidden_imports: [{from: spec, to: stages}]', 'rules:',
@@ -263,7 +263,7 @@ describe('schema 0.1 migration candidates', () => {
     expect(() => previewSchema02Migration(nonArrayRoot)).toThrow('capability catalog that is not an array');
   });
 
-  test('copies lossless architecture structure but leaves each rule rationale and lossy layers for review', () => {
+  test('[covers:F-94285dd8/AC-3f2d0ad2] copies lossless architecture structure but leaves each rule rationale and lossy layers for review', () => {
     const root = schema01Workspace();
     writeFileSync(join(root, 'spec', 'architecture.yaml'), [
       '# This comment is explanatory prose, not a structured rule rationale.', 'layers:', '  - [spec, core]', '  - [stages]', 'forbidden_imports:', '  - {from: spec, to: stages}', '',
@@ -284,7 +284,7 @@ describe('schema 0.1 migration candidates', () => {
     ]));
   });
 
-  test('is deterministic and recursively writes zero bytes while apply remains unavailable', () => {
+  test('[covers:F-94285dd8/AC-3f2d0ad2] is deterministic and recursively writes zero bytes while apply remains unavailable', () => {
     const root = schema01Workspace();
     const before = workspaceManifest(root);
     const first = serializeMigrationPreview(previewSchema02Migration(root));

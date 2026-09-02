@@ -151,7 +151,7 @@ describe('runInit', () => {
     expect(r.skipped).toContain('.gitignore (cladding entry already present)');
   });
 
-  test('creates the index merge attribute while leaving attestation unassigned', async () => {
+  test('[covers:F-caff8598/AC-0ef508a1] creates the index merge attribute while leaving attestation unassigned', async () => {
     const r = await runInit({cwd: dir});
     const attributes = readFileSync(join(dir, '.gitattributes'), 'utf8');
     expect(r.created).toContain('.gitattributes (spec/index.yaml merge=union appended)');
@@ -159,7 +159,7 @@ describe('runInit', () => {
     expect(attributes).not.toMatch(/spec\/attestation\.yaml\b[^\n]*\bmerge/);
   });
 
-  test('preserves existing gitattributes and appends the managed index line', async () => {
+  test('[covers:F-caff8598/AC-0ef508a1] preserves existing gitattributes and appends the managed index line', async () => {
     writeFileSync(join(dir, '.gitattributes'), '*.md linguist-detectable\n');
     await runInit({cwd: dir});
     const attributes = readFileSync(join(dir, '.gitattributes'), 'utf8');
@@ -167,7 +167,7 @@ describe('runInit', () => {
     expect(attributes).toContain('spec/index.yaml merge=union');
   });
 
-  test('does not duplicate an existing index merge attribute', async () => {
+  test('[covers:F-caff8598/AC-ad6374ef] does not duplicate an existing index merge attribute', async () => {
     const original = '# user attributes\nspec/index.yaml merge=union\n';
     writeFileSync(join(dir, '.gitattributes'), original);
     const r = await runInit({cwd: dir});

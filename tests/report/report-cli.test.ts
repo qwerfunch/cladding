@@ -118,7 +118,7 @@ describe('clad report — integration (F-f6cc5e5a)', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('AC-cbf1c202 · renders all six sections in order and exits 0', () => {
+  test('[covers:F-f6cc5e5a/AC-cbf1c202] AC-cbf1c202 · renders all six sections in order and exits 0', () => {
     const run = runClad(dir, ['report', '--since', 'v0']);
     expect(run.status, run.stderr).toBe(0);
     const positions = SECTIONS.map((h) => run.stdout.indexOf(h));
@@ -134,7 +134,7 @@ describe('clad report — integration (F-f6cc5e5a)', () => {
     expect(run.stdout).toContain('tests/owned.test.ts#owns it');
   }, 30_000);
 
-  test('AC-cbf1c202 · two runs on the same repo state are byte-identical', () => {
+  test('[covers:F-f6cc5e5a/AC-cbf1c202] AC-cbf1c202 · two runs on the same repo state are byte-identical', () => {
     const first = runClad(dir, ['report', '--since', 'v0']);
     const second = runClad(dir, ['report', '--since', 'v0']);
     expect(first.status).toBe(0);
@@ -142,7 +142,7 @@ describe('clad report — integration (F-f6cc5e5a)', () => {
     expect(second.stdout).toBe(first.stdout);
   }, 30_000);
 
-  test('AC-7672ce5d · the unowned file surfaces; the owned file never appears as unowned', () => {
+  test('[covers:F-f6cc5e5a/AC-7672ce5d] AC-7672ce5d · the unowned file surfaces; the owned file never appears as unowned', () => {
     const run = runClad(dir, ['report', '--since', 'v0']);
     expect(run.status, run.stderr).toBe(0);
     expect(run.stdout).toContain('### Unowned changes');
@@ -151,13 +151,13 @@ describe('clad report — integration (F-f6cc5e5a)', () => {
     expect(unownedBlock).not.toContain('src/owned.ts');
   }, 30_000);
 
-  test('AC-67fa1d25 · an unresolvable --since exits 2 with an error naming the ref', () => {
+  test('[covers:F-c58263b8/AC-65b3d185][covers:F-f6cc5e5a/AC-67fa1d25] AC-67fa1d25 · an unresolvable --since exits 2 with an error naming the ref', () => {
     const run = runClad(dir, ['report', '--since', 'definitely-not-a-ref']);
     expect(run.status).toBe(2);
     expect(`${run.stdout}${run.stderr}`).toContain('definitely-not-a-ref');
   }, 30_000);
 
-  test('AC-67fa1d25 · a valid --since ref exits 0', () => {
+  test('[covers:F-c58263b8/AC-65b3d185][covers:F-f6cc5e5a/AC-67fa1d25] AC-67fa1d25 · a valid --since ref exits 0', () => {
     const run = runClad(dir, ['report', '--since', 'v0']);
     expect(run.status, run.stderr).toBe(0);
   }, 30_000);

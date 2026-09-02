@@ -168,7 +168,7 @@ describe('Spec 0.2 independent corpus snapshot', () => {
     expect(compilation.migrationProofs).toEqual(snapshot.migrationProofs);
   });
 
-  test('reports a meaningful source mutation instead of hiding it behind a literal count', () => {
+  test('[covers:F-182eaa53/AC-b38f45f7] reports a meaningful source mutation instead of hiding it behind a literal count', () => {
     const root = corpusFixture();
     const before = scanIndependentCorpus(root);
     writeFileSync(join(root, 'spec', 'features', 'one-aaaaaaaa.yaml'), [

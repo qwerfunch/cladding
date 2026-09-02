@@ -60,7 +60,7 @@ afterEach(() => {
 });
 
 describe('portable receipt ingestion', () => {
-  test('stores unknown trust as asserted, then keeps the exact content address idempotent', () => {
+  test('[covers:F-2883ff4d/AC-2883ff07] stores unknown trust as asserted, then keeps the exact content address idempotent', () => {
     const root = workspace();
     const {receipt} = signedReceipt();
     const first = ingestPortableReceipt({cwd: root, receiptYaml: serializePortableReceipt(receipt)});

@@ -41,7 +41,7 @@ describe('schema-selected proof view', () => {
     expect(view).toEqual([expect.objectContaining({test: expect.objectContaining({state: 'verified'}), audit: 'unverified', uat: 'unverified', blind: 'unverified', assertedEvidence: 1})]);
   });
 
-  test('reduces only current verified receipt-local Audit, UAT, and blind claims', () => {
+  test('[covers:F-2883ff4d/AC-2883ff08] reduces only current verified receipt-local Audit, UAT, and blind claims', () => {
     const report = parseJUnitReport('<testsuite><testcase file="tests/proof/a.test.ts" name="[covers:F-aaaaaaaa/AC-bbbbbbbb] works"/></testsuite>');
     const common = {receipt_schema: '1' as const, issuer: 'fixture', issuer_key_id: 'a'.repeat(64), issuer_proof: 'AA', subject_sha256: 'b'.repeat(64), observed_at: '2026-08-29T00:00:00.000Z'};
     const view = buildProofView({
@@ -57,7 +57,7 @@ describe('schema-selected proof view', () => {
     expect(view).toEqual([expect.objectContaining({audit: 'verified', uat: 'verified', blind: 'verified'})]);
   });
 
-  test('keeps the schema 0.1 compatibility view free of new receipt reductions', () => {
+  test('[covers:F-2883ff4d/AC-2883ff10] keeps the schema 0.1 compatibility view free of new receipt reductions', () => {
     expect(buildProofView({schemaVersion: '0.1', criteria: ['F-aaaaaaaa/AC-bbbbbbbb']})).toEqual([
       expect.objectContaining({audit: 'unverified', uat: 'unverified', blind: 'unverified', assertedEvidence: 0}),
     ]);

@@ -96,7 +96,7 @@ describe('clad init --with-hook', () => {
 // ─── F-16746b — pre-push hook + kind-generalized installer ───
 
 describe('installGitHook pre-push (F-16746b)', () => {
-  test('renders a strict pre-push hook and installs it alongside pre-commit', () => {
+  test('[covers:F-16746b/AC-b0e73e] renders a strict pre-push hook and installs it alongside pre-commit', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-prepush-'));
     try {
       mkdirSync(join(dir, '.git'), {recursive: true});
@@ -112,7 +112,7 @@ describe('installGitHook pre-push (F-16746b)', () => {
     }
   });
 
-  test('a foreign pre-push hook is never overwritten without force', () => {
+  test('[covers:F-16746b/AC-bf640e] a foreign pre-push hook is never overwritten without force', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-prepush-foreign-'));
     try {
       mkdirSync(join(dir, '.git', 'hooks'), {recursive: true});
@@ -127,7 +127,7 @@ describe('installGitHook pre-push (F-16746b)', () => {
 });
 
 describe('scaffoldCiWorkflow (F-16746b)', () => {
-  test('[covers:F-16746b/AC-a3152c][covers:F-abd10f3c/AC-84011597] CI stays authoritative when a generated hook documents its one-time local bypass', () => {
+  test('[covers:F-16746b/AC-a3152c][covers:F-abd10f3c/AC-84011597][covers:F-16746b/AC-bf640e] CI stays authoritative when a generated hook documents its one-time local bypass', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-ci-'));
     try {
       expect(scaffoldCiWorkflow(dir, '0.9.3')).toBe('created');
@@ -149,7 +149,7 @@ describe('scaffoldCiWorkflow (F-16746b)', () => {
     }
   });
 
-  test('does not scaffold an unpinned workflow when the runtime version is unavailable', () => {
+  test('[covers:F-abd10f3c/AC-8604b579] does not scaffold an unpinned workflow when the runtime version is unavailable', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-ci-no-version-'));
     try {
       expect(scaffoldCiWorkflow(dir, null)).toBe('version-unavailable');

@@ -21,17 +21,17 @@ describe('strictSkipViolations (F-67d2e9)', () => {
     expect(strictSkipViolations(planned, skip('stage_2.3')).length).toBe(0);
   });
 
-  test('[covers:F-7076f7/AC-7f8630] strict skip policy does not emit a stage_2.4 smoke-demand duplicate', () => {
+  test('[covers:F-7076f7/AC-7f8630][covers:F-67d2e9/AC-6c0c35] strict skip policy does not emit a stage_2.4 smoke-demand duplicate', () => {
     const safe = {project: {name: 'x', deliverable: {path: './run', is_safe_to_smoke: true}}, features: [{id: 'F-a', status: 'done'}]} as never;
     expect(strictSkipViolations(safe, skip('stage_2.4'))).toEqual([]);
   });
 
-  test('a demanded stage that PASSED (not skipped) yields no violation', () => {
+  test('[covers:F-67d2e9/AC-6c0c35] a demanded stage that PASSED (not skipped) yields no violation', () => {
     const spec = {project: {name: 'x', language: 'typescript'}, features: [{id: 'F-a', status: 'done'}]} as never;
     expect(strictSkipViolations(spec, [{stage: 'stage_1.1', status: 'pass'}]).length).toBe(0);
   });
 
-  test('multiple demands violated in one run are all reported', () => {
+  test('[covers:F-67d2e9/AC-11101f] multiple demands violated in one run are all reported', () => {
     const spec = {
       project: {name: 'x', language: 'typescript', deliverable: {path: './run', is_safe_to_smoke: true}},
       features: [{id: 'F-a', status: 'done', acceptance_criteria: [{id: 'AC-1', test_refs: ['t.ts'], oracle_refs: ['tests/oracle/x.ts']}]}],

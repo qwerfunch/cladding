@@ -190,7 +190,7 @@ describe('recordEvent (F-b84c38)', () => {
   });
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
-  test('stamps identity and (when in a git repo) head into the payload', () => {
+  test('[covers:F-b84c38/AC-88923c] stamps identity and (when in a git repo) head into the payload', () => {
     recordEvent(dir, 'feature_created', {feature: 'F-test', slug: 'x'});
     const events = readEvents(dir);
     expect(events.length).toBe(1);
@@ -203,7 +203,7 @@ describe('recordEvent (F-b84c38)', () => {
     expect(() => recordEvent('/nonexistent/deeply/bogus', 'gate_run', {tier: 'all'})).not.toThrow();
   });
 
-  test('gate_run dedupes the identical (head, tier, strict, worst) tuple but appends on any change', () => {
+  test('[covers:F-b84c38/AC-49da41] gate_run dedupes the identical (head, tier, strict, worst) tuple but appends on any change', () => {
     recordEvent(dir, 'gate_run', {tier: 'pre-push', strict: true, worst: 0, anyFailed: false});
     recordEvent(dir, 'gate_run', {tier: 'pre-push', strict: true, worst: 0, anyFailed: false}); // identical → skipped
     recordEvent(dir, 'gate_run', {tier: 'pre-push', strict: true, worst: 1, anyFailed: true}); // worst changed → appended
@@ -212,7 +212,7 @@ describe('recordEvent (F-b84c38)', () => {
     expect(runs.length).toBe(3);
   });
 
-  test('a stop block makes the next identical gate observable', () => {
+  test('[covers:F-1aab1bba/AC-8894d11f] a stop block makes the next identical gate observable', () => {
     const gate = {tier: 'pre-push', strict: true, worst: 1, anyFailed: true, stopFingerprint: 'blocked'};
     recordEvent(dir, 'gate_run', gate);
     recordEvent(dir, 'gate_run', gate);
@@ -226,7 +226,7 @@ describe('recordEvent (F-b84c38)', () => {
     expect(events.map((event) => event.type)).toEqual(['gate_run', 'stop_blocked', 'gate_run']);
   });
 
-  test('changed blocker evidence is not deduped behind the same red outcome tuple', () => {
+  test('[covers:F-b84c38/AC-49da41] changed blocker evidence is not deduped behind the same red outcome tuple', () => {
     recordEvent(dir, 'gate_run', {
       tier: 'pre-push',
       strict: true,

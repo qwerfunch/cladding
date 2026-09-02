@@ -10,7 +10,7 @@ import {
 } from '../../src/assurance/registry.js';
 
 describe('F6 assurance registry', () => {
-  test('projects the official 13, the legacy 15, and cumulative assurance levels from one registry', () => {
+  test('[covers:F-6f0a2106/AC-6f0a2101] projects the official 13, the legacy 15, and cumulative assurance levels from one registry', () => {
     expect(OBLIGATION_DESCRIPTORS).toHaveLength(15);
     expect(OBLIGATION_DESCRIPTORS.filter((entry) => entry.ironclad)).toHaveLength(13);
     expect(descriptorsForLevel('L1')).toHaveLength(6);

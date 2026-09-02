@@ -50,7 +50,7 @@ describe('Spec compiler GraphIR v2 skeleton', () => {
     expect(() => compileSpecWorkspace(root)).toThrow(/does not recognize workspace schema/);
   });
 
-  test('is deterministic, preserves composite criteria, and never resolves a bare AC id', () => {
+  test('[covers:F-182eaa53/AC-6e5b88fa] is deterministic, preserves composite criteria, and never resolves a bare AC id', () => {
     const root = workspace();
     writeFeature(root, 'alpha-aaaaaaaa.yaml', [
       'id: F-aaaaaaaa', 'slug: alpha', 'title: Alpha', 'status: planned', 'modules: []', 'acceptance_criteria:',

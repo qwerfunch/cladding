@@ -158,7 +158,7 @@ describe('semanticHue', () => {
     }
   });
 
-  test('kind always wins — tier never touches the node hue (double-encoding removed)', () => {
+  test('[covers:F-5b188856/AC-590579] kind always wins — tier never touches the node hue (double-encoding removed)', () => {
     // Even a tiered node colors by kind: a tier-A module is orange (its kind), NOT tier-A blue.
     expect(semanticHue({tier: 'A', kind: 'module'})).toBe('#f97316');
     expect(semanticHue({tier: 'B', kind: 'test'})).toBe('#22c55e');
@@ -179,7 +179,7 @@ describe('semanticHue', () => {
     expect(new Set([m, t, d]).size).toBe(3);
   });
 
-  test('a tier-only node (no kind) falls back to DEFAULT_NODE — tier is not a hue', () => {
+  test('[covers:F-5b188856/AC-590579] a tier-only node (no kind) falls back to DEFAULT_NODE — tier is not a hue', () => {
     expect(semanticHue({tier: 'A'})).toBe(DEFAULT_NODE);
     expect(semanticHue({tier: 'B'})).toBe(DEFAULT_NODE);
     expect(semanticHue({tier: 'C'})).toBe(DEFAULT_NODE);
@@ -299,7 +299,7 @@ describe('healthOverride', () => {
     expect(r).toBeGreaterThan(b);
   });
 
-  test('error red channel exceeds 1.0', () => {
+  test('[covers:F-77f7ead0/AC-2b3c4d5e] error red channel exceeds 1.0', () => {
     const [r] = healthOverride('error', 0);
     expect(r).toBeGreaterThan(1.0);
   });
@@ -377,7 +377,7 @@ describe('instanceColor', () => {
     expect(maxChannel(drift)).toBeGreaterThan(1.0);
   });
 
-  test('error drift is the brightest: its max channel > any healthy node max channel', () => {
+  test('[covers:F-77f7ead0/AC-2b3c4d5e] error drift is the brightest: its max channel > any healthy node max channel', () => {
     const drift = instanceColor({
       node: {kind: 'feature'},
       deg: 1,
@@ -423,7 +423,7 @@ describe('instanceColor', () => {
 });
 
 describe('edgeColor', () => {
-  test('known kind maps to its color', () => {
+  test('[covers:F-77f7ead0/AC-4d5e6f70] known kind maps to its color', () => {
     expect(edgeColor('depends_on')).toBe('#3b82f6');
   });
 
@@ -434,7 +434,7 @@ describe('edgeColor', () => {
 });
 
 describe('edgeIntensity', () => {
-  test('no highlight, same kind -> 0.25', () => {
+  test('[covers:F-77f7ead0/AC-4d5e6f70] no highlight, same kind -> 0.25', () => {
     expect(
       edgeIntensity({highlightActive: false, sourceHi: false, targetHi: false, sameKind: true}),
     ).toBeCloseTo(0.25);
@@ -446,13 +446,13 @@ describe('edgeIntensity', () => {
     ).toBeCloseTo(0.06);
   });
 
-  test('highlight active, both endpoints hi -> 0.5', () => {
+  test('[covers:F-77f7ead0/AC-4d5e6f70] highlight active, both endpoints hi -> 0.5', () => {
     expect(
       edgeIntensity({highlightActive: true, sourceHi: true, targetHi: true, sameKind: false}),
     ).toBeCloseTo(0.5);
   });
 
-  test('highlight active, neither hi -> 0 (skip)', () => {
+  test('[covers:F-77f7ead0/AC-4d5e6f70] highlight active, neither hi -> 0 (skip)', () => {
     expect(
       edgeIntensity({highlightActive: true, sourceHi: false, targetHi: false, sameKind: true}),
     ).toBeCloseTo(0);

@@ -66,7 +66,7 @@ describe('Stop outcome telemetry', () => {
     ).toEqual({detectors: ['NEW', 'OLD'], introduced: 1, preexisting: 2, dirty_hit: true});
   });
 
-  test('matches a blocked fingerprint only against later gate runs', () => {
+  test('[covers:F-1aab1bba/AC-8894d11f] matches a blocked fingerprint only against later gate runs', () => {
     const events = [
       event('gate_run', {stopFingerprint: 'same'}),
       event('stop_blocked', {fingerprint: 'same'}),

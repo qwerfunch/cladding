@@ -105,14 +105,14 @@ describe('AC-4c28425b · deleted docs leave zero dangling references outside his
     expect(filesVisited, 'files visited under src/ tests/ docs/').toBeGreaterThan(300);
   });
 
-  test('zero references to the deleted filenames under src/, tests/, docs/', () => {
+  test('[covers:F-987be195/AC-4c28425b] zero references to the deleted filenames under src/, tests/, docs/', () => {
     const {hits} = walkForNeedles(['src', 'tests', 'docs'], DELETED_DOCS);
     for (const doc of DELETED_DOCS) {
       expect(hits.get(doc), `no file under src/ tests/ docs/ mentions ${doc}`).toEqual([]);
     }
   });
 
-  test('repo-wide, the only remaining mentions are the pre-adjudicated tolerated files', () => {
+  test('[covers:F-987be195/AC-4c28425b] repo-wide, the only remaining mentions are the pre-adjudicated tolerated files', () => {
     const {filesVisited, hits} = walkForNeedles(['.'], DELETED_DOCS);
     expect(filesVisited, 'repo-wide scan (minus build/vendor dirs) visits a real number of files').toBeGreaterThan(700);
     for (const doc of DELETED_DOCS) {
@@ -126,14 +126,14 @@ describe('AC-4c28425b · deleted docs leave zero dangling references outside his
     }
   });
 
-  test('docs/README.md tier index no longer lists either deleted doc row', () => {
+  test('[covers:F-987be195/AC-4c28425b] docs/README.md tier index no longer lists either deleted doc row', () => {
     const readme = read('docs/README.md');
     for (const doc of DELETED_DOCS) {
       expect(readme, `docs/README.md row for ${doc}`).not.toContain(doc);
     }
   });
 
-  test('src/init/host-setup.ts carries the project-scoped Antigravity boundary directly', () => {
+  test('[covers:F-987be195/AC-4c28425b] src/init/host-setup.ts carries the project-scoped Antigravity boundary directly', () => {
     const hostSetup = read('src/init/host-setup.ts');
     expect(hostSetup, 'load-bearing WHY: global install must not leak context').toContain(
       'Installing the CLI globally must not make Cladding visible to every AI',
@@ -143,7 +143,7 @@ describe('AC-4c28425b · deleted docs leave zero dangling references outside his
     expect(hostSetup, 'does not point back to the deleted marketplace design').not.toContain(MARKETPLACE_DOC);
   });
 
-  test('src/spec/types.ts J5b comment cites the ac-hash-ids shard, not the deleted doc', () => {
+  test('[covers:F-987be195/AC-4c28425b] src/spec/types.ts J5b comment cites the ac-hash-ids shard, not the deleted doc', () => {
     const typesTs = read('src/spec/types.ts');
     expect(typesTs, 'cites the shard carrying the J5b rationale').toContain('spec/features/ac-hash-ids-a04cd9.yaml');
     expect(typesTs, 'cites the specific AC').toContain('AC-003');
@@ -166,18 +166,18 @@ describe('AC-51b8dbee · the roadmap keeps Transport verbatim and drops removed-
     {file: 'src/adapters/types.ts', heading: '## Two modes'},
   ];
 
-  test('the Transport architectural decision heading is present verbatim', () => {
+  test('[covers:F-987be195/AC-51b8dbee] the Transport architectural decision heading is present verbatim', () => {
     expect(read(ROADMAP)).toContain(TRANSPORT_HEADING);
   });
 
-  test('zero removed-verb phrases remain in the roadmap', () => {
+  test('[covers:F-987be195/AC-51b8dbee] zero removed-verb phrases remain in the roadmap', () => {
     const roadmap = read(ROADMAP);
     for (const phrase of REMOVED_VERBS) {
       expect(roadmap, `roadmap must not mention "${phrase}"`).not.toContain(phrase);
     }
   });
 
-  test('the three Transport-citing adapter files still name the section, and the section still resolves', () => {
+  test('[covers:F-987be195/AC-51b8dbee] the three Transport-citing adapter files still name the section, and the section still resolves', () => {
     const roadmap = read(ROADMAP);
     expect(roadmap).toContain(TRANSPORT_HEADING);
     for (const file of TRANSPORT_CITING_FILES) {
@@ -187,7 +187,7 @@ describe('AC-51b8dbee · the roadmap keeps Transport verbatim and drops removed-
     }
   });
 
-  test('the other three @see anchors (adapter matrix ×2, two-modes overview ×1) still resolve to real headings', () => {
+  test('[covers:F-987be195/AC-51b8dbee] the other three @see anchors (adapter matrix ×2, two-modes overview ×1) still resolve to real headings', () => {
     const roadmap = read(ROADMAP);
     for (const {file, heading} of OTHER_SECTION_CITING_FILES) {
       const content = read(file);
@@ -196,7 +196,7 @@ describe('AC-51b8dbee · the roadmap keeps Transport verbatim and drops removed-
     }
   });
 
-  test('all six @see docs/multi-provider-roadmap.md anchors are accounted for', () => {
+  test('[covers:F-987be195/AC-51b8dbee] all six @see docs/multi-provider-roadmap.md anchors are accounted for', () => {
     const allSix = [...TRANSPORT_CITING_FILES, ...OTHER_SECTION_CITING_FILES.map((x) => x.file)];
     expect(new Set(allSix).size, 'six distinct adapter files').toBe(6);
     for (const file of allSix) {
@@ -218,7 +218,7 @@ describe('AC-28a53560 · four A/B docs carry the dated snapshot footnote near th
     'grown to 41',
   ];
 
-  test('all four A/B docs carry the dated snapshot footnote near the top', () => {
+  test('[covers:F-987be195/AC-28a53560] all four A/B docs carry the dated snapshot footnote near the top', () => {
     for (const file of AB_FOOTNOTE_FILES) {
       const lines = read(file).split('\n').slice(0, 15).join('\n');
       expect(lines, `${file}: non-numeric historical snapshot footnote within the first 15 lines`)
@@ -229,7 +229,7 @@ describe('AC-28a53560 · four A/B docs carry the dated snapshot footnote near th
     }
   });
 
-  test('renderCaseReport (the generator) emits the footnote, so it is not a hand-edit the next regen would erase', () => {
+  test('[covers:F-987be195/AC-28a53560] renderCaseReport (the generator) emits the footnote, so it is not a hand-edit the next regen would erase', () => {
     // The two generated case files (case-payment-saas.md, case-existing-adoption.md)
     // are byte-exact snapshots asserted by writeOrAssertReport (tests/scenarios/ab/_report.ts).
     // Re-diffing that here would re-implement the generator's own guard; the actual

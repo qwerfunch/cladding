@@ -171,7 +171,7 @@ describe('scanPatterns', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('[covers:F-87bb7ed3/AC-c5e83b19] scale gate: under 8 features the legacy narrow patterns apply even with layers declared', () => {
+  test('[covers:F-87bb7ed3/AC-c5e83b19][covers:F-aee61f/AC-c0e388] scale gate: under 8 features the legacy narrow patterns apply even with layers declared', () => {
     write(dir, 'src/cli/a.ts');
     const spec = {
       project: {name: 'x', language: 'typescript'},
@@ -181,12 +181,12 @@ describe('scanPatterns', () => {
     expect(scanPatterns(spec, dir)).toEqual(['src/stages/**/*.ts', 'src/spec/**/*.ts']);
   });
 
-  test('falls back to the legacy narrow patterns when no architecture is declared', () => {
+  test('[covers:F-aee61f/AC-c0e388] falls back to the legacy narrow patterns when no architecture is declared', () => {
     const spec = {project: {name: 'x', language: 'typescript'}, features: []} as never;
     expect(scanPatterns(spec, dir)).toEqual(['src/stages/**/*.ts', 'src/spec/**/*.ts']);
   });
 
-  test('derives one pattern per declared layer (canonical string-tier form) from the observed extension', () => {
+  test('[covers:F-aee61f/AC-cd6984] derives one pattern per declared layer (canonical string-tier form) from the observed extension', () => {
     write(dir, 'src/cli/a.ts');
     const spec = {
       project: {name: 'x', language: 'typescript'},
@@ -200,7 +200,7 @@ describe('scanPatterns', () => {
     ]);
   });
 
-  test('accepts the {name} object layer form', () => {
+  test('[covers:F-aee61f/AC-cd6984] accepts the {name} object layer form', () => {
     write(dir, 'src/api/handler.py');
     const spec = {
       project: {name: 'x', language: 'python'},
@@ -459,7 +459,7 @@ describe('UNMAPPED_ARTIFACT — declared layers reach real files', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('a file in a declared layer that no feature claims is FOUND (was blind pre-0.6)', () => {
+  test('[covers:F-aee61f/AC-cd6984] a file in a declared layer that no feature claims is FOUND (was blind pre-0.6)', () => {
     write(dir, 'src/router/orphan.ts', 'export const x = 1;\n');
     writeFileSync(join(dir, 'spec.yaml'), inlineSpec('typescript', ['router']));
     const findings = unmappedArtifact.run({cwd: dir});

@@ -154,7 +154,7 @@ afterEach(() => vi.clearAllMocks());
 describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () => {
   const TIERS = Object.entries(clad.TIER_STAGES) as [string, readonly StageName[]][];
 
-  test('baseline: all stages pass → worst 0, nothing failed, every tier runs exactly its TIER_STAGES', () => {
+  test('[covers:F-d49585/AC-526e25] baseline: all stages pass → worst 0, nothing failed, every tier runs exactly its TIER_STAGES', () => {
     for (const [tier, expectedStages] of TIERS) {
       for (const strict of [false, true]) {
         const doc = runMatrixCase(tier, strict);
@@ -166,7 +166,7 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     }
   });
 
-  test('single-stage FAIL: exactly that stage reports fail; worst 1; gate blocks — every stage × every tier × strict on/off', () => {
+  test('[covers:F-d49585/AC-526e25] single-stage FAIL: exactly that stage reports fail; worst 1; gate blocks — every stage × every tier × strict on/off', () => {
     for (const [tier, stages] of TIERS) {
       for (const failing of stages) {
         for (const strict of [false, true]) {
@@ -182,7 +182,7 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     }
   });
 
-  test('single-stage SKIP is non-blocking: worst stays 0 — every stage × tier × strict EXCEPT the pinned unit-guard promotion', () => {
+  test('[covers:F-d49585/AC-526e25] single-stage SKIP is non-blocking: worst stays 0 — every stage × tier × strict EXCEPT the pinned unit-guard promotion', () => {
     for (const [tier, stages] of TIERS) {
       for (const skipping of stages) {
         for (const strict of [false, true]) {
@@ -216,7 +216,7 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     },
   };
 
-  test('[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking', () => {
+  test('[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf][covers:F-67d2e9/AC-11101f][covers:F-67d2e9/AC-6c0c35] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking', () => {
     for (const [name, {spec, stage}] of Object.entries(DEMAND_SPECS)) {
       loadSpecMock.mockImplementation(() => spec);
       setAll(PASS);
@@ -279,7 +279,7 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     }
   });
 
-  test('unknown tier → worst 2, anyFailed true, no stages run', () => {
+  test('[covers:F-d49585/AC-3f7ea4] unknown tier → worst 2, anyFailed true, no stages run', () => {
     const doc = runMatrixCase('nightly', false);
     expect(doc.worst).toBe(2);
     expect(doc.anyFailed).toBe(true);
@@ -287,7 +287,7 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     for (const fn of Object.values(stubs)) expect(fn).not.toHaveBeenCalled();
   });
 
-  test('records compact blocker telemetry without changing the gate matrix', () => {
+  test('[covers:F-1aab1bba/AC-3cb0ca39][covers:F-b84c38/AC-49da41] records compact blocker telemetry without changing the gate matrix', () => {
     setAll(PASS);
     recordEventMock.mockClear();
     runMatrixCase('pre-push', true);
@@ -321,7 +321,7 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     expect((gateRuns[0][2] as {stopFingerprint: string}).stopFingerprint).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  test('PINNED (F-a5228c): solely-stale drift under strict pre-push is exempted, run counts GREEN, attestation stamps', () => {
+  test('[covers:F-a5228c/AC-e93858] PINNED (F-a5228c): solely-stale drift under strict pre-push is exempted, run counts GREEN, attestation stamps', () => {
     setAll(PASS);
     writeAttestationMock.mockClear();
     stubs['stage_1.3'].mockImplementation(() => ({
@@ -336,7 +336,7 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     expect(writeAttestationMock).toHaveBeenCalledTimes(1);
   });
 
-  test('no exemption when drift carries any OTHER failing finding, or in the pre-commit tier', () => {
+  test('[covers:F-a5228c/AC-e93858] no exemption when drift carries any OTHER failing finding, or in the pre-commit tier', () => {
     // mixed findings → stays RED
     setAll(PASS);
     stubs['stage_1.3'].mockImplementation(() => ({
@@ -359,7 +359,7 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     expect(runMatrixCase('pre-commit', true).worst).toBe(1);
   });
 
-  test('a plain GREEN strict pre-push run stamps policy identity; non-strict does not', () => {
+  test('[covers:F-a5228c/AC-e93858][covers:F-caff8598/AC-a4d41de9] a plain GREEN strict pre-push run stamps policy identity; non-strict does not', () => {
     setAll(PASS);
     writeAttestationMock.mockClear();
     runMatrixCase('pre-push', true);

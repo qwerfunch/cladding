@@ -24,7 +24,7 @@ const EN_VARIANTS = ['README.md', 'README.html'];
 const KO_VARIANTS = ['README.ko.md', 'README.ko.html'];
 const ALL_VARIANTS = [...EN_VARIANTS, ...KO_VARIANTS];
 
-test('current worktree feature counts match the canonical inventory', () => {
+test('[covers:F-b8d77abf/AC-e2c6b5f8] current worktree feature counts match the canonical inventory', () => {
   const featureFiles = readdirSync(join(ROOT, 'spec', 'features'))
     .filter((name) => name.endsWith('.yaml') || name.endsWith('.yml'));
   const total = featureFiles.length;

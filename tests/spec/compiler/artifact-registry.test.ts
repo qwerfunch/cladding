@@ -11,7 +11,7 @@ import {
 } from '../../../src/spec/compiler/artifact-registry.js';
 
 describe('Spec 0.2 artifact registry', () => {
-  test('keeps descriptor ids unique and root-file regions separate', () => {
+  test('[covers:F-182eaa53/AC-34749728] keeps descriptor ids unique and root-file regions separate', () => {
     expect(new Set(ARTIFACT_DESCRIPTORS.map((descriptor) => descriptor.id)).size).toBe(ARTIFACT_DESCRIPTORS.length);
     expect(resolveArtifactDescriptors('spec.yaml', 'project').map((descriptor) => descriptor.id)).toEqual(['spec-project-region']);
     expect(resolveArtifactDescriptors('spec.yaml', 'inventory').map((descriptor) => descriptor.id)).toEqual(['spec-inventory-region']);

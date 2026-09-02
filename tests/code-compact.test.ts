@@ -45,14 +45,14 @@ function walkTs(dir: string, out: string[] = []): string[] {
 }
 
 describe('AC-de1bc6c5 · the four detector-local threshold-seam functions are inlined, no config knob added', () => {
-  test('the removed seam symbol appears in no file under src/ or tests/ (non-vacuous: scan visits >100 files)', () => {
+  test('[covers:F-c58263b8/AC-de1bc6c5] the removed seam symbol appears in no file under src/ or tests/ (non-vacuous: scan visits >100 files)', () => {
     const files = [...walkTs('src'), ...walkTs('tests')];
     expect(files.length, 'sanity: the scan actually walked a non-trivial tree').toBeGreaterThan(100);
     const offenders = files.filter((f) => read(f).includes(SEAM_SYMBOL));
     expect(offenders, `no file may contain the removed seam symbol ('${SEAM_SYMBOL}')`).toEqual([]);
   });
 
-  test('the four DEFAULT_* constants are still exported and are now the direct comparand (the seam function is gone, the surface is not)', () => {
+  test('[covers:F-c58263b8/AC-de1bc6c5] the four DEFAULT_* constants are still exported and are now the direct comparand (the seam function is gone, the surface is not)', () => {
     const cases: ReadonlyArray<{file: string; constant: string}> = [
       {file: 'src/stages/detectors/planned-backlog.ts', constant: 'DEFAULT_MAX_PLANNED_AHEAD'},
       {file: 'src/stages/detectors/hollow-governance.ts', constant: 'DEFAULT_MIN_FEATURES_FOR_DESIGN'},
@@ -65,7 +65,7 @@ describe('AC-de1bc6c5 · the four detector-local threshold-seam functions are in
     }
   });
 
-  test('the "wire a config seam later" narrative comments are gone; no ai_hints.max_planned_ahead knob was added', () => {
+  test('[covers:F-c58263b8/AC-de1bc6c5] the "wire a config seam later" narrative comments are gone; no ai_hints.max_planned_ahead knob was added', () => {
     const files = [
       'src/stages/detectors/planned-backlog.ts',
       'src/stages/detectors/hollow-governance.ts',
@@ -84,20 +84,20 @@ describe('AC-de1bc6c5 · the four detector-local threshold-seam functions are in
 });
 
 describe('AC-65b3d185 · git ref resolution lives exactly once in src/core/git-ops.ts', () => {
-  test('git-ops.ts exports resolveRefToCommit(cwd, ref): string | null and refExists(cwd, ref): boolean', () => {
+  test('[covers:F-c58263b8/AC-65b3d185] git-ops.ts exports resolveRefToCommit(cwd, ref): string | null and refExists(cwd, ref): boolean', () => {
     const body = read('src/core/git-ops.ts');
     expect(body, 'resolveRefToCommit is the resolving probe').toMatch(/export function resolveRefToCommit\(cwd: string, ref: string\): string \| null/);
     expect(body, 'refExists is its boolean projection').toMatch(/export function refExists\(cwd: string, ref: string\): boolean/);
     expect(body, 'refExists is defined in terms of resolveRefToCommit, not a second probe').toMatch(/refExists[\s\S]{0,80}resolveRefToCommit\(cwd, ref\) !== null/);
   });
 
-  test('the rev-parse + --verify idiom appears in NO src file other than core/git-ops.ts', () => {
+  test('[covers:F-c58263b8/AC-65b3d185] the rev-parse + --verify idiom appears in NO src file other than core/git-ops.ts', () => {
     const files = walkTs('src');
     const offenders = files.filter((f) => f !== 'src/core/git-ops.ts' && read(f).includes('rev-parse') && read(f).includes('--verify'));
     expect(offenders, 'only core/git-ops.ts may combine the rev-parse + --verify idiom').toEqual([]);
   });
 
-  test('the three prior duplicate call sites import the core probe instead of shelling out themselves', () => {
+  test('[covers:F-c58263b8/AC-65b3d185] the three prior duplicate call sites import the core probe instead of shelling out themselves', () => {
     const cases: ReadonlyArray<{file: string; symbol: string}> = [
       {file: 'src/changelog/collect.ts', symbol: 'refExists'},
       {file: 'src/cli/report.ts', symbol: 'refExists'},

@@ -303,7 +303,7 @@ describe('AC-9a1c4e21 / AC-3f7e0c94 — primed vitest gate: the suite runs ONCE 
     expect(args.some((a) => a.startsWith('--outputFile='))).toBe(true);
   });
 
-  test('F6 records the exact shared Vitest argv and digest, including both reporters and its output path', () => {
+  test('[covers:F-6f0a2106/AC-6f0a2111] F6 records the exact shared Vitest argv and digest, including both reporters and its output path', () => {
     // Re-prime with an input seal so capture is active; the hand-authored
     // expectation is the process mock's argv, never the production builder.
     clearTestRunCache();
@@ -328,7 +328,7 @@ describe('AC-9a1c4e21 / AC-3f7e0c94 — primed vitest gate: the suite runs ONCE 
     expect(digest(changedOutput)).not.toBe(proof?.commandSha256);
   });
 
-  test('F6 records the exact direct Vitest argv when coverage cannot share the runner', () => {
+  test('[covers:F-6f0a2106/AC-6f0a2111] F6 records the exact direct Vitest argv when coverage cannot share the runner', () => {
     clearTestRunCache();
     primeTestRunCache(dir, 'b'.repeat(64));
     mkdirSync(join(dir, '.cladding'), {recursive: true});

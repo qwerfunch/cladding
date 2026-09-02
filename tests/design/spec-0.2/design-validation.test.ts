@@ -21,7 +21,7 @@ describe('Spec 0.2 validation ledger', () => {
     report = await validateSpec02(process.cwd());
   });
 
-  test('marks the F7 scenario boundary validation-active without promoting F8-F11 work', () => {
+  test('[covers:F-182eaa53/AC-6d69273c][covers:F-b8d77abf/AC-6e5f6558] marks the F7 scenario boundary validation-active without promoting F8-F11 work', () => {
     const manifest = loadValidationManifest(process.cwd());
     expect(manifest.decisions.map((decision) => decision.id)).toEqual(
       Array.from({length: 24}, (_, index) => `D${String(index + 1).padStart(2, '0')}`),
@@ -77,7 +77,7 @@ describe('Spec 0.2 validation ledger', () => {
     expect(decisionOwnershipIssues(manifest, fenced)).toEqual([]);
   });
 
-  test('keeps the D01-D24 ledger canonical and rejects fabricated preregistered pass evidence', () => {
+  test('[covers:F-0a29d024/AC-21dfe21a] keeps the D01-D24 ledger canonical and rejects fabricated preregistered pass evidence', () => {
     const manifest = loadValidationManifest(process.cwd());
     const decisionIds = Array.from({length: 24}, (_, index) => `D${String(index + 1).padStart(2, '0')}`);
     expect(manifest.decisions.map((decision) => decision.id)).toEqual(decisionIds);
@@ -101,7 +101,7 @@ describe('Spec 0.2 validation ledger', () => {
     ]);
   });
 
-  test('runs deterministic design scenarios without converting pending implementation into evidence', () => {
+  test('[covers:F-0a29d024/AC-e0f0c4b1][covers:F-b8d77abf/AC-eee960eb][covers:F-b8d77abf/AC-f31b6ee2] runs deterministic design scenarios without converting pending implementation into evidence', () => {
     const manifest = loadValidationManifest(process.cwd());
     expect(manifest.preregistered_cases).toHaveLength(37);
     expect(new Set(manifest.preregistered_cases.map((entry) => entry.id))).toHaveProperty('size', 37);
@@ -121,7 +121,7 @@ describe('Spec 0.2 validation ledger', () => {
       .toBeGreaterThan(0);
   });
 
-  test('accounts for controlled bytes tokens cache and counterfactual waste honestly', () => {
+  test('[covers:F-0a29d024/AC-4c8c08d1] accounts for controlled bytes tokens cache and counterfactual waste honestly', () => {
     const value = '가나다abc';
     const uncontrolled = measureUsage('candidate', value, {
       comparator: {label: 'different-output', value: 'x', equivalentOutput: false},
@@ -149,14 +149,14 @@ describe('Spec 0.2 validation ledger', () => {
     expect(claimedWaste[0].avoidable_bytes).toBeGreaterThan(0);
   });
 
-  test('emits byte-identical summaries with distinct result states', async () => {
+  test('[covers:F-0a29d024/AC-55c159b4] emits byte-identical summaries with distinct result states', async () => {
     const second = await validateSpec02(process.cwd());
     expect(stableJson(second)).toBe(stableJson(report));
     const states = new Set(report.checks.map((check) => check.status));
     expect(states).toEqual(new Set(['pass', 'inconclusive', 'not_run', 'implementation_pending']));
   });
 
-  test('keeps each routed design owner below the documented byte ceiling', () => {
+  test('[covers:F-2f840a6c/AC-3e816b4c] keeps each routed design owner below the documented byte ceiling', () => {
     const manifest = loadValidationManifest(process.cwd());
     for (const path of new Set(manifest.decisions.map((decision) => decision.owner))) {
       const bytes = Buffer.byteLength(readFileSync(join(process.cwd(), path), 'utf8'), 'utf8');
@@ -172,7 +172,7 @@ describe('Spec 0.2 validation ledger', () => {
     });
   });
 
-  test('keeps bounded MCP and broader GraphIR benchmark claims distinct', () => {
+  test('[covers:F-2f840a6c/AC-9ea2eae1] keeps bounded MCP and broader GraphIR benchmark claims distinct', () => {
     const graph = readFileSync(join(process.cwd(), 'docs/design/spec-0.2/graph.md'), 'utf8');
     const context = readFileSync(join(process.cwd(), 'docs/design/spec-0.2/context-and-orchestration.md'), 'utf8');
     const delivery = readFileSync(join(process.cwd(), 'docs/design/spec-0.2/delivery.md'), 'utf8');
@@ -184,7 +184,7 @@ describe('Spec 0.2 validation ledger', () => {
     expect(decisions).toContain('Broader LLM GraphIR retrieval study');
   });
 
-  test('locks the 0.10 rebaseline without upgrading pending runtime evidence', () => {
+  test('[covers:F-182eaa53/AC-6d69273c] locks the 0.10 rebaseline without upgrading pending runtime evidence', () => {
     const model = readFileSync(join(process.cwd(), 'docs/design/spec-0.2/model-and-migration.md'), 'utf8');
     const delivery = readFileSync(join(process.cwd(), 'docs/design/spec-0.2/delivery.md'), 'utf8');
     const context = readFileSync(join(process.cwd(), 'docs/design/spec-0.2/context-and-orchestration.md'), 'utf8');
@@ -217,7 +217,7 @@ describe('Spec 0.2 validation ledger', () => {
       .toBe('not_run');
   });
 
-  test('keeps validation evidence measurements scoped and reproducible', () => {
+  test('[covers:F-2f840a6c/AC-21a9e51f] keeps validation evidence measurements scoped and reproducible', () => {
     const evidence = readFileSync(join(process.cwd(), 'docs/design/spec-0.2/evidence.md'), 'utf8');
     const designDir = join(process.cwd(), 'docs/design/spec-0.2');
     const completeBytes = Buffer.byteLength(

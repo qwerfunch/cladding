@@ -261,7 +261,7 @@ describe('buildPanelModel — row model SSoT (AC-e5f48ce5)', () => {
     expect(model.columns).toEqual([...STAGE_COLUMNS, 'att']);
   });
 
-  test('one row per feature with {featureId, title, status, cells} aligned to columns', () => {
+  test('[covers:F-e940fffe/AC-e5f48ce5] one row per feature with {featureId, title, status, cells} aligned to columns', () => {
     const spec = goldenSpec();
     const model = buildPanelModel(spec, dir);
     expect(model.rows).toHaveLength(spec.features.length);
@@ -293,7 +293,7 @@ describe('buildPanelModel — row model SSoT (AC-e5f48ce5)', () => {
     }
   });
 
-  test('GOLDEN · default (Soft Shell) ANSI view is byte-identical to the pinned snapshot', () => {
+  test('[covers:F-e940fffe/AC-e5f48ce5] GOLDEN · default (Soft Shell) ANSI view is byte-identical to the pinned snapshot', () => {
     const golden = [
       'feature                            Typ Lin Dri Com Arc Sec Uni Cov Smo Per Vis Aud UAT att',
       'alpha feature                       -   -   -   -   -   -   -   -   -   -   -   ·   ·   -',
@@ -303,7 +303,7 @@ describe('buildPanelModel — row model SSoT (AC-e5f48ce5)', () => {
     expect(renderPanel(goldenSpec(), dir)).toBe(golden);
   });
 
-  test('GOLDEN · internal (Iron Core) ANSI view is byte-identical to the pinned snapshot', () => {
+  test('[covers:F-e940fffe/AC-e5f48ce5] GOLDEN · internal (Iron Core) ANSI view is byte-identical to the pinned snapshot', () => {
     const golden = [
       'feature      1.1 1.2 1.3 1.4 1.5 1.6 2.1 2.2 3.1 3.2 3.3 4.1 4.2 att',
       'F-aaaa1111   -   -   -   -   -   -   -   -   -   -   -   ·   ·   -  alpha feature',

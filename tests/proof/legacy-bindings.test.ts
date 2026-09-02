@@ -54,7 +54,7 @@ describe('legacy binding fallback', () => {
     expect(selected).toMatchObject({source: 'legacy', legacy: [expect.objectContaining({state: 'available', sha256: expect.stringMatching(/^[a-f0-9]{64}$/)})]});
   });
 
-  test('live covers replaces rather than unions baseline, while changed intent and stale paths do not rewrite history', () => {
+  test('[covers:F-2883ff4d/AC-2883ff04] live covers replaces rather than unions baseline, while changed intent and stale paths do not rewrite history', () => {
     const root = mkdtempSync(join(tmpdir(), 'clad-f5-baseline-'));
     temporary.push(root);
     const current = {statement: 'The system shall retain a legacy test binding.'};

@@ -38,7 +38,7 @@ describe('asserted signoff boundary', () => {
     expect(JSON.parse(readFileSync(join(root, '.cladding', 'audit.log.jsonl'), 'utf8'))).toMatchObject({assurance: 'asserted'});
   });
 
-  test('surfaces HUMAN_REQUIRED after recording schema 0.2 assertion-only history', () => {
+  test('[covers:F-2883ff4d/AC-2883ff09] surfaces HUMAN_REQUIRED after recording schema 0.2 assertion-only history', () => {
     const root = writeWorkspace('0.2');
     const result = recordAssertedSignoff({cwd: root, featureId: 'F-aaaaaaaa', claim: 'audit', criterion: 'AC-bbbbbbbb', result: 'pass'});
     expect(result).toMatchObject({ok: false, code: 'HUMAN_REQUIRED', evidence: {assurance: 'asserted'}});

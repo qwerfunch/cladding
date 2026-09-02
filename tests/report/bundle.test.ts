@@ -161,7 +161,7 @@ const OMITTED_NOTICE = 'Omitted — no anchor ref resolved';
 // ─── AC-9f191790 / AC-f511c519 / AC-15bb0b99 / AC-0116e8d0 (pure) ────────────
 
 describe('report/bundle — buildBundleHtml (F-e940fffe)', () => {
-  test('AC-9f191790 · renders all seven sections (provenance + six content) in order', () => {
+  test('[covers:F-e940fffe/AC-9f191790] AC-9f191790 · renders all seven sections (provenance + six content) in order', () => {
     const html = buildBundleHtml(mkInputs());
     const positions = SECTION_IDS.map((id) => html.indexOf(`<section id="${id}"`));
     for (const [i, pos] of positions.entries()) {
@@ -181,7 +181,7 @@ describe('report/bundle — buildBundleHtml (F-e940fffe)', () => {
     expect(html).toContain('Matrix rows: 3 features.');
   });
 
-  test('AC-9f191790 · zero network surface — no script/src/link/@import/url(, anchors only', () => {
+  test('[covers:F-e940fffe/AC-9f191790] AC-9f191790 · zero network surface — no script/src/link/@import/url(, anchors only', () => {
     const html = buildBundleHtml(mkInputs());
     const css = executableCssContexts(html).join('\n');
     expect(html).not.toMatch(/<script/i);
@@ -210,7 +210,7 @@ describe('report/bundle — buildBundleHtml (F-e940fffe)', () => {
     expect(executableCssContexts(inlineStyle).join('\n')).toMatch(/url\s*\(/i);
   });
 
-  test('AC-f511c519 · provenance banner carries head sha, version, and date before the first content section', () => {
+  test('[covers:F-e940fffe/AC-f511c519] AC-f511c519 · provenance banner carries head sha, version, and date before the first content section', () => {
     const html = buildBundleHtml(mkInputs());
     const firstContent = html.indexOf('<section id="overview"');
     expect(firstContent).toBeGreaterThan(0);
@@ -222,7 +222,7 @@ describe('report/bundle — buildBundleHtml (F-e940fffe)', () => {
     expect(html.indexOf('<section id="provenance"')).toBeLessThan(firstContent);
   });
 
-  test('AC-f511c519 · a null git head renders as "not a git repository", never blank', () => {
+  test('[covers:F-e940fffe/AC-f511c519] AC-f511c519 · a null git head renders as "not a git repository", never blank', () => {
     const html = buildBundleHtml(
       mkInputs({provenance: {gitHead: null, version: null, generatedAt: '2026-07-01T12:00:00.000Z'}}),
     );
@@ -230,7 +230,7 @@ describe('report/bundle — buildBundleHtml (F-e940fffe)', () => {
     expect(html).toContain('unknown'); // version fallback
   });
 
-  test('AC-15bb0b99 · omitted anchor degrades ONLY changes+audit to notices; the rest renders fully', () => {
+  test('[covers:F-e940fffe/AC-15bb0b99] AC-15bb0b99 · omitted anchor degrades ONLY changes+audit to notices; the rest renders fully', () => {
     const html = buildBundleHtml(
       mkInputs({changes: {kind: 'omitted', reason: 'no tags found & --since omitted'}}),
     );
@@ -250,20 +250,20 @@ describe('report/bundle — buildBundleHtml (F-e940fffe)', () => {
     expect(html).not.toContain('tests/a.test.ts#one');
   });
 
-  test('AC-15bb0b99 · present changes render the changelog + audit markdown with no notice', () => {
+  test('[covers:F-e940fffe/AC-15bb0b99] AC-15bb0b99 · present changes render the changelog + audit markdown with no notice', () => {
     const html = buildBundleHtml(mkInputs());
     expect(count(html, OMITTED_NOTICE)).toBe(0);
     expect(html).toContain('<h2>Shipped changes</h2>'); // changelog # → h2
     expect(html).toContain('charge flow shipped');
   });
 
-  test('AC-0116e8d0 · two builds from identical inputs are byte-identical', () => {
+  test('[covers:F-e940fffe/AC-0116e8d0] AC-0116e8d0 · two builds from identical inputs are byte-identical', () => {
     const a = buildBundleHtml(mkInputs());
     const b = buildBundleHtml(mkInputs());
     expect(b).toBe(a);
   });
 
-  test('AC-0116e8d0 · the generation date is the ONLY divergence between two nows', () => {
+  test('[covers:F-e940fffe/AC-0116e8d0] AC-0116e8d0 · the generation date is the ONLY divergence between two nows', () => {
     const nowA = '2026-07-01T12:00:00.000Z';
     const nowB = '2027-01-01T00:00:00.000Z';
     const a = buildBundleHtml(mkInputs({provenance: {gitHead: 'deadbeefcafe00000000000000000000deadbeef', version: '9.9.9-test', generatedAt: nowA}}));
@@ -313,7 +313,7 @@ describe('report/bundle — markdown subset converter pins', () => {
     expect(html).not.toContain('<b>html</b>');
   });
 
-  test('XSS pin · a <script> in a feature title / project name renders escaped on every surface', () => {
+  test('[covers:F-e940fffe/AC-9f191790] XSS pin · a <script> in a feature title / project name renders escaped on every surface', () => {
     const evil = 'Evil <script>alert(1)</script> feature';
     const spec: Spec = {
       ...mkSpec(),
@@ -395,7 +395,7 @@ describe('clad bundle + clad status --json — integration (temp git project)', 
     rmSync(outDir, {recursive: true, force: true});
   });
 
-  test('AC-e5f48ce5 · status --json emits exactly the buildPanelModel row model', () => {
+  test('[covers:F-e940fffe/AC-e5f48ce5] AC-e5f48ce5 · status --json emits exactly the buildPanelModel row model', () => {
     const run = runClad(dir, ['status', '--json']);
     expect(run.status, run.stderr).toBe(0);
     const parsed = JSON.parse(run.stdout) as PanelModel;
@@ -410,7 +410,7 @@ describe('clad bundle + clad status --json — integration (temp git project)', 
     expect(parsed.rows[0].cells).toHaveLength(parsed.columns.length);
   }, 30_000);
 
-  test('AC-0116e8d0 · the CLI gather path with an injected now is byte-identical across two runs', () => {
+  test('[covers:F-e940fffe/AC-0116e8d0] AC-0116e8d0 · the CLI gather path with an injected now is byte-identical across two runs', () => {
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
     const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
     try {
@@ -431,7 +431,7 @@ describe('clad bundle + clad status --json — integration (temp git project)', 
     }
   }, 30_000);
 
-  test('AC-15bb0b99 · a project with NO git repo still writes a bundle: exit 0, two omitted notices, matrix intact', () => {
+  test('[covers:F-e940fffe/AC-15bb0b99] AC-15bb0b99 · a project with NO git repo still writes a bundle: exit 0, two omitted notices, matrix intact', () => {
     const bare = mkdtempSync(join(tmpdir(), 'clad-bundle-bare-'));
     try {
       mkdirSync(join(bare, 'spec', 'features'), {recursive: true});
@@ -453,7 +453,7 @@ describe('clad bundle + clad status --json — integration (temp git project)', 
 // ─── cladding-self smoke (AC-0116e8d0 size budget, AC-9f191790 real artifact) ─
 
 describe('clad bundle — cladding-self smoke (F-e940fffe)', () => {
-  test('AC-0116e8d0 · cladding-self bundle is <5MB, structurally sound, one matrix row per feature shard', () => {
+  test('[covers:F-e940fffe/AC-0116e8d0] AC-0116e8d0 · cladding-self bundle is <5MB, structurally sound, one matrix row per feature shard', () => {
     const outDir = mkdtempSync(join(tmpdir(), 'clad-bundle-self-'));
     const out = join(outDir, 'self.html');
     try {

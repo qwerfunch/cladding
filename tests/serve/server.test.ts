@@ -541,7 +541,7 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
-  test('a missing spec keeps writes absent and returns both initialization and normal-search recovery hints', async () => {
+  test('[covers:F-c6a32fff/AC-6704a592] a missing spec keeps writes absent and returns both initialization and normal-search recovery hints', async () => {
     const bare = mkdtempSync(join(tmpdir(), 'clad-serve-bare-recovery-'));
     const graphDir = mkdtempSync(join(tmpdir(), 'clad-serve-graph-recovery-'));
     writeFileSync(join(graphDir, 'spec.yaml'), IMPACT_SPEC);
@@ -1249,7 +1249,7 @@ describe('MCP structural channel (F-570a3f)', () => {
 // ─── F-551a1c — out-of-policy oracle recording is labeled voluntary ───
 
 describe('voluntary oracle labeling (F-551a1c)', () => {
-  test('recording an oracle for an AC no policy requires carries voluntary:true + a cost note', async () => {
+  test('[covers:F-551a1c/AC-0e9245] recording an oracle for an AC no policy requires carries voluntary:true + a cost note', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-serve-vol-'));
     writeFileSync(join(dir, 'spec.yaml'), MINIMAL_SPEC);
     mkdirSync(join(dir, '.cladding'), {recursive: true});

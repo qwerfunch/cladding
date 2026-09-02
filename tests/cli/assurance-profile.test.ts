@@ -64,7 +64,7 @@ afterEach(() => {
 });
 
 describe('F6 assurance CLI routing', () => {
-  test('rejects profile tier conflicts, downgrades, and unbounded stronger overrides', () => {
+  test('[covers:F-6f0a2106/AC-6f0a2107] rejects profile tier conflicts, downgrades, and unbounded stronger overrides', () => {
     expect(normalizeProfile('pre-commit')).toBe('checkpoint');
     expect(normalizeProfile('pre-push')).toBe('push');
     expect(normalizeProfile('all')).toBe('release');
@@ -73,7 +73,7 @@ describe('F6 assurance CLI routing', () => {
     expect(resolveRequestedAssuranceLevel({configured: 'L2', requested: 'L3', boundedScope: true})).toEqual({ok: true, level: 'L3'});
   });
 
-  test('rejects an invalid runtime assurance-level enum before invoking a gate', () => {
+  test('[covers:F-6f0a2106/AC-6f0a2107] rejects an invalid runtime assurance-level enum before invoking a gate', () => {
     const exit = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
     runCheckCommand({assuranceLevel: 'L9' as AssuranceLevel});
     expect(exit).toHaveBeenCalledWith(2);
@@ -103,7 +103,7 @@ describe('F6 assurance CLI routing', () => {
     expect(stages[0]).toMatchObject({status: 'pass', exitCode: 0});
   });
 
-  test('routes schema 0.2 done through completion while schema 0.1 retains pre-push compatibility', () => {
+  test('[covers:F-6f0a2106/AC-6f0a2110] routes schema 0.2 done through completion while schema 0.1 retains pre-push compatibility', () => {
     const legacyRoot = workspace('0.1');
     const legacyShard = join(legacyRoot, 'spec', 'features', 'assurance-6f0a2106.yaml');
     let legacyStatusDuringGate: string | undefined;
@@ -134,7 +134,7 @@ describe('F6 assurance CLI routing', () => {
     expect(profileBlocksWarnClass('release')).toBe(true);
   });
 
-  test('defers schema 0.2 completion stamping until independence accepts and restores on a writer failure', () => {
+  test('[covers:F-6f0a2106/AC-6f0a2110] defers schema 0.2 completion stamping until independence accepts and restores on a writer failure', () => {
     const missingRoot = workspace('0.2');
     const missing = runDone(missingRoot, FEATURE, {checkStages: () => ({worst: 0})});
     expect(missing.ok).toBe(false);

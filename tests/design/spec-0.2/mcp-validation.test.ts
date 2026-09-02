@@ -54,7 +54,7 @@ describe('Spec 0.2 MCP validation', () => {
     clearAuditObserversForTesting();
   });
 
-  test('separates MCP conformance efficacy and adoption without vacuous success', async () => {
+  test('[covers:F-0a29d024/AC-bd12a73c] separates MCP conformance efficacy and adoption without vacuous success', async () => {
     const report = await validateSpec02(process.cwd());
     const checks = Object.fromEntries(report.checks.map((check) => [check.id, check.status]));
     expect(checks['mcp-wire-catalog']).toBe('pass');

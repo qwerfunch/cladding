@@ -181,7 +181,7 @@ describe('clad doctor handler', () => {
     expect(parsed.ciVersion).toEqual({unpinnedWorkflows: []});
   });
 
-  test('reports unpinned CI in text and JSON without failing', () => {
+  test('[covers:F-abd10f3c/AC-b0ade1e9] reports unpinned CI in text and JSON without failing', () => {
     seedWorkflow(dir, 'release.yml', 'steps:\n  - run: npx --yes cladding check --strict\n');
     runDoctorCommand({cwd: dir});
     expect(exitCalls).toEqual([0]);
@@ -244,7 +244,7 @@ describe('clad doctor handler', () => {
     expect(JSON.parse(stdoutChunks.join('')).gateConfigIgnore).toBe('absent');
   });
 
-  test('keeps pinned CI quiet', () => {
+  test('[covers:F-abd10f3c/AC-9501f50d] keeps pinned CI quiet', () => {
     seedWorkflow(dir, 'cladding.yaml', 'steps:\n  - run: npx --yes cladding@0.9 check --strict\n');
     runDoctorCommand({cwd: dir});
     expect(exitCalls).toEqual([0]);
