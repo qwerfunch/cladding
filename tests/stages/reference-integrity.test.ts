@@ -298,11 +298,12 @@ describe('REFERENCE_INTEGRITY detector', () => {
 
     expect(scan.completeness).toBe('unknown');
     expect(scan.unknownFiles).toEqual(expect.arrayContaining([
-      {path: 'src/missing.ts', reason: 'missing'},
       {path: 'src/link.ts', reason: 'symlink'},
       {path: 'src/not-file.ts', reason: 'not_file'},
       {path: 'src/unreadable.ts', reason: 'unreadable'},
     ]));
+    expect(scan.absentSources).toEqual(['src/missing.ts']);
+    expect(scan.unknownFiles.map((file) => file.path)).not.toContain('src/missing.ts');
     expect(scan.unknownFiles.map((file) => file.path)).not.toContain('src/ownership');
     expect(scan.issues).toEqual([]);
   });

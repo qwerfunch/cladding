@@ -61,13 +61,14 @@ export interface SourceReferenceIssue {
 /**
  * An eligible bounded source artifact that could not be scanned without
  * following unsafe state. Directory ownership artifacts are inapplicable and
- * never appear in this fail-closed list.
+ * never appear in this fail-closed list. A declared path that is simply absent
+ * is a known negative rather than unsafe state, so it lands in `absentSources`.
  */
 export interface SourceReferenceUnknownFile {
   /** Canonical source artifact path. */
   readonly path: string;
   /** Stable failure class without exposing OS-specific error text. */
-  readonly reason: 'missing' | 'unreadable' | 'invalid_utf8' | 'symlink' | 'not_file';
+  readonly reason: 'unreadable' | 'invalid_utf8' | 'symlink' | 'not_file';
 }
 
 /** One immutable compiler-bounded source-reference census. */
@@ -78,6 +79,14 @@ export interface SourceReferenceScan {
   readonly issues: readonly SourceReferenceIssue[];
   /** Source authority artifacts that were unsafe or unavailable to scan. */
   readonly unknownFiles: readonly SourceReferenceUnknownFile[];
+  /**
+   * Declared source paths that do not exist yet, sorted.
+   *
+   * Spec-first authoring declares a module before its file exists. That absence
+   * is a fact the compiler already knows, not unreadable topology, so it never
+   * degrades the scan to `unknown`. Unsafe or undecodable state still does.
+   */
+  readonly absentSources: readonly string[];
   /** Explicit scan state; no failed read can become an empty success. */
   readonly completeness: 'complete' | 'unknown';
   /** Stable explanations for an incomplete scan. */
@@ -100,10 +109,13 @@ interface UnselectedSourceReferenceRecord {
   readonly location: SourceReferenceLocation;
 }
 
+/** A declared path can also be simply absent, which is a known negative rather than unsafe state. */
+type SourceReadReason = 'missing' | SourceReferenceUnknownFile['reason'];
+
 type SourceReadResult =
   | {readonly text: string}
   | {readonly inapplicable: true}
-  | {readonly reason: SourceReferenceUnknownFile['reason']};
+  | {readonly reason: SourceReadReason};
 
 /** The minimal file boundary used by the bounded scanner. */
 export interface SourceReferenceFileSystem {
@@ -139,12 +151,17 @@ export function scanSourceReferences(
   const records: UnselectedSourceReferenceRecord[] = [];
   const issues: SourceReferenceIssue[] = [];
   const unknownFiles: SourceReferenceUnknownFile[] = [];
+  const absentSources: string[] = [];
 
   for (const sourcePath of sourcePaths) {
     const readable = readSafeSourceText(cwd, sourcePath, fileSystem);
     if ('inapplicable' in readable) continue;
     if ('reason' in readable) {
-      unknownFiles.push(Object.freeze({path: sourcePath, reason: readable.reason}));
+      // A declared-but-absent module is a fact the compiler already carries, so
+      // it stays a known negative instead of turning the census into unknown
+      // topology. Unsafe or undecodable state is still unknown.
+      if (readable.reason === 'missing') absentSources.push(sourcePath);
+      else unknownFiles.push(Object.freeze({path: sourcePath, reason: readable.reason}));
       continue;
     }
     for (const carrier of parseCommentCarriers(readable.text)) {
@@ -211,6 +228,7 @@ export function scanSourceReferences(
     records: withSelectors,
     issues: sortedIssues,
     unknownFiles: sortedUnknownFiles,
+    absentSources: [...absentSources].sort((left, right) => left.localeCompare(right)),
     completeness: unknownReasons.length === 0 ? 'complete' : 'unknown',
     unknownReasons,
   });
@@ -534,6 +552,7 @@ function freezeScan(scan: SourceReferenceScan): SourceReferenceScan {
       location: Object.freeze({...issue.location}),
     }))),
     unknownFiles: Object.freeze(scan.unknownFiles.map((unknown) => Object.freeze({...unknown}))),
+    absentSources: Object.freeze([...scan.absentSources]),
     unknownReasons: Object.freeze([...scan.unknownReasons]),
   });
 }

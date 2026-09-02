@@ -20,6 +20,26 @@ import {
 } from './source-references.js';
 
 /**
+ * The explicit knowledge state of one augmentation layer built into the kernel.
+ *
+ * A public wire response must be able to say which fact layer left the answer
+ * incomplete, so the layer states travel beside the kernel rather than being
+ * flattened into one anonymous reason list.
+ *
+ * @see spec/features/spec-02-graphir-v2-cutover-208eaa79.yaml AC-d452908b
+ * @since 0.10.0
+ * @internal
+ */
+export interface GraphIrV2WorkspaceLayer {
+  /** Unique adapter/layer identity, matching the augmentation's `layerId`. */
+  readonly id: string;
+  /** The layer's own assertion about its knowledge, never inferred from an empty fact set. */
+  readonly completeness: 'complete' | 'unknown';
+  /** Stable reasons required when the layer cannot make a complete assertion. */
+  readonly reasons: readonly string[];
+}
+
+/**
  * One immutable presentation, compiler, and GraphIR view of a workspace.
  *
  * @see spec/features/spec-02-graphir-v2-cutover-208eaa79.yaml AC-4f8c2542
@@ -34,6 +54,8 @@ export interface GraphIrV2Workspace {
   readonly compilation: SpecCompilation;
   /** The memoized GraphIR kernel for exactly `compilation`. */
   readonly kernel: GraphIrV2Kernel;
+  /** Explicit knowledge state of every augmentation layer built into `kernel`. */
+  readonly layers: readonly GraphIrV2WorkspaceLayer[];
 }
 
 /**
@@ -139,7 +161,12 @@ function createWorkspace(
       && (layer.completeness === 'unknown' || layer.nodes.length > 0 || layer.edges.length > 0),
   );
   const kernel = Object.freeze(layers.length === 0 ? graphIrV2(compilation) : graphIrV2(compilation, layers));
-  return Object.freeze({spec, compilation, kernel});
+  const layerStates = Object.freeze(layers.map((layer) => Object.freeze({
+    id: layer.layerId,
+    completeness: layer.completeness,
+    reasons: Object.freeze([...layer.unknownReasons]),
+  })));
+  return Object.freeze({spec, compilation, kernel, layers: layerStates});
 }
 
 function assertMatchingWorkspacePair(spec: Spec, compilation: SpecCompilation): void {

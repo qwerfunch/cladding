@@ -286,7 +286,22 @@ describe('bounded source-reference scanner', () => {
     }
   });
 
-  test('[covers:F-208eaa79/AC-d452908b] fails closed for missing, symlinked, invalid-UTF8, and non-directory non-files', () => {
+  test('[covers:F-208eaa79/AC-d452908b] records a declared-but-absent module as a known negative rather than unknown topology', () => {
+    const root = workspace(['src/carriers.ts', 'src/not-written-yet.ts']);
+    source(root, 'src/carriers.ts', `// @see ${SHARD} AC-11111111\n`);
+    const compilation = compileSpecWorkspace(root);
+
+    const scan = scanSourceReferences(root, compilation);
+
+    expect(scan.absentSources).toEqual(['src/not-written-yet.ts']);
+    expect(scan.unknownFiles).toEqual([]);
+    expect(scan.unknownReasons).toEqual([]);
+    expect(scan.completeness).toBe('complete');
+    expect(scan.records.map((record) => record.normalizedTarget)).toEqual(['criterion:F-aaaaaaaa/AC-11111111']);
+    expect(Object.isFrozen(scan.absentSources)).toBe(true);
+  });
+
+  test('[covers:F-208eaa79/AC-d452908b] fails closed for symlinked, invalid-UTF8, and non-directory non-files while an absent module stays a known negative', () => {
     const root = workspace([
       'src/missing.ts', 'src/link.ts', 'src/invalid.ts', 'src/not-file.ts', 'src/unreadable.ts', 'plugins/claude-code/dist/clad.js',
     ]);
@@ -321,12 +336,14 @@ describe('bounded source-reference scanner', () => {
     expect(scan.records).toEqual([]);
     expect(scan.completeness).toBe('unknown');
     expect(scan.unknownFiles).toEqual(expect.arrayContaining([
-      {path: 'src/missing.ts', reason: 'missing'},
       {path: 'src/link.ts', reason: 'symlink'},
       {path: 'src/invalid.ts', reason: 'invalid_utf8'},
       {path: 'src/not-file.ts', reason: 'not_file'},
       {path: 'src/unreadable.ts', reason: 'unreadable'},
     ]));
+    expect(scan.absentSources).toEqual(['src/missing.ts']);
+    expect(scan.unknownFiles.map((file) => file.path)).not.toContain('src/missing.ts');
+    expect(scan.unknownReasons).not.toContain('source artifact src/missing.ts is missing');
     expect(scan.unknownFiles.map((file) => file.path)).not.toContain('plugins/claude-code/dist/clad.js');
     expect(Object.isFrozen(scan.unknownFiles[0])).toBe(true);
     expect(outsideReads).toBe(0);
@@ -347,13 +364,14 @@ describe('bounded source-reference scanner', () => {
     const currentGateObservationRecords = scan.records
       .filter((record) => record.sourcePath === 'src/graph/test-observations.ts');
 
-    expect(carriers.size).toBe(103);
-    expect(scan.records).toHaveLength(136);
+    expect(carriers.size).toBe(108);
+    expect(scan.records).toHaveLength(150);
     expect(scan.records.every((record) => record.state === 'resolved' && sourceArtifacts.has(record.sourcePath))).toBe(true);
     expect(scan.issues).toEqual([]);
-    expect(scan.unknownFiles).toEqual([{path: 'src/graph/wire-v2.ts', reason: 'missing'}]);
-    expect(scan.unknownReasons).toEqual(['source artifact src/graph/wire-v2.ts is missing']);
-    expect(scan.completeness).toBe('unknown');
+    expect(scan.unknownFiles).toEqual([]);
+    expect(scan.absentSources).toEqual([]);
+    expect(scan.unknownReasons).toEqual([]);
+    expect(scan.completeness).toBe('complete');
     expect(declarationRecords).toHaveLength(14);
     expect(declarationRecords.filter((record) => record.normalizedTarget === 'criterion:F-40327b/AC-003')).toHaveLength(3);
     expect(declarationRecords.filter((record) => record.normalizedTarget === 'criterion:F-40327b/AC-004')).toHaveLength(11);
