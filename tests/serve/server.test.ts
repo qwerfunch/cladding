@@ -189,7 +189,7 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
-  test('typed edit discovery is the closed per-operation registry', async () => {
+  test('[covers:F-4f4a12c3/AC-4f4a1203] typed edit discovery is the closed per-operation registry', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const {tools} = await client.listTools();
@@ -255,7 +255,7 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
-  test('F4/F5 mutation families reject unknown 17 KiB transport padding before any workspace write', async () => {
+  test('[covers:F-4f4a12c3/AC-4f4a1203] F4/F5 mutation families reject unknown 17 KiB transport padding before any workspace write', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const mutations: readonly [string, Record<string, unknown>][] = [
@@ -282,7 +282,7 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
-  test('F4 core edits enforce exact parsed-wire bytes before snake-case normalization', async () => {
+  test('[covers:F-4f4a12c3/AC-4f4a1203] F4 core edits enforce exact parsed-wire bytes before snake-case normalization', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const {tools} = await client.listTools();
@@ -315,7 +315,7 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
-  test('F4 mutation adapters return declared success/error envelopes and reject oversized ingress before writes', async () => {
+  test('[covers:F-4f4a12c3/AC-4f4a1203] F4 mutation adapters return declared success/error envelopes and reject oversized ingress before writes', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const {tools} = await client.listTools();
@@ -904,7 +904,7 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
-  test('schema 0.1 additive create rejects a schema 0.2 scenario definition without writing a partial feature', async () => {
+  test('[covers:F-4f4a12c3/AC-4f4a1203] schema 0.1 additive create rejects a schema 0.2 scenario definition without writing a partial feature', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const before = existsSync(join(dir, 'spec', 'features')) ? readdirSync(join(dir, 'spec', 'features')).sort() : [];
@@ -1052,7 +1052,7 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
-  test('event tool and resource fail closed on an outside symlink without returning its content', async () => {
+  test('[covers:F-4f4a12c3/AC-4f4a1203] event tool and resource fail closed on an outside symlink without returning its content', async () => {
     const outside = mkdtempSync(join(tmpdir(), 'clad-events-outside-'));
     try {
       const sentinel = join(outside, 'events.jsonl');
@@ -1138,7 +1138,7 @@ describe('serve/server — MCP read surface', () => {
     }
   });
 
-  test('clad_get_events returns the declared error payload with text and structured parity', async () => {
+  test('[covers:F-4f4a12c3/AC-4f4a1203] clad_get_events returns the declared error payload with text and structured parity', async () => {
     writeFileSync(join(dir, '.cladding', 'spec-transaction.json'), '{torn');
     const {client, cleanup} = await makePair(dir);
     try {
@@ -1212,7 +1212,7 @@ describe('MCP structural channel (F-570a3f)', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('clad_create_feature result carries schema_version and a gate field (JSON, not appended text)', async () => {
+  test('[covers:F-570a3f/AC-86dd41][covers:F-570a3f/AC-a8ee9c] clad_create_feature result carries schema_version and a gate field (JSON, not appended text)', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const res = await client.callTool({
@@ -1230,7 +1230,7 @@ describe('MCP structural channel (F-570a3f)', () => {
     }
   });
 
-  test('clad_run_gate runs the real pipeline and returns the untruncated JSON outcome', async () => {
+  test('[covers:F-570a3f/AC-86dd41][covers:F-570a3f/AC-4cba6e] clad_run_gate runs the real pipeline and returns the untruncated JSON outcome', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const res = await client.callTool({name: 'clad_run_gate', arguments: {tier: 'pre-commit'}});
@@ -1309,7 +1309,7 @@ describe('clad_get_context (F-d2c806)', () => {
     }
   });
 
-  test('returns the slice with schema_version; a miss is isError with the accepted forms', async () => {
+  test('[covers:F-d2c806/AC-0fe45d][covers:F-d2c806/AC-10ea8a] returns the slice with schema_version; a miss is isError with the accepted forms', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-serve-ctx-'));
     writeFileSync(join(dir, 'spec.yaml'), MINIMAL_SPEC);
     mkdirSync(join(dir, '.cladding'), {recursive: true});

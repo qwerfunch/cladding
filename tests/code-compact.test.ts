@@ -114,19 +114,19 @@ describe('AC-65b3d185 · git ref resolution lives exactly once in src/core/git-o
 });
 
 describe('AC-243ff1e1 · ModuleReader single home + export hygiene as adjudicated', () => {
-  test('exactly one `type ModuleReader` definition exists under src/optimizer/, at infer-depends-on.ts', () => {
+  test('[covers:F-c58263b8/AC-243ff1e1] exactly one `type ModuleReader` definition exists under src/optimizer/, at infer-depends-on.ts', () => {
     const files = walkTs('src/optimizer');
     const defs = files.filter((f) => /\bexport type ModuleReader\s*=/.test(read(f)));
     expect(defs, 'ModuleReader is declared exactly once, at infer-depends-on.ts').toEqual(['src/optimizer/infer-depends-on.ts']);
   });
 
-  test('measurement.ts imports ModuleReader instead of redeclaring it', () => {
+  test('[covers:F-c58263b8/AC-243ff1e1] measurement.ts imports ModuleReader instead of redeclaring it', () => {
     const body = read('src/optimizer/measurement.ts');
     expect(body, 'a type-only import of the single home').toMatch(/import type \{ModuleReader\} from '\.\/infer-depends-on\.js';/);
     expect(body, 'no local re-declaration remains').not.toMatch(/export type ModuleReader/);
   });
 
-  test('log.ts no longer exports resolveActorIdentity (zero external importers; de-exported)', () => {
+  test('[covers:F-c58263b8/AC-243ff1e1] log.ts no longer exports resolveActorIdentity (zero external importers; de-exported)', () => {
     const body = read('src/events/log.ts');
     expect(body, 'no longer part of the public surface').not.toMatch(/export function resolveActorIdentity/);
     expect(body, 'the function itself still exists for recordEvent\'s self-use').toMatch(/(?<!export )function resolveActorIdentity\(/);

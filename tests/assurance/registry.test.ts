@@ -41,7 +41,7 @@ describe('F6 assurance registry', () => {
     for (const level of ['L1', 'L2', 'L3', 'L4'] as const) expect(ids('release', level)).toEqual(descriptorsForLevel(level).map((entry) => entry.id));
   });
 
-  test('[covers:F-055/AC-128][covers:F-056/AC-132][covers:F-057/AC-136][covers:F-058/AC-140][covers:F-059/AC-144][covers:F-060/AC-148][covers:F-061/AC-152][covers:F-062/AC-157][covers:F-063/AC-163][covers:F-064/AC-167] derives current coverage assurance only from the coverage obligation', () => {
+  test('[covers:F-055/AC-128][covers:F-056/AC-132][covers:F-057/AC-136][covers:F-058/AC-140][covers:F-059/AC-144][covers:F-060/AC-148][covers:F-061/AC-152][covers:F-062/AC-157][covers:F-063/AC-163][covers:F-064/AC-167][covers:F-6f0a2106/AC-6f0a2103] derives current coverage assurance only from the coverage obligation', () => {
     const coverage = OBLIGATION_DESCRIPTORS.find((entry) => entry.id === 'stage_2.2')!;
     expect(coverage).toMatchObject({id: 'stage_2.2', sourceStrictness: 'report'});
     expect(deriveApplicability(coverage, {complete: false, hasExecutableTests: false})).toBe('unresolved');

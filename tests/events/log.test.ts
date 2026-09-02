@@ -138,7 +138,7 @@ describe('events/log.ts', () => {
     expect(readEvents(dir)).toHaveLength(1);
   });
 
-  test('[covers:F-063/AC-160] managed symbolic paths remain observer-only no-ops', () => {
+  test('[covers:F-063/AC-160][covers:F-4f4a12c3/AC-4f4a1202] managed symbolic paths remain observer-only no-ops', () => {
     const outside = mkdtempSync(join(tmpdir(), 'clad-events-outside-'));
     try {
       writeFileSync(join(outside, 'events.log.jsonl'), 'outside sentinel\n');
@@ -157,7 +157,7 @@ describe('events/log.ts', () => {
     }
   });
 
-  test('event-file and lock symbolic links are observer no-ops', () => {
+  test('[covers:F-4f4a12c3/AC-4f4a1202] event-file and lock symbolic links are observer no-ops', () => {
     const outside = mkdtempSync(join(tmpdir(), 'clad-events-outside-'));
     try {
       mkdirSync(join(dir, '.cladding'));
@@ -199,7 +199,7 @@ describe('recordEvent (F-b84c38)', () => {
     expect(typeof p.identity?.name).toBe('string'); // git author or OS user — always resolvable on a dev box
   });
 
-  test('never throws even when the cwd is not writable territory', () => {
+  test('[covers:F-b84c38/AC-24c5f2] never throws even when the cwd is not writable territory', () => {
     expect(() => recordEvent('/nonexistent/deeply/bogus', 'gate_run', {tier: 'all'})).not.toThrow();
   });
 
@@ -246,7 +246,7 @@ describe('recordEvent (F-b84c38)', () => {
     expect(readEvents(dir).filter((event) => event.type === 'gate_run')).toHaveLength(2);
   });
 
-  test('concurrent gate callers dedupe under one lock and retain changed blockers', async () => {
+  test('[covers:F-4f4a12c3/AC-4f4a1202] concurrent gate callers dedupe under one lock and retain changed blockers', async () => {
     const first = {tier: 'pre-push', strict: true, worst: 1, anyFailed: true, blockers: ['FIRST'], stopFingerprint: 'first'};
     const left = startGateChild(dir, first);
     const right = startGateChild(dir, first);
@@ -268,7 +268,7 @@ describe('recordEvent (F-b84c38)', () => {
 });
 
 describe('rotation (F-b84c38)', () => {
-  test('rolls the live log to events.log.1.jsonl past the threshold; reads stay bounded to the live file', () => {
+  test('[covers:F-b84c38/AC-346653] rolls the live log to events.log.1.jsonl past the threshold; reads stay bounded to the live file', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-events-rot-'));
     try {
       const live = join(dir, '.cladding', 'events.log.jsonl');

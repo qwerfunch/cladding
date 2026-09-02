@@ -27,14 +27,14 @@ const SPEC = {
 } as never;
 
 describe('buildContextSlice (F-d2c806)', () => {
-  test('resolves by id, slug, and module path identically', () => {
+  test('[covers:F-d2c806/AC-6aa10d] resolves by id, slug, and module path identically', () => {
     for (const q of ['F-bbbb2222', 'login-flow', 'src/auth/login.ts']) {
       const slice = buildContextSlice(SPEC, q);
       expect('focus' in slice && slice.focus.id).toBe('F-bbbb2222');
     }
   });
 
-  test('the slice carries ancestor summaries, bound scenarios, ai_hints patterns, and a deduped sorted test_refs union', () => {
+  test('[covers:F-d2c806/AC-6aa10d] the slice carries ancestor summaries, bound scenarios, ai_hints patterns, and a deduped sorted test_refs union', () => {
     const slice = buildContextSlice(SPEC, 'login-flow');
     if (!('focus' in slice)) throw new Error('miss');
     expect(slice.ancestors).toEqual([{id: 'F-aaaa1111', title: 'auth core', status: 'done'}]);
@@ -43,13 +43,13 @@ describe('buildContextSlice (F-d2c806)', () => {
     expect(slice.test_refs).toEqual(['tests/auth/login.test.ts', 'tests/auth/shared.test.ts']);
   });
 
-  test('determinism: identical spec state yields byte-identical slices', () => {
+  test('[covers:F-d2c806/AC-0fe45d] determinism: identical spec state yields byte-identical slices', () => {
     const a = JSON.stringify(buildContextSlice(SPEC, 'login-flow'));
     const b = JSON.stringify(buildContextSlice(SPEC, 'login-flow'));
     expect(a).toBe(b);
   });
 
-  test('a miss names the accepted forms and points at spec/index.yaml', () => {
+  test('[covers:F-d2c806/AC-10ea8a] a miss names the accepted forms and points at spec/index.yaml', () => {
     const miss = buildContextSlice(SPEC, 'nope');
     if ('focus' in miss) throw new Error('should miss');
     expect(miss.not_found).toBe('nope');

@@ -189,7 +189,7 @@ describe('F6 attestation v3 payload', () => {
     expect(withNa?.observation_identities).toEqual(['scope:stage_2.1', 'scope:stage_2.2']);
   });
 
-  test('[covers:F-065/AC-175] mints a current profile-complete authoritative attestation only from the authoritative verdict', () => {
+  test('[covers:F-065/AC-175][covers:F-6f0a2106/AC-6f0a2108] mints a current profile-complete authoritative attestation only from the authoritative verdict', () => {
     const input = {verdict: greenVerdict(), feature: 'F-a', contractSha256: digest, subjectSha256: digest, verificationSha256: digest, runtimeDependencySha256: digest, registrySha256: digest, detectorCatalogSha256: digest, toolIdentity: 'cladding', environmentClass: 'test', trustSnapshotSha256: digest};
     // A public adapter GREEN is a compatibility projection, not proof that the
     // compiler snapshot and current stage execution came from runCheckStages.
@@ -227,7 +227,7 @@ describe('F6 attestation v3 payload', () => {
     expect(mintWorkspaceAttestationV3({...input, verdict: greenVerdict('completion', [])})).toBeUndefined();
   });
 
-  test('does not mint v3 from six caller-supplied L1 NA stage rows', () => {
+  test('[covers:F-6f0a2106/AC-6f0a2103] does not mint v3 from six caller-supplied L1 NA stage rows', () => {
     const verdict = reduceLegacyStageAdapter({
       profile: {...assuranceProfile('completion', 'L1'), obligations: ['stage_1.1']}, configuredAssuranceLevel: 'L1',
       completeScope: true, scopeAddresses: ['project'], inputAddresses: ['project'], inputSha256: digest,

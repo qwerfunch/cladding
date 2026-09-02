@@ -75,7 +75,7 @@ design_impact:
   classification: structural
   rationale: F5 adds the proof/evidence authority between schema compiler inputs
     and later F6 assurance closures without adding a product issuer.
-  status: review_required
+  status: resolved
   artifacts:
     - docs/design/spec-0.2/proof-and-editing.md
     - docs/design/spec-0.2/evidence.md

@@ -102,7 +102,7 @@ describe('F6 assurance reducer', () => {
     expect(na.results.find((result) => result.obligation === 'stage_2.2')?.state).toBe('unobserved');
   });
 
-  test('[covers:F-061/AC-151] current runner proof is derived per obligation from current observations', () => {
+  test('[covers:F-061/AC-151][covers:F-6f0a2106/AC-6f0a2106] current runner proof is derived per obligation from current observations', () => {
     const verdict = reduceLegacyStageAdapter({
       profile: assuranceProfile('push', 'L2'), configuredAssuranceLevel: 'L2', completeScope: true,
       scopeAddresses: ['project'], inputAddresses: ['project'], inputSha256: 'a'.repeat(64), hasExecutableTests: true, hasOracleProof: false, hasDeliverable: false,
@@ -188,7 +188,7 @@ describe('F6 assurance reducer', () => {
     expect(unknown).toMatchObject({state: 'unresolved', profile_complete: false});
   });
 
-  test('rejects a caller-narrowed completion profile even when its supplied stage passes', () => {
+  test('[covers:F-6f0a2106/AC-6f0a2108] rejects a caller-narrowed completion profile even when its supplied stage passes', () => {
     const narrowed = {...assuranceProfile('completion', 'L2'), obligations: ['stage_1.1']};
     const verdict = reduceLegacyStageAdapter({
       profile: narrowed, configuredAssuranceLevel: 'L2', completeScope: true,
@@ -342,7 +342,7 @@ describe('F6 assurance reducer', () => {
     expect(verdict.results.find((result) => result.obligation === 'stage_4.1')).toBeUndefined();
   });
 
-  test('attributes one F5 execution to Unit, Coverage, and only its exact policy-required blind proof', () => {
+  test('[covers:F-6f0a2106/AC-6f0a2106] attributes one F5 execution to Unit, Coverage, and only its exact policy-required blind proof', () => {
     const criterion = 'F-a/AC-a';
     const view = {criterion, test: {criterion, state: 'verified' as const, matched: 1, pass: 1, fail: 0, skip: 0, error: 0}, audit: 'unverified' as const, uat: 'unverified' as const, blind: 'verified' as const, assertedEvidence: 0};
     const verdict = reduceLegacyStageAdapter({

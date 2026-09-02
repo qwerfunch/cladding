@@ -58,7 +58,7 @@ design_impact:
   classification: structural
   rationale: The F4 boundary centralizes schema 0.2 writes, durable recovery, and
     migration application across CLI and MCP adapters.
-  status: review_required
+  status: resolved
   artifacts:
     - docs/design/spec-0.2/proof-and-editing.md
     - docs/design/spec-0.2/model-and-migration.md
