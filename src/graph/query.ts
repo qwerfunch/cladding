@@ -1,6 +1,6 @@
 // Cladding · Spec 0.2 F8 · coherent compiler/presentation workspace query.
 
-import {graphIrV2, type GraphIrV2Kernel} from '../spec/compiler/graph-ir-v2.js';
+import {graphIrV2, type GraphIrV2Augmentation, type GraphIrV2Kernel} from '../spec/compiler/graph-ir-v2.js';
 import {compileSpecWorkspaceFromStableSnapshot} from '../spec/compiler/compile.js';
 import {schema02ConsumerView} from '../spec/compiler/consumer-view.js';
 import type {GraphPresentationRecord, Schema02FeatureContract, SpecCompilation} from '../spec/compiler/types.js';
@@ -12,6 +12,7 @@ import {loadSpecFromDiskUnlocked} from '../spec/load.js';
 import {prospectiveCompilationOverlay, prospectiveSpecOverlay} from '../spec/prospective.js';
 import {withStableSpecWorkspaceSnapshot} from '../spec/transaction.js';
 import type {Feature, Spec} from '../spec/types.js';
+import {receiptFactAugmentation, type ReceiptFactTrust} from './receipt-facts.js';
 import {currentGateTestObservationAugmentation} from './test-observations.js';
 import {documentFactAugmentation, workspaceFactAugmentation} from './workspace-facts.js';
 import {
@@ -20,7 +21,7 @@ import {
 } from './source-references.js';
 
 /**
- * The explicit knowledge state of one augmentation layer built into the kernel.
+ * The explicit knowledge state of one augmentation layer this read consulted.
  *
  * A public wire response must be able to say which fact layer left the answer
  * incomplete, so the layer states travel beside the kernel rather than being
@@ -54,7 +55,7 @@ export interface GraphIrV2Workspace {
   readonly compilation: SpecCompilation;
   /** The memoized GraphIR kernel for exactly `compilation`. */
   readonly kernel: GraphIrV2Kernel;
-  /** Explicit knowledge state of every augmentation layer built into `kernel`. */
+  /** Explicit knowledge state of every augmentation layer this read consulted, built into `kernel` when it carries a fact. */
   readonly layers: readonly GraphIrV2WorkspaceLayer[];
 }
 
@@ -66,6 +67,7 @@ export interface GraphIrV2Workspace {
  *
  * @param cwd - Workspace root containing the canonical `spec.yaml`.
  * @param ledger - Optional sealed current-gate testcase ledger; omitted reads never inspect persisted reports.
+ * @param receiptTrust - Optional host-owned receipt trust material; omitted leaves every receipt state unknown.
  * @returns Frozen presentation, compilation, and GraphIR kernel from one source snapshot.
  * @throws Error when the schema, contract, or prospective overlay pair is unsafe.
  * @example
@@ -81,6 +83,7 @@ export interface GraphIrV2Workspace {
 export function loadGraphIrV2Workspace(
   cwd: string = '.',
   ledger?: CurrentGateTestcaseLedger,
+  receiptTrust?: ReceiptFactTrust,
 ): GraphIrV2Workspace {
   const prospectiveSpec = prospectiveSpecOverlay(cwd);
   const prospectiveCompilation = prospectiveCompilationOverlay(cwd);
@@ -94,10 +97,10 @@ export function loadGraphIrV2Workspace(
     const documents = scanDocumentFacts(cwd);
     const sourceReferences = scanSourceReferences(cwd, prospectiveCompilation);
     const census = currentSafeBindingCensus(cwd, knownCriteriaFromCompilerView(prospectiveCompilation.nodes));
-    return createWorkspace(prospectiveSpec, prospectiveCompilation, census, documents, sourceReferences, ledger);
+    return createWorkspace(cwd, prospectiveSpec, prospectiveCompilation, census, documents, sourceReferences, ledger, receiptTrust);
   }
   return withStableSpecWorkspaceSnapshot(cwd, () =>
-    loadGraphIrV2WorkspaceFromStableSnapshot(cwd, ledger),
+    loadGraphIrV2WorkspaceFromStableSnapshot(cwd, ledger, receiptTrust),
   );
 }
 
@@ -106,6 +109,7 @@ export function loadGraphIrV2Workspace(
  *
  * @param cwd - Workspace root guarded by `withStableSpecWorkspaceSnapshot` or the F4 writer lock.
  * @param ledger - Optional sealed current-gate testcase ledger from the caller-owned stable snapshot.
+ * @param receiptTrust - Optional host-owned receipt trust material; omitted leaves every receipt state unknown.
  * @returns Frozen presentation, compilation, and GraphIR kernel from the caller-owned snapshot.
  * @throws Error when the caller has not supplied a coherent schema contract.
  * @example
@@ -120,6 +124,7 @@ export function loadGraphIrV2Workspace(
 export function loadGraphIrV2WorkspaceFromStableSnapshot(
   cwd: string,
   ledger?: CurrentGateTestcaseLedger,
+  receiptTrust?: ReceiptFactTrust,
 ): GraphIrV2Workspace {
   // Compile first so schema 0.2 never travels through the legacy loader's
   // independently-created compiler snapshot. Schema 0.1 retains its typed
@@ -131,21 +136,23 @@ export function loadGraphIrV2WorkspaceFromStableSnapshot(
   const sourceReferences = scanSourceReferences(cwd, compilation);
   switch (compilation.schemaVersion) {
     case '0.1':
-      return createWorkspace(loadSpecFromDiskUnlocked(cwd), compilation, census, documents, sourceReferences, ledger);
+      return createWorkspace(cwd, loadSpecFromDiskUnlocked(cwd), compilation, census, documents, sourceReferences, ledger, receiptTrust);
     case '0.2':
-      return createWorkspace(schema02ConsumerView(cwd, compilation, census), compilation, census, documents, sourceReferences, ledger);
+      return createWorkspace(cwd, schema02ConsumerView(cwd, compilation, census), compilation, census, documents, sourceReferences, ledger, receiptTrust);
     default:
       return assertNeverSchema(compilation.schemaVersion);
   }
 }
 
 function createWorkspace(
+  cwd: string,
   spec: Spec,
   compilation: SpecCompilation,
   census: ReturnType<typeof currentSafeBindingCensus>,
   documents: DocumentFactScan | undefined,
   sourceReferences: ReturnType<typeof scanSourceReferences>,
   ledger: CurrentGateTestcaseLedger | undefined,
+  receiptTrust: ReceiptFactTrust | undefined,
 ): GraphIrV2Workspace {
   assertMatchingWorkspacePair(spec, compilation);
   freezeDeep(spec);
@@ -156,17 +163,31 @@ function createWorkspace(
     : currentGateTestObservationAugmentation(compilation, census, ledger);
   const documentFacts = documentFactAugmentation(compilation, documents);
   const sourceFacts = sourceReferenceAugmentation(compilation, sourceReferences);
-  const layers = [facts, observations, documentFacts, sourceFacts].filter((layer): layer is NonNullable<typeof layer> =>
-    layer !== undefined
-      && (layer.completeness === 'unknown' || layer.nodes.length > 0 || layer.edges.length > 0),
+  const receiptFacts = receiptFactAugmentation(cwd, compilation, receiptTrust);
+  const augmenting = [facts, observations, documentFacts, sourceFacts].filter(
+    (layer): layer is GraphIrV2Augmentation => layer !== undefined && carriesFact(layer),
   );
-  const kernel = Object.freeze(layers.length === 0 ? graphIrV2(compilation) : graphIrV2(compilation, layers));
+  // A workspace with no receipt at all is a known negative, not an absent
+  // layer: "we looked and there are none" is the answer an assurance reader
+  // needs, so this layer is always reported. It joins the kernel only under the
+  // same filter as every other layer, so a workspace with nothing to augment
+  // still resolves to the memoized bare kernel for its compilation.
+  const layers = [...augmenting, receiptFacts];
+  const kernelLayers = carriesFact(receiptFacts) ? layers : augmenting;
+  const kernel = Object.freeze(kernelLayers.length === 0
+    ? graphIrV2(compilation)
+    : graphIrV2(compilation, kernelLayers));
   const layerStates = Object.freeze(layers.map((layer) => Object.freeze({
     id: layer.layerId,
     completeness: layer.completeness,
     reasons: Object.freeze([...layer.unknownReasons]),
   })));
   return Object.freeze({spec, compilation, kernel, layers: layerStates});
+}
+
+/** An empty layer that proved its own emptiness adds nothing the kernel can index. */
+function carriesFact(layer: GraphIrV2Augmentation): boolean {
+  return layer.completeness === 'unknown' || layer.nodes.length > 0 || layer.edges.length > 0;
 }
 
 function assertMatchingWorkspacePair(spec: Spec, compilation: SpecCompilation): void {

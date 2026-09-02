@@ -15,6 +15,7 @@ modules:
   - src/graph/workspace-facts.ts
   - src/graph/test-observations.ts
   - src/graph/source-references.ts
+  - src/graph/receipt-facts.ts
   - src/graph/wire-v2.ts
   - src/graph/render.ts
   - src/graph/stats.ts
@@ -43,6 +44,7 @@ modules:
   - tests/stages/current-gate-ledger.test.ts
   - tests/graph/workspace-query.test.ts
   - tests/graph/source-references.test.ts
+  - tests/graph/receipt-facts.test.ts
   - tests/spec/doc-references.test.ts
   - tests/spec/doc-references-declarations.test.ts
   - tests/stages/detectors/doc-reference-integrity.test.ts

@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-3748%2F3748-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-3759%2F3759-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -343,9 +343,9 @@ clad update              # 3. 刷新项目连接和派生状态
 
 | 版本 | 一致性 | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.9.4 worktree（2026-08） | L4 · [自我声明](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 3748 / 3748 | 15 阶段 · 41 检测器 | 292（282 done） |
+| v0.9.4 worktree（2026-08） | L4 · [自我声明](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 3759 / 3759 | 15 阶段 · 41 检测器 | 292（282 done） |
 
-<sub>318 个测试文件 · 6 项 capability · 覆盖率下降由 COVERAGE_DROP 检测器拦下</sub>
+<sub>319 个测试文件 · 6 项 capability · 覆盖率下降由 COVERAGE_DROP 检测器拦下</sub>
 
 > **通往 Ironclad 1.0 之路** —— 只有当*两个独立实现都通过 L4 一致性测试夹具*时，1.0 才会锁定（[GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)）。cladding 是第一个。
 

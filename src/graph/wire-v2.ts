@@ -16,19 +16,6 @@ import type {
 } from '../spec/compiler/types.js';
 import type {GraphIrV2Workspace, GraphIrV2WorkspaceLayer} from './query.js';
 
-/** Every directed relation the GraphIR grammar accepts, in the D17 declaration order. */
-const ALL_RELATIONS: readonly GraphRelation[] = Object.freeze([
-  'contains', 'defined_in', 'contributes_to', 'depends_on', 'participates_in',
-  'touches', 'constrained_by', 'traces_to', 'covers', 'supports',
-  'explains', 'mentions', 'links_to',
-]);
-
-/** Both orientations of every relation; used only by whole-graph reads. */
-const ALL_RULES: readonly GraphProjectionRule[] = Object.freeze(ALL_RELATIONS.flatMap((relation) => [
-  Object.freeze({relation, direction: 'outbound' as const}),
-  Object.freeze({relation, direction: 'inbound' as const}),
-]));
-
 /** Default focused bounds; a caller that supplies nothing still gets a depth-1 read. */
 const DEFAULT_MAX_DEPTH = 1;
 const DEFAULT_MAX_NODES = 64;
@@ -55,15 +42,6 @@ const MAX_MEASURE_ROUNDS = 8;
 
 /** The estimator is always named because provider tokenizers differ. */
 const TOKEN_ESTIMATOR = 'characters/4';
-
-/**
- * A whole-graph read starts from every compiler-owned address and walks one
- * hop. Augmentation layers may contribute a node that has no edge to any
- * compiler node, and no traversal can reach such a node, so a whole-graph read
- * states that limit rather than reporting a complete corpus it cannot prove.
- */
-const WHOLE_GRAPH_REASON =
-  'whole-graph read: traversal from compiler-owned seeds cannot enumerate augmentation-only nodes that carry no edge to a compiler node';
 
 /** Exact spellings a caller may supply; an unresolved answer repeats them verbatim. */
 const ACCEPTED_FORMS: readonly string[] = Object.freeze([
@@ -423,14 +401,14 @@ export function focusedProjectionV2(
  * @since 0.10.0
  */
 export function exportGraphV2(workspace: GraphIrV2Workspace): WireEnvelopeV2 {
-  const projection = wholeGraphWalk(workspace);
+  const projection = wholeGraph(workspace);
   const selection = selectRecords(workspace, projection, new Set(), 1);
   return packEnvelope({
     kind: 'export',
     workspace,
     layers: wireLayers(workspace.layers),
-    completeness: 'unknown',
-    reasons: [WHOLE_GRAPH_REASON, ...projection.reasons],
+    completeness: projection.completeness,
+    reasons: [...projection.reasons],
     seeds: [],
     rules: [],
     bounds: {max_depth: null, max_nodes: null, max_edges: null},
@@ -451,13 +429,13 @@ export function exportGraphV2(workspace: GraphIrV2Workspace): WireEnvelopeV2 {
  * @since 0.10.0
  */
 export function statisticsV2(workspace: GraphIrV2Workspace): WireEnvelopeV2 {
-  const projection = wholeGraphWalk(workspace);
+  const projection = wholeGraph(workspace);
   return packEnvelope({
     kind: 'statistics',
     workspace,
     layers: wireLayers(workspace.layers),
-    completeness: 'unknown',
-    reasons: [WHOLE_GRAPH_REASON, ...projection.reasons],
+    completeness: projection.completeness,
+    reasons: [...projection.reasons],
     seeds: [],
     rules: [],
     bounds: {max_depth: null, max_nodes: null, max_edges: null},
@@ -555,13 +533,32 @@ function wireResolution(resolution: GraphAddressResolution): WireResolutionV2 {
   };
 }
 
-function wholeGraphWalk(workspace: GraphIrV2Workspace): GraphProjection {
-  return workspace.kernel.project({
-    seeds: workspace.compilation.nodes.map((node) => node.address),
-    rules: ALL_RULES,
-    maxHops: 1,
-    maxNodes: Number.MAX_SAFE_INTEGER,
-    maxEdges: Number.MAX_SAFE_INTEGER,
+/**
+ * Enumerates the kernel's complete node and edge set for a whole-graph read.
+ *
+ * A traversal from compiler-owned seeds can never reach an augmentation node
+ * that carries no edge to a compiler node, so a corpus read asks the kernel for
+ * what it holds. The answer is then complete unless a fact layer said it was
+ * unknown or an edge names an endpoint the corpus does not carry.
+ */
+function wholeGraph(workspace: GraphIrV2Workspace): GraphProjection {
+  const nodes = workspace.kernel.nodes();
+  const edges = workspace.kernel.edges();
+  const addresses = new Set(nodes.map((node) => node.address));
+  const reasons = [
+    ...workspace.layers
+      .filter((layer) => layer.completeness === 'unknown')
+      .flatMap((layer) => layer.reasons.map((reason) => `${layer.id}: ${reason}`)),
+    ...edges
+      .filter((edge) => !addresses.has(edge.from) || !addresses.has(edge.to))
+      .map((edge) => `edge endpoint is absent: ${edgeId(edge)}`),
+  ];
+  return Object.freeze({
+    nodes,
+    edges,
+    completeness: reasons.length === 0 ? 'complete' : 'unknown',
+    reasons: Object.freeze([...new Set(reasons)].sort()),
+    resolutions: Object.freeze([]),
   });
 }
 
@@ -877,7 +874,10 @@ function corpusStatistics(workspace: GraphIrV2Workspace, projection: GraphProjec
   const byState = new Map<string, number>();
   for (const edge of projection.edges) {
     increment(byRelation, edge.relation);
-    increment(byState, edge.state ?? 'unobserved');
+    // A compiler edge that carries no truth claim at all is distinct from an
+    // observation adapter reporting `unobserved`; conflating them would read as
+    // a missing runner result for every structural relation in the corpus.
+    increment(byState, edge.state ?? 'none');
   }
   const hubs = [...workspace.kernel.corpusRecords().artifactOwners]
     .map((record) => ({artifact: record.artifact, owners: record.owners.length}))

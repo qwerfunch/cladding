@@ -113,7 +113,7 @@ features:
   F-1e7a10c3: {slug: adoption-report-surface, status: done, modules: 2}
   F-1e9ef827: {slug: measure-extract, status: done, modules: 2}
   F-1edb38: {slug: scan-refactor, status: done, modules: 13}
-  F-208eaa79: {slug: spec-02-graphir-v2-cutover, status: in_progress, modules: 53}
+  F-208eaa79: {slug: spec-02-graphir-v2-cutover, status: in_progress, modules: 55}
   F-24062d: {slug: spec-id-hash-filename-and-lookup, status: done, modules: 3}
   F-245bd5: {slug: dogfood-recovery-v0-3-16, status: done, modules: 2}
   F-27e56a00: {slug: benchmarks-prune, status: done, modules: 4}

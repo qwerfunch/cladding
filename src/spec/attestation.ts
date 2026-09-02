@@ -717,7 +717,7 @@ function lockHeldReceiptContext(
   cwd: string,
   context: NonNullable<ReturnType<typeof attestationV3RetentionState>>['receiptContext'],
 ): NonNullable<ReturnType<typeof attestationV3RetentionState>>['receiptContext'] | undefined {
-  const census = receiptLocationCensus(cwd);
+  const census = receiptFileCensus(cwd);
   if (!census) return undefined;
   if (context.currentLocations === undefined) {
     return context.candidates.length === 0 && census.length === 0 ? context : undefined;
@@ -744,13 +744,32 @@ function lockHeldReceiptContext(
 }
 
 /** Lock-held receipt file proven portable and stored at its content-derived path. */
-interface CurrentReceiptFile {
+export interface CurrentReceiptFile {
+  /** Repository-relative `spec/evidence/<feature>/<digest>.yaml` path. */
   readonly path: string;
+  /** Exact canonical receipt bytes read from that path. */
   readonly bytes: string;
 }
 
-/** Returns the complete safe receipt-file census, or undefined on uncertainty. */
-function receiptLocationCensus(cwd: string): readonly CurrentReceiptFile[] | undefined {
+/**
+ * Returns the complete safe receipt-file census, or undefined on uncertainty.
+ *
+ * Absence of the evidence root is a proved empty census, not an unknown one.
+ * Anything the walk cannot prove safe and canonical — a symlink, a non-file, a
+ * non-portable receipt, a non-content-derived path — makes the whole census
+ * undefined so no caller can mistake a partial read for the full set.
+ *
+ * @param cwd - Workspace root containing `spec/evidence`.
+ * @returns Every canonical receipt file, or undefined when the walk is not provably complete.
+ * @example
+ * ```ts
+ * const census = receiptFileCensus(process.cwd());
+ * ```
+ * @see spec/features/spec-02-graphir-v2-cutover-208eaa79.yaml AC-4f8c2542
+ * @since 0.10.0
+ * @internal
+ */
+export function receiptFileCensus(cwd: string): readonly CurrentReceiptFile[] | undefined {
   const root = 'spec/evidence';
   if (!existsSync(join(cwd, root))) return [];
   try {

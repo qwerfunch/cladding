@@ -353,6 +353,12 @@ describe('GraphIR v2 public wire records', () => {
     expect(addresses(envelope)).toContain('artifact:src/undecodable.ts');
     expect(envelope.edges?.length).toBeGreaterThan(0);
     expect(envelope.meta.payload_utf8_bytes).toBe(serializedBytes(envelope));
+
+    // A whole-graph read is complete or it names the layer that made it not so;
+    // it no longer reports a traversal limit it does not actually have.
+    expect(exportGraphV2(degraded).completeness).toBe('unknown');
+    expect(exportGraphV2(degraded).reasons)
+      .toContain('source-references: source artifact src/undecodable.ts is invalid_utf8');
   });
 
   test('[covers:F-208eaa79/AC-945363a4] exports and counts the whole graph deterministically', () => {
@@ -371,8 +377,14 @@ describe('GraphIR v2 public wire records', () => {
     expect(addresses(first)).toEqual(expect.arrayContaining([
       'project', 'feature:F-aaaaaaaa', 'criterion:F-aaaaaaaa/AC-11111111', 'artifact:src/gamma.ts',
     ]));
-    expect(first.completeness).toBe('unknown');
-    expect(first.reasons[0]).toMatch(/^whole-graph read: traversal from compiler-owned seeds/);
+    // The export enumerates the kernel instead of walking to it, so a node no
+    // traversal could reach is still emitted and the answer is complete.
+    expect(first.meta.counts.nodes).toBe(workspace.kernel.nodes().length);
+    expect(first.meta.counts.edges).toBe(workspace.kernel.edges().length);
+    expect(addresses(first)).toEqual(workspace.kernel.nodes().map((node) => node.address));
+    expect(first.completeness).toBe('complete');
+    expect(first.reasons).toEqual([]);
+    expect(statistics.completeness).toBe('complete');
 
     expect(statistics.kind).toBe('statistics');
     expect(statistics.nodes).toBeUndefined();
@@ -386,6 +398,18 @@ describe('GraphIR v2 public wire records', () => {
     expect(Object.keys(statistics.statistics?.nodes.by_kind ?? {}))
       .toEqual([...Object.keys(statistics.statistics?.nodes.by_kind ?? {})].sort());
     expect(statistics.statistics?.artifact_hubs.length).toBeLessThanOrEqual(10);
+  });
+
+  test('[covers:F-208eaa79/AC-d452908b] counts a state-less structural edge as none, not as an absent observation', () => {
+    const workspace = chainWorkspace();
+
+    const byState = statisticsV2(workspace).statistics?.edges.by_state ?? {};
+
+    expect(byState.none).toBeGreaterThan(0);
+    expect(byState.unobserved).toBeUndefined();
+    expect(workspace.kernel.edges().filter((edge) => edge.state === undefined)).toHaveLength(byState.none);
+    expect(Object.values(byState).reduce((total, count) => total + count, 0))
+      .toBe(workspace.kernel.edges().length);
   });
 });
 
@@ -418,6 +442,18 @@ describe('GraphIR v2 public wire on the cladding corpus', () => {
     expect(owners.size).toBeGreaterThanOrEqual(5);
     expect([...owners].every((address) => address.startsWith('feature:'))).toBe(true);
     expect(envelope.meta.payload_utf8_bytes).toBeLessThanOrEqual(16_384);
+  });
+
+  test('[covers:F-208eaa79/AC-945363a4] exports every self-corpus node the kernel holds', () => {
+    const envelope = exportGraphV2(workspace);
+
+    expect(envelope.completeness).toBe('complete');
+    expect(envelope.reasons).toEqual([]);
+    expect(envelope.meta.counts.nodes).toBe(workspace.kernel.nodes().length);
+    expect(envelope.meta.counts.edges).toBe(workspace.kernel.edges().length);
+    expect(envelope.meta.counts.nodes).toBeGreaterThan(4000);
+    expect(envelope.layers.map((layer) => layer.id)).toContain('receipt-observations');
+    expect(envelope.layers.every((layer) => layer.completeness === 'complete')).toBe(true);
   });
 
   test('[covers:F-208eaa79/AC-a0d60a0b] fits a small self-corpus feature with no omission at all', () => {

@@ -11,6 +11,7 @@ import type {
   GraphPresentationRecord,
   GraphRelation,
   GraphState,
+  LegacyReferenceChannel,
   SourceLocator,
   SpecCompilation,
 } from './types.js';
@@ -189,6 +190,8 @@ export interface GraphIrV2ObservationEdge {
   readonly owner: GraphObservationLocator;
   /** Runtime result state. */
   readonly state: GraphState;
+  /** Legacy proof channel retained verbatim; it never upgrades the fact's provenance. */
+  readonly channel?: LegacyReferenceChannel;
   /** Optional source-carrier detail retained by a future adapter. */
   readonly raw?: string;
   /** Optional canonical target detail retained by a future adapter. */
@@ -257,6 +260,8 @@ type ArtifactOwnerRecord = CompilerCorpusView['artifactOwners'][number];
 
 /** Immutable compiler-owned GraphIR query operations. */
 export interface GraphIrV2Kernel {
+  nodes(): readonly GraphIrV2Node[];
+  edges(): readonly GraphIrV2Edge[];
   presentationRecords(): readonly GraphPresentationRecord[];
   aliasRecords(): readonly GraphAliasRecord[];
   resolveAddress(input: string): GraphAddressResolution;
@@ -274,6 +279,8 @@ const BASE_INDEX = new WeakMap<SpecCompilation, GraphIrV2Index>();
 const ARTIFACT_ROLES: ReadonlySet<ArtifactRole> = new Set([
   'spec', 'doc', 'source', 'test', 'oracle', 'evidence', 'skill', 'generated',
 ]);
+
+const LEGACY_REFERENCE_CHANNELS: ReadonlySet<LegacyReferenceChannel> = new Set(['test', 'oracle', 'evidence']);
 
 const GRAPH_STATES: ReadonlySet<GraphState> = new Set([
   'resolved', 'unresolved', 'passed', 'failed', 'skipped', 'stale', 'unknown', 'unobserved',
@@ -340,7 +347,8 @@ export function graphIrV2(
 /** The index owns every join so compiler consumers cannot recreate directed graph views. */
 class GraphIrV2Index implements GraphIrV2Kernel {
   private readonly nodeByAddress: ReadonlyMap<string, GraphIrV2Node>;
-  private readonly edges: readonly GraphIrV2Edge[];
+  private readonly allNodes: readonly GraphIrV2Node[];
+  private readonly allEdges: readonly GraphIrV2Edge[];
   private readonly baseNodes: readonly GraphNode[];
   private readonly baseEdges: readonly GraphEdge[];
   private readonly outbound: ReadonlyMap<string, readonly GraphIrV2Edge[]>;
@@ -360,11 +368,14 @@ class GraphIrV2Index implements GraphIrV2Kernel {
     baseEdges: readonly GraphEdge[] = edges.filter(isBaseEdge),
   ) {
     this.nodeByAddress = indexByIdentity(nodes, (node) => node.address, 'node address');
-    this.edges = uniqueEdges(edges);
+    // Computed once with the index so a full enumeration never re-sorts, and
+    // never depends on the caller's supplied array order.
+    this.allNodes = freezeRecords(sortBy([...this.nodeByAddress.values()], (node) => node.address));
+    this.allEdges = uniqueEdges(edges);
     this.baseNodes = freezeRecords(sortBy([...indexByIdentity(baseNodes, (node) => node.address, 'base node address').values()], (node) => node.address));
     this.baseEdges = freezeRecords(sortBy([...indexByIdentity(baseEdges, (edge) => edge.address, 'base edge identity').values()], (edge) => edge.address));
-    this.outbound = edgeIndex(this.edges, 'from');
-    this.inbound = edgeIndex(this.edges, 'to');
+    this.outbound = edgeIndex(this.allEdges, 'from');
+    this.inbound = edgeIndex(this.allEdges, 'to');
     this.presentations = freezeRecords(sortBy(presentations, recordKey));
     this.aliases = freezeRecords(sortBy(aliases, recordKey));
     this.aliasTargets = aliasIndex(this.aliases);
@@ -395,13 +406,29 @@ class GraphIrV2Index implements GraphIrV2Kernel {
     for (const edge of edges) assertAugmentationEdge(edge, combinedNodes);
     return new GraphIrV2Index(
       [...combinedNodes.values()],
-      [...this.edges, ...edges],
+      [...this.allEdges, ...edges],
       this.presentations,
       this.aliases,
       [...this.layerUnknownReasons, ...unknownReasons],
       this.baseNodes,
       this.baseEdges,
     );
+  }
+
+  /**
+   * Returns every compiler and augmentation node this kernel holds.
+   *
+   * A traversal from compiler-owned seeds cannot reach an augmentation node
+   * that carries no edge to a compiler node, so a caller that needs the whole
+   * corpus enumerates it here instead of reporting a walk it cannot complete.
+   */
+  nodes(): readonly GraphIrV2Node[] {
+    return this.allNodes;
+  }
+
+  /** Returns every compiler and augmentation edge in deterministic identity order. */
+  edges(): readonly GraphIrV2Edge[] {
+    return this.allEdges;
   }
 
   /** Returns compiler records in source-derived deterministic order. */
@@ -867,6 +894,9 @@ function assertObservationEdge(
   assertCanonicalEndpoint(edge.from, combinedNodes, `GraphIR observation edge source for ${edge.identity}`);
   assertCanonicalEndpoint(edge.to, combinedNodes, `GraphIR observation edge target for ${edge.identity}`);
   if (!GRAPH_STATES.has(edge.state)) throw new Error(`GraphIR observation edge has an invalid state: ${edge.identity}`);
+  if (edge.channel !== undefined && !LEGACY_REFERENCE_CHANNELS.has(edge.channel)) {
+    throw new Error(`GraphIR observation edge has an invalid channel: ${edge.identity}`);
+  }
   if (edge.raw !== undefined && typeof edge.raw !== 'string') throw new Error(`GraphIR observation edge has an invalid raw detail: ${edge.identity}`);
   if (edge.normalizedTarget !== undefined) {
     assertCanonicalAddress(edge.normalizedTarget);
