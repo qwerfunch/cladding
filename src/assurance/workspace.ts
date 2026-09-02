@@ -118,7 +118,7 @@ export function assuranceClosureInputFromWorkspace(
     .map((edge) => {
       const address = edge.from.replace(/^criterion:/, '');
       const path = proofPath(edge.normalizedTarget ?? edge.to);
-      const bytes = path ? readSafeProofClosureBytes(cwd, path) : undefined;
+      const bytes = path ? declaredProofClosureBytes(cwd, path) : undefined;
       const ref = {address, path: path ?? '<unresolved>', sourceBytes: bytes, runnerConfig: runnerConfig(edge.channel ?? 'unknown', edge.normalizedTarget ?? edge.to)};
       return edge.channel === 'oracle' ? {...ref, oracle: {declaration: edge.raw ?? edge.to, resolvedBytes: bytes}}
         : edge.channel === 'evidence' ? {...ref, evidence: {declaration: edge.raw ?? edge.to, resolvedBytes: bytes}}
@@ -495,6 +495,18 @@ function legacyIntentMatches(
 }
 
 /**
+ * Relations whose unresolved edge means the compiler could not place a node in
+ * the structural graph, so any bounded scope derived from it could be silently
+ * narrow.  Every other relation, the proof channels included, is deliberately
+ * excluded: an unresolved `supports`/`covers` declaration is a sealed negative
+ * fact belonging to its own criterion, not unknown repository topology, so it
+ * must never escalate an unrelated feature's scope.
+ */
+const SCOPE_STRUCTURAL_RELATIONS: readonly string[] = Object.freeze([
+  'contains', 'contributes_to', 'defined_in', 'depends_on', 'participates_in', 'touches',
+]);
+
+/**
  * Resolves the fixed-point impact closure from compiler facts only.  Each newly
  * discovered feature contributes its prerequisites, transitive dependents, and
  * shared artifact owners on the next pass.  A missing graph fact never leaves a
@@ -514,7 +526,8 @@ export function effectiveFeatureScope(
     return {featureIds: Object.freeze([]), scopeAddresses: Object.freeze([]), repository: true, complete: false, incompleteReasons: Object.freeze(['schema'])};
   }
   if (compilation.diagnostics.some((diagnostic) => diagnostic.severity !== 'advisory')) reasons.add('compiler-diagnostic');
-  if (compilation.edges.some((edge) => edge.state === 'unresolved' || edge.state === 'unknown')) reasons.add('unresolved-graph');
+  if (compilation.edges.some((edge) => (edge.state === 'unresolved' || edge.state === 'unknown')
+    && SCOPE_STRUCTURAL_RELATIONS.includes(edge.relation))) reasons.add('unresolved-graph');
   const requested = requestedAddresses ?? [];
   const selected = new Set<string>();
   for (const address of requested) {
@@ -650,10 +663,6 @@ export function workspaceProfileSnapshot(
     const contract = contractClosure(closureInput, featureId);
     const runtime = runtimeDependencyClosure(closureInput, featureId);
     records.push({feature: featureId, contract: contract.sha256, runtime: runtime.sha256});
-    if (!contract.complete) incompleteAddresses.push(`contract:${featureId}`);
-    if (!runtime.complete) incompleteAddresses.push(`runtime:${featureId}`);
-    const feature = closureInput.features.find((candidate) => candidate.id === featureId);
-    if (!feature) continue;
     // Lifecycle is compiler-owned applicability: unfinished schema 0.2
     // criteria still contribute contract/runtime impact facts, but they are
     // not current Unit/Coverage/Human proof subjects. Schema 0.1 retains its
@@ -661,7 +670,16 @@ export function workspaceProfileSnapshot(
     const compilerFeature = compilation.schemaVersion === '0.2'
       ? compilation.contract?.features.find((candidate) => candidate.id === featureId)
       : undefined;
-    if (compilation.schemaVersion === '0.2' && compilerFeature?.status !== 'done') continue;
+    // An unfinished schema 0.2 feature is inside the spec-first window, where
+    // an authored module or criterion legitimately precedes the code that will
+    // satisfy it. Its digests stay in the snapshot input so a later build still
+    // changes the identity, but its absent inputs are an expected lifecycle
+    // fact rather than an unknown that stales every profile obligation.
+    const currentSubject = compilation.schemaVersion !== '0.2' || compilerFeature?.status === 'done';
+    if (currentSubject && !contract.complete) incompleteAddresses.push(`contract:${featureId}`);
+    if (currentSubject && !runtime.complete) incompleteAddresses.push(`runtime:${featureId}`);
+    const feature = closureInput.features.find((candidate) => candidate.id === featureId);
+    if (!feature || !currentSubject) continue;
     for (const criterion of feature.criteria) {
       const address = `criterion:${featureId}/${criterion.id}`;
       const verificationRequired = requiresTest || requiresHuman
@@ -888,6 +906,26 @@ function aggregate(values: readonly string[]): string {
 function proofPath(address: string): string | undefined {
   const artifact = address.match(/^(?:artifact|anchor):([^#]+)(?:#.*)?$/)?.[1];
   return artifact?.includes(':') || artifact?.split('/').includes('..') ? undefined : artifact;
+}
+
+/**
+ * Reads an authored oracle or evidence declaration through the F5-safe
+ * boundary.
+ *
+ * A declaration may name a directory with a trailing separator, exactly as a
+ * feature module may, while a proof binding deliberately may not.  Normalize
+ * that presentation detail for this compiler-owned read only: the authored
+ * spelling remains the closure identity and address, every descendant keeps
+ * the workspace and symlink checks, and F5 test-binding path safety is
+ * unchanged.
+ *
+ * @param cwd Workspace root.
+ * @param path Authored declaration path.
+ * @returns Deterministic bytes, or undefined for an unsafe or absent target.
+ */
+function declaredProofClosureBytes(cwd: string, path: string): Uint8Array | undefined {
+  const readPath = path.replace(/[\\/]+$/, '');
+  return readPath === '' ? undefined : readSafeProofClosureBytes(cwd, readPath);
 }
 
 function legacyEars(

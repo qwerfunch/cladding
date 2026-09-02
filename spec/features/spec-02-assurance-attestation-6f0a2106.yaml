@@ -71,12 +71,18 @@ acceptance_criteria:
   - id: AC-6f0a2110
     statement: When a schema 0.2 feature is completed, the completion profile shall
       preserve the flip, gate, compensation, and transaction invariants.
+  - id: AC-6f0a2112
+    kind: behavior
+    statement: The assurance authority shall derive scope and closure completeness
+      from structural relations and enumerable inputs only, so an unresolved or
+      unbuilt proof-channel reference remains a visible negative fact for its
+      own criterion without making the repository profile unresolved.
 design_impact:
   classification: structural
   rationale: F6 centralizes assurance identity, closure freshness, profile
     reduction, stage compatibility, and v3 sealing without adding an issuer or
     scheduler.
-  status: review_required
+  status: resolved
   artifacts:
     - docs/design/spec-0.2/assurance.md
     - docs/design/spec-0.2/proof-and-editing.md

@@ -93,12 +93,53 @@ describe('F6 closure authority', () => {
     const unsafe = verificationClosure({...input, proofInputs: [{
       ...input.proofInputs[0], bindingState: 'unsafe' as const,
     }]}, 'F-a/AC-a');
-    const unresolvedOracle = verificationClosure({...input, proofInputs: [{
-      ...input.proofInputs[0], oracle: {declaration: 'oracle:missing'},
-    }]}, 'F-a/AC-a');
     expect(unreadable.complete).toBe(false);
     expect(unsafe.complete).toBe(false);
-    expect(unresolvedOracle.complete).toBe(false);
+  });
+
+  test('[covers:F-6f0a2106/AC-6f0a2112] an unresolved oracle or evidence declaration seals a negative fact instead of an unknown', () => {
+    // An authored declaration resolves through its own channel, so the closure
+    // reads the very same bytes for `source` and for the channel record.
+    const unresolvedOracle = verificationClosure({...input, proofInputs: [{
+      ...input.proofInputs[0], path: 'script:missing', sourceBytes: undefined,
+      oracle: {declaration: 'script:missing'},
+    }]}, 'F-a/AC-a');
+    const unresolvedEvidence = verificationClosure({...input, proofInputs: [{
+      ...input.proofInputs[0], path: 'self-dogfood:stage:commit-postcommit', sourceBytes: undefined,
+      evidence: {declaration: 'self-dogfood:stage:commit-postcommit'},
+    }]}, 'F-a/AC-a');
+
+    expect(unresolvedOracle.complete).toBe(true);
+    expect(unresolvedEvidence.complete).toBe(true);
+    expect(JSON.stringify(unresolvedOracle.records)).toContain('<missing-oracle>');
+    expect(JSON.stringify(unresolvedOracle.records)).toContain('<missing-source>');
+    expect(JSON.stringify(unresolvedEvidence.records)).toContain('<missing-evidence>');
+    expect(JSON.stringify(unresolvedEvidence.records)).toContain('<missing-source>');
+
+    // The sentinel is a digest input, so the seal still moves the moment the
+    // declared target appears.
+    const resolvedEvidence = verificationClosure({...input, proofInputs: [{
+      ...input.proofInputs[0], path: 'self-dogfood:stage:commit-postcommit', sourceBytes: 'declared bytes',
+      evidence: {declaration: 'self-dogfood:stage:commit-postcommit', resolvedBytes: 'declared bytes'},
+    }]}, 'F-a/AC-a');
+    expect(resolvedEvidence.sha256).not.toBe(unresolvedEvidence.sha256);
+
+    // A live test binding still owes readable source, and an unsafe binding
+    // stays unenumerable through either channel.
+    const unreadableLive = verificationClosure({...input, proofInputs: [{
+      ...input.proofInputs[0], sourceBytes: undefined,
+    }]}, 'F-a/AC-a');
+    const unsafeEvidence = verificationClosure({...input, proofInputs: [{
+      ...input.proofInputs[0], sourceBytes: undefined, bindingState: 'unsafe' as const,
+      evidence: {declaration: 'self-dogfood:stage:commit-postcommit'},
+    }]}, 'F-a/AC-a');
+    const unknownRunner = verificationClosure({...input, proofInputs: [{
+      ...input.proofInputs[0], sourceBytes: undefined, runnerConfig: {complete: false},
+      evidence: {declaration: 'self-dogfood:stage:commit-postcommit'},
+    }]}, 'F-a/AC-a');
+    expect(unreadableLive.complete).toBe(false);
+    expect(unsafeEvidence.complete).toBe(false);
+    expect(unknownRunner.complete).toBe(false);
   });
 
   test('hashes exact required scenario intent for every referenced criterion while excluding off advisory and unrelated scenarios', () => {

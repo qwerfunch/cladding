@@ -8,7 +8,7 @@ import {join} from 'node:path';
 import {afterEach, describe, expect, test} from 'vitest';
 
 import {reduceLegacyStageAdapter} from '../../src/assurance/adapters.js';
-import {readSafeRuntimeModuleClosureBytes, runtimeDependencyClosure} from '../../src/assurance/closures.js';
+import {readSafeRuntimeModuleClosureBytes, runtimeDependencyClosure, verificationClosure} from '../../src/assurance/closures.js';
 import {assuranceProfile} from '../../src/assurance/kernel.js';
 import {
   assuranceClosureInputFromWorkspace,
@@ -484,6 +484,61 @@ describe('F6 workspace profile closure', () => {
     const before = trailing.closure.sha256;
     writeFileSync(join(cwd, 'src', 'runtime', 'nested', 'child.ts'), 'export const child = 2;\n');
     expect(closureFor('src/runtime/').closure.sha256).not.toBe(before);
+  });
+
+  test('[covers:F-6f0a2106/AC-6f0a2112] an unbuilt module inside the spec-first window keeps the profile snapshot complete', () => {
+    const cwd = fixture();
+    const shard = join(cwd, 'spec', 'features', 'closure-aaaaaaaa.yaml');
+    const authored = readFileSync(shard, 'utf8').replace('modules: [src/a.ts]', 'modules: [src/not-built-yet.ts]');
+    const request = {
+      profile: assuranceProfile('completion', 'L2'), scopeAddresses: ['feature:F-aaaaaaaa'],
+      hasExecutableTests: false, oracleRequiredSubjects: new Set<string>(), requiresHuman: false,
+    };
+    const snapshotFor = (source: string) => {
+      writeFileSync(shard, source);
+      return workspaceProfileSnapshot(cwd, compileSpecWorkspace(cwd), request);
+    };
+
+    const planned = snapshotFor(authored.replace('status: done', 'status: in_progress'));
+    const completed = snapshotFor(authored);
+    expect(planned.incompleteAddresses).not.toContain('runtime:F-aaaaaaaa');
+    expect(planned.complete).toBe(true);
+    expect(completed.incompleteAddresses).toContain('runtime:F-aaaaaaaa');
+    expect(completed.complete).toBe(false);
+
+    // The unbuilt feature still contributes its contract and runtime digests,
+    // so building the declared module changes the snapshot identity even while
+    // the feature stays inside the spec-first window.
+    writeFileSync(join(cwd, 'src', 'not-built-yet.ts'), 'export const built = 1;\n');
+    expect(snapshotFor(authored.replace('status: done', 'status: in_progress')).inputSha256)
+      .not.toBe(planned.inputSha256);
+  });
+
+  test('[covers:F-6f0a2106/AC-6f0a2112] reads a trailing-separator evidence declaration while a symlinked member stays unresolved', () => {
+    const cwd = fixture();
+    const shard = join(cwd, 'spec', 'features', 'closure-aaaaaaaa.yaml');
+    mkdirSync(join(cwd, 'docs', 'evidence'), {recursive: true});
+    writeFileSync(join(cwd, 'docs', 'evidence', 'record.md'), 'observed evidence\n');
+    writeFileSync(shard, readFileSync(shard, 'utf8').replace(
+      '    statement: The system shall keep closure requirements explicit.',
+      '    statement: The system shall keep closure requirements explicit.\n    evidence_refs: [docs/evidence/]',
+    ));
+    const declaredProof = () => assuranceClosureInputFromWorkspace(cwd, compileSpecWorkspace(cwd))
+      .proofInputs?.find((proof) => proof.path === 'docs/evidence/');
+
+    const resolved = declaredProof();
+    // The authored spelling stays the binding identity; only the read is
+    // normalized.
+    expect(resolved?.path).toBe('docs/evidence/');
+    expect(resolved?.evidence?.resolvedBytes).toBeDefined();
+    expect(resolved?.sourceBytes).toBeDefined();
+    expect(verificationClosure(assuranceClosureInputFromWorkspace(cwd, compileSpecWorkspace(cwd)), 'F-aaaaaaaa/AC-aaaaaaaa').complete).toBe(true);
+
+    symlinkSync(join(cwd, 'src', 'a.ts'), join(cwd, 'docs', 'evidence', 'link.ts'));
+    const symlinked = declaredProof();
+    expect(symlinked?.path).toBe('docs/evidence/');
+    expect(symlinked?.evidence?.resolvedBytes).toBeUndefined();
+    expect(symlinked?.sourceBytes).toBeUndefined();
   });
 
   test('rejects unsafe runtime-directory spellings after trailing-separator normalization', () => {

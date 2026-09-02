@@ -10,6 +10,7 @@ import {assuranceProfile} from '../../src/assurance/kernel.js';
 import {effectiveFeatureScope} from '../../src/assurance/workspace.js';
 import {runCheckStages} from '../../src/cli/clad.js';
 import {compileSpecWorkspace} from '../../src/spec/compiler/compile.js';
+import type {GraphRelation} from '../../src/spec/compiler/types.js';
 
 const roots: string[] = [];
 
@@ -26,11 +27,17 @@ function workspace(): string {
   return cwd;
 }
 
-function feature(id: string, modules: readonly string[], dependsOn: readonly string[] = []): string {
+function feature(
+  id: string,
+  modules: readonly string[],
+  dependsOn: readonly string[] = [],
+  criterionRefs: readonly string[] = [],
+): string {
   return [
     `id: ${id}`, `title: ${id}`, 'status: done', `purpose: Keep ${id} in the authoritative execution closure.`,
     `modules: [${modules.join(', ')}]`, `depends_on: [${dependsOn.join(', ')}]`, 'capability_refs: []', 'acceptance_criteria:',
-    `  - id: AC-${id.slice(2)}`, '    kind: behavior', `    statement: The system shall keep ${id} in its execution closure.`, '',
+    `  - id: AC-${id.slice(2)}`, '    kind: behavior', `    statement: The system shall keep ${id} in its execution closure.`,
+    ...criterionRefs, '',
   ].join('\n');
 }
 
@@ -39,6 +46,12 @@ function writeScopeFixture(cwd: string): void {
   writeFileSync(join(cwd, 'spec', 'features', 'b.yaml'), feature('F-bbbbbbbb', ['b/src/main/kotlin/B.kt', 'shared/src/main/kotlin/Common.kt'], ['F-aaaaaaaa']));
   writeFileSync(join(cwd, 'spec', 'features', 'p.yaml'), feature('F-cccccccc', ['p/src/main/kotlin/P.kt']));
   writeFileSync(join(cwd, 'spec', 'features', 'd.yaml'), feature('F-dddddddd', ['d/src/main/kotlin/D.kt']));
+}
+
+function workspaceWithFixture(): string {
+  const cwd = workspace();
+  writeScopeFixture(cwd);
+  return cwd;
 }
 
 function writeGradleProject(cwd: string, module: string, source: string): void {
@@ -125,5 +138,66 @@ describe('F6 compiler-effective execution scope', () => {
     expect(scope.repository).toBe(true);
     expect(scope.scopeAddresses).toEqual(['feature:F-aaaaaaaa', 'feature:F-bbbbbbbb', 'feature:F-cccccccc', 'feature:F-dddddddd']);
     expect(scope.focusModules).toBeUndefined();
+  });
+
+  test('[covers:F-6f0a2106/AC-6f0a2112] an unresolved proof-channel declaration leaves compiler scope bounded', () => {
+    const cwd = workspace();
+    writeScopeFixture(cwd);
+    writeFileSync(join(cwd, 'spec', 'features', 'a.yaml'), feature(
+      'F-aaaaaaaa', ['a/src/main/kotlin/A.kt', 'shared/src/main/kotlin/Common.kt'], ['F-cccccccc'],
+      ['    evidence_refs: [docs/never-authored.md]', '    oracle_refs: [script:never-authored]'],
+    ));
+    const compilation = compileSpecWorkspace(cwd);
+
+    // Negative control: the declarations really are unresolved compiler edges,
+    // so a passing scope assertion below cannot be vacuous.
+    expect(compilation.edges.filter((edge) => edge.state === 'unresolved').map((edge) => edge.relation))
+      .toEqual(['supports', 'supports']);
+    expect(compilation.diagnostics.filter((diagnostic) => diagnostic.severity !== 'advisory')).toEqual([]);
+
+    const scope = effectiveFeatureScope(compilation, assuranceProfile('completion', 'L1'), ['feature:F-aaaaaaaa']);
+    expect(scope.complete).toBe(true);
+    expect(scope.repository).toBe(false);
+    expect(scope.incompleteReasons).toEqual([]);
+    expect(scope.scopeAddresses).toEqual(['feature:F-aaaaaaaa', 'feature:F-bbbbbbbb', 'feature:F-cccccccc']);
+  });
+
+  test('[covers:F-6f0a2106/AC-6f0a2112] an unresolved structural relation still escalates to the repository', () => {
+    const cwd = workspace();
+    writeScopeFixture(cwd);
+    writeFileSync(join(cwd, 'spec', 'features', 'a.yaml'), feature('F-aaaaaaaa', ['a/src/main/kotlin/A.kt'], ['F-eeeeeeee']));
+    const authored = compileSpecWorkspace(cwd);
+
+    // A prerequisite outside the contract is reported by the corpus view, which
+    // never emits an edge for the absent target.
+    const missingPrerequisite = effectiveFeatureScope(authored, assuranceProfile('completion', 'L1'), ['feature:F-aaaaaaaa']);
+    expect(missingPrerequisite.complete).toBe(false);
+    expect(missingPrerequisite.repository).toBe(true);
+    expect(missingPrerequisite.incompleteReasons)
+      .toEqual(['unresolved-dependency:feature:F-aaaaaaaa->feature:F-eeeeeeee']);
+
+    // Today's compiler states only proof-channel edges, so the structural
+    // allowlist is proved against a supplied unresolved relation: every
+    // structural relation must escalate, while the proof channels must not.
+    const complete = compileSpecWorkspace(workspaceWithFixture());
+    const withRelation = (relation: GraphRelation) => effectiveFeatureScope(
+      {
+        ...complete,
+        edges: [...complete.edges, {
+          address: `feature:F-dddddddd|${relation}|feature:F-eeeeeeee|supplied`,
+          from: 'feature:F-dddddddd', to: 'feature:F-eeeeeeee', relation,
+          provenance: 'authored' as const, owner: complete.edges[0]!.owner, state: 'unresolved' as const,
+        }],
+      },
+      assuranceProfile('push', 'L1'), undefined,
+    );
+
+    for (const relation of ['contains', 'contributes_to', 'defined_in', 'depends_on', 'participates_in', 'touches'] as const) {
+      expect(withRelation(relation).incompleteReasons).toEqual(['unresolved-graph']);
+    }
+    for (const relation of ['supports', 'covers'] as const) {
+      expect(withRelation(relation).incompleteReasons).toEqual([]);
+      expect(withRelation(relation).complete).toBe(true);
+    }
   });
 });

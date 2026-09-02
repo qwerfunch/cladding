@@ -254,19 +254,26 @@ export function verificationClosure(input: AssuranceClosureInput, criterionAddre
     records.push({address: `receipt:${receipt.identity}`, value: receipt.identity});
   }
   // `complete` seals whether every verification input is safely enumerable;
-  // it never claims that a proof passed. A missing, stale, or path-only
-  // binding is an explicit, deterministic negative fact for F5 to reduce at
-  // its own criterion. Treating any of those facts as an unknown topology
-  // would incorrectly turn every profile obligation into global stale.
+  // it never claims that a proof passed. A missing, stale, path-only, or
+  // unresolved binding is an explicit, deterministic negative fact for F5 to
+  // reduce at its own criterion. Treating any of those facts as an unknown
+  // topology would incorrectly turn every profile obligation into global
+  // stale.  Only an unsafe binding, an unknown runner configuration, or a live
+  // test binding whose current source cannot be read leaves this closure
+  // genuinely unenumerable.
   const complete = proofInputs.every((proof) => {
     if (proof.bindingState === 'unsafe') return false;
-    if (proof.oracle?.resolvedBytes === undefined && proof.oracle !== undefined) return false;
-    if (proof.evidence?.resolvedBytes === undefined && proof.evidence !== undefined) return false;
     if (!runnerConfigurationIsKnown(proof.runnerConfig)) return false;
     // A carry-forward already classified stale remains a sealed negative even
     // when its current source is gone. Its expected digest, state, and source
     // (or explicit missing-source sentinel) remain in the closure record.
     if (proof.bindingState === 'stale') return true;
+    // An authored oracle or evidence declaration carries its own resolution
+    // channel: its bytes are the declaration's bytes, and both the
+    // `<missing-oracle>`/`<missing-evidence>` and `<missing-source>` sentinels
+    // already record the absence, so the digest still changes the moment the
+    // declared target appears. Only a live test binding owes readable source.
+    if (proof.oracle !== undefined || proof.evidence !== undefined) return true;
     return proof.sourceBytes !== undefined;
   });
   return closed(records, complete);
