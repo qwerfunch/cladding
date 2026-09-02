@@ -5,6 +5,27 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — 0.10.0
+
+**In one line:** Spec schema 0.2 — purpose-first features, composite criterion addresses, live `[covers:]` test bindings, a compiler-owned GraphIR, assurance profiles with attestation v3, and a reviewed migration path from 0.1.
+
+### Added
+
+- Schema 0.2 compiler, registries, parser and migration preview, typed transactional editing, proof and portable-evidence kernel, and assurance profiles (feedback, checkpoint, completion, push, release) with attestation v3.
+- GraphIR v2 query kernel with authored, document, source-reference, and current-gate test observation layers; the gate hands the graph a sealed testcase ledger instead of report bytes.
+- `test-count.mjs --write` also syncs the README feature counts.
+
+### Changed
+
+- Scope and closure completeness derive from structural relations only; unresolved evidence or oracle references stay visible negative facts for their own criterion instead of making every profile unresolved.
+- Authoritative 0.2 profiles (completion, push, release) block on warn-class drift findings; `--strict` remains an explicit escalation.
+- An archived feature whose successor is not yet done reports surviving modules as informational until the successor completes.
+
+### Fixed
+
+- `src/graph` no longer imports stage code (architecture rule AR-cabee171).
+- Migration carry-forward test bindings invalidated by title edits are promoted to live tokens instead of failing silently.
+
 ## [0.9.4] — The gate judges the sources on disk (2026-08-26)
 
 **In one line:** the language check reads your sources instead of your build manifest — projects it wrongly blocked now pass honestly — the module-honesty scan works for any language your spec teaches it, the gate config survives a fresh clone, and cladding now proves its own host hooks fired, records stop and completion outcomes, pins generated CI, and stamps every verified tree with the policy that earned it.

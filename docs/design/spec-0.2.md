@@ -9,8 +9,8 @@
 | Target release | Cladding 0.10.0 |
 | Target schema | `"0.2"` |
 | Current shipped schema | `"0.1"` |
-| Design status | Accepted; implementation pending |
-| Last design review | 2026-08-29 |
+| Design status | Accepted; implementation in progress (0.10.0: F1–F7 complete, F8 in progress) |
+| Last design review | 2026-09-02 |
 | Authority | Navigation SSoT for the accepted target-design set; normative decisions live in the linked owner documents |
 
 The current runtime remains governed by [`docs/ssot-model.md`](../ssot-model.md), [`spec/README.md`](../../spec/README.md), and source code until each target-design part lands.
@@ -22,7 +22,7 @@ For a fresh planning or implementation session:
 1. Read [`AGENTS.md`](../../AGENTS.md), this router, and only the task-routed owner documents.
 2. Load [Evidence snapshot](spec-0.2/evidence.md#evidence-snapshot) or [Assurance evidence](spec-0.2/assurance-evidence.md) only to reproduce a measurement or evaluate a claim.
 3. Keep accepted target decisions separate from shipped runtime behavior.
-4. Change only the canonical owner, append its [Change log](spec-0.2/decision-log.md#change-log) row, and preserve displaced alternatives as rejected history.
+4. Change only the canonical owner, append its [Change log](spec-0.2/change-log.md) row, and preserve displaced alternatives as rejected history.
 5. Label numbers as **verified measurement**, **acceptance target**, or **projection**. Never promote a projection without a reproducible artifact.
 
 Old chat transcripts are not authority. This router intentionally contains no duplicate normative contract.
@@ -154,4 +154,4 @@ Owner: [D24](spec-0.2/mcp.md#d24--mcp-as-optional-transport-and-bounded-projecti
 - [Rejected decisions](spec-0.2/decision-log.md#rejected-decisions)
 - [Executable validation protocol](spec-0.2/validation.md)
 - [Evolution queue](spec-0.2/decision-log.md#evolution-queue)
-- [Change log](spec-0.2/decision-log.md#change-log)
+- [Change log](spec-0.2/change-log.md)
