@@ -1,10 +1,14 @@
 // Cladding · Spec 0.2 F5 · exact testcase observation reduction.
 
-import type {JUnitReport} from '../stages/junit-report.js';
 import type {BindingObservation, TestBinding, TestCaseObservation} from './types.js';
 
-/** Reduces only testcase observations named by each declared binding. */
-export function reduceTestBindings(bindings: readonly TestBinding[], report: JUnitReport): readonly BindingObservation[] {
+/** Reduces only testcase observations named by each declared binding. The report
+ *  is structural — any carrier ledger with `cases` reduces identically, so this
+ *  layer never depends on a stage's parser type. */
+export function reduceTestBindings(
+  bindings: readonly TestBinding[],
+  report: {readonly cases?: readonly TestCaseObservation[]},
+): readonly BindingObservation[] {
   const byCriterion = new Map<string, TestBinding[]>();
   for (const binding of bindings) {
     const entries = byCriterion.get(binding.criterion) ?? [];

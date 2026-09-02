@@ -1,3 +1,5 @@
+// Cladding · spec · organic doc references, declarations, and opt-out — F-ee5f643e
+
 import {extractDocReferences, renderDocLinksYaml, scanDocumentFacts, stripCodeSpans, DOC_LINKS_IGNORE_MARKER} from '../../src/spec/doc-references.js';
 import {mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -40,7 +42,7 @@ describe('doc-references', () => {
     expect(m['docs/legacy.md'].features).toEqual(['F-049', 'F-073', 'F-ee47fc2b']);
   });
 
-  test('extracts F-ids and resolved .md links, excluding fixture dirs and code spans', () => {
+  test('[covers:F-ee5f643e/AC-5c0ae481] extracts F-ids and resolved .md links, excluding fixture dirs and code spans', () => {
     wdoc('docs/a.md', 'see F-ee47fc2b and F-7794a6bc here. [link](./b.md). inline `F-cafef00d` ignored.');
     wdoc('docs/b.md', '# b');
     wdoc('docs/ab-evaluation-extended/r.md', 'fixture F-deadbeef');
@@ -53,7 +55,7 @@ describe('doc-references', () => {
     expect(m['docs/ab-evaluation-extended/r.md']).toBeUndefined();
   });
 
-  test('an opted-out doc yields no features but still yields doc_links', () => {
+  test('[covers:F-ee5f643e/AC-f6f6188a] an opted-out doc yields no features but still yields doc_links', () => {
     wdoc('docs/c.md', '<!-- clad-doc-links: ignore -->\nF-ee47fc2b in prose. [x](./b.md)');
     wdoc('docs/b.md', '# b');
 
@@ -63,7 +65,7 @@ describe('doc-references', () => {
     expect(m['docs/c.md'].doc_links).toEqual(['docs/b.md']);
   });
 
-  test('fixture dirs and code-span ids are excluded', () => {
+  test('[covers:F-ee5f643e/AC-a08b70e9] fixture dirs and code-span ids are excluded', () => {
     expect(stripCodeSpans('a `F-aaaaaa` b')).not.toContain('F-aaaaaa');
     expect(stripCodeSpans('x\n```\nF-bbbbbb\n```\ny')).not.toContain('F-bbbbbb');
 

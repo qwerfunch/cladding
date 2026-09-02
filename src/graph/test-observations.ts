@@ -1,91 +1,54 @@
 // Cladding · Spec 0.2 F8 · current-gate testcase observations for GraphIR.
 
-import {createHash} from 'node:crypto';
-
 import {anchorAddress} from '../spec/compiler/graph-address.js';
 import type {GraphIrV2Augmentation, GraphIrV2ObservationEdge} from '../spec/compiler/graph-ir-v2.js';
 import type {SpecCompilation} from '../spec/compiler/types.js';
 import type {CurrentSafeBindingCensus} from '../proof/current-bindings.js';
 import {reduceTestBindings} from '../proof/bindings.js';
+import {isCurrentGateTestcaseLedger, type CurrentGateTestcaseLedger} from '../proof/testcase-ledger.js';
 import type {TestBinding} from '../proof/types.js';
-import {parseJUnitReport, parseVitestJsonReport, type JUnitReport} from '../stages/junit-report.js';
-import {
-  currentRunProofIdentity,
-  isCurrentRunProofEvidence,
-  type CurrentRunProofEvidence,
-} from '../stages/test-run-cache.js';
 
 const LAYER_ID = 'current-gate-junit-testcase-observations';
 const OBSERVATION_ADAPTER = 'current-gate-junit-observation@1';
-const EXPECTED_EVIDENCE_ADAPTER = 'legacy-stage:stage_2.1';
-const EXPECTED_EVIDENCE_VERSION = '1';
-const SHA256 = /^[a-f0-9]{64}$/;
 
 /**
- * Explicit authority for one current-gate observation projection.
+ * Converts one sealed current-gate testcase ledger into observed GraphIR facts.
  *
- * The caller supplies evidence already captured at the gate seam instead of a
- * workspace report path, so a normal graph read cannot borrow persisted bytes.
+ * The adapter never discovers a report path, parses runner output, or exposes
+ * report content: the stage seam already sealed those concerns away, so a
+ * normal graph read cannot borrow persisted bytes. It relies on the static
+ * binding layer for physical endpoints, preserving authored and observed
+ * `covers` facts as separate assertions.
  *
- * @see spec/features/spec-02-graphir-v2-cutover-208eaa79.yaml AC-4f8c2542
- * @see docs/design/spec-0.2/proof-and-editing.md#d11--test-binding-and-observation
- * @since 0.10.0
- * @internal
- */
-export interface CurrentGateTestObservationContext {
-  /** Gate-seam evidence; omitted evidence is explicitly unknown, never empty proof. */
-  readonly currentRun?: CurrentRunProofEvidence;
-  /** Closure input seal that the captured evidence must match exactly. */
-  readonly expectedInputSha256?: string;
-}
-
-/**
- * Converts one branded current-gate testcase ledger into observed GraphIR facts.
- *
- * The adapter never discovers a report path or exposes report content. It relies
- * on the static binding layer for physical endpoints, preserving authored and
- * observed `covers` facts as separate assertions.
- *
- * @param cwd - Workspace root used only to normalize an already-captured Vitest payload.
  * @param compilation - Immutable compiler snapshot that owns criterion addresses.
  * @param census - Exact caller-owned current-safe binding census for this snapshot.
- * @param context - Explicit gate evidence and its expected closure input seal.
+ * @param ledger - Sealed gate-seam testcase ledger; anything else stays unknown.
  * @returns Frozen complete or unknown augmentation with deterministic observed edges.
  * @example
  * ```ts
- * const layer = currentGateTestObservationAugmentation(cwd, compilation, census, {
- *   currentRun: evidence,
- *   expectedInputSha256: inputSha256,
- * });
+ * const result = currentGateTestcaseLedger(cwd, inputSha256);
+ * const layer = currentGateTestObservationAugmentation(
+ *   compilation, census, 'ledger' in result ? result.ledger : undefined);
  * ```
+ * @see spec/features/spec-02-graphir-v2-cutover-208eaa79.yaml AC-4f8c2542
  * @see spec/features/spec-02-graphir-v2-cutover-208eaa79.yaml AC-d452908b
  * @see docs/design/spec-0.2/graph.md#d17--knowledge-graph-v2-as-compiler-ir
  * @since 0.10.0
  * @internal
  */
 export function currentGateTestObservationAugmentation(
-  cwd: string,
   compilation: SpecCompilation,
   census: CurrentSafeBindingCensus,
-  context: CurrentGateTestObservationContext | undefined,
+  ledger: unknown,
 ): GraphIrV2Augmentation {
   const censusReasons = unsafeCensusReasons(compilation, census);
   if (censusReasons.length > 0) return unknownLayer(censusReasons);
 
-  const validated = validateContext(context);
-  if ('reasons' in validated) return unknownLayer(validated.reasons);
-
-  const report = parseCurrentReport(validated.evidence, cwd);
-  if ('reason' in report) return unknownLayer([report.reason]);
-  if (!Array.isArray(report.value.cases)) {
-    return unknownLayer(['current-gate report does not expose case-level carriers']);
-  }
-  if (report.value.cases.length === 0) {
-    return unknownLayer([emptyLedgerReason(validated.evidence)]);
-  }
+  if (ledger === undefined) return unknownLayer(['current-gate observation context is missing']);
+  if (!isCurrentGateTestcaseLedger(ledger)) return unknownLayer(['current-gate testcase ledger is unsealed']);
 
   const edges = census.bindings
-    .map((binding) => observedBindingEdge(binding, report.value, validated.identity))
+    .map((binding) => observedBindingEdge(binding, ledger, ledger.identity))
     .sort((left, right) => left.identity.localeCompare(right.identity));
   return freezeLayer({layerId: LAYER_ID, nodes: [], edges, completeness: 'complete', unknownReasons: []});
 }
@@ -122,69 +85,12 @@ function isCurrentBinding(binding: TestBinding, criteria: ReadonlySet<string>): 
   }
 }
 
-function validateContext(
-  context: CurrentGateTestObservationContext | undefined,
-): {readonly evidence: CurrentRunProofEvidence; readonly identity: string} | {readonly reasons: readonly string[]} {
-  if (context === undefined) return {reasons: ['current-gate observation context is missing']};
-  const evidence = context.currentRun;
-  if (!isCurrentRunProofEvidence(evidence)) {
-    return {reasons: ['current-gate proof evidence is missing or unbranded']};
-  }
-  const reasons = [
-    ...(isSha256(context.expectedInputSha256) ? [] : ['current-gate expected input SHA-256 is malformed']),
-    ...(isSha256(evidence.inputSha256) ? [] : ['current-gate proof input SHA-256 is malformed']),
-    ...(isSha256(evidence.commandSha256) ? [] : ['current-gate proof command SHA-256 is malformed']),
-    ...(isSha256(evidence.reportSha256) ? [] : ['current-gate proof report SHA-256 is malformed']),
-    ...(evidence.adapter?.id === EXPECTED_EVIDENCE_ADAPTER && evidence.adapter.version === EXPECTED_EVIDENCE_VERSION
-      ? []
-      : ['current-gate proof adapter is unsupported']),
-    ...(typeof evidence.reportBytes === 'string' ? [] : ['current-gate proof report bytes are unavailable']),
-  ];
-  if (reasons.length > 0) return {reasons: Object.freeze(reasons)};
-  if (context.expectedInputSha256 !== evidence.inputSha256) {
-    return {reasons: ['current-gate proof input SHA-256 does not match the requested snapshot']};
-  }
-  if (commandSha256(evidence.command) !== evidence.commandSha256) {
-    return {reasons: ['current-gate proof command SHA-256 does not match its captured command']};
-  }
-  if (sha256(evidence.reportBytes) !== evidence.reportSha256) {
-    return {reasons: ['current-gate proof report SHA-256 does not match its captured bytes']};
-  }
-  const identity = currentRunProofIdentity(evidence);
-  if (!isSha256(identity)) return {reasons: ['current-gate proof identity is unavailable']};
-  return {evidence, identity};
-}
-
-function parseCurrentReport(
-  evidence: CurrentRunProofEvidence,
-  cwd: string,
-): {readonly value: JUnitReport} | {readonly reason: string} {
-  switch (evidence.format) {
-    case 'vitest-json': {
-      const report = parseVitestJsonReport(evidence.reportBytes, cwd);
-      return report === undefined
-        ? {reason: 'current-gate Vitest report cannot be parsed'}
-        : {value: report};
-    }
-    case 'junit-xml': {
-      // The lightweight parser intentionally accepts a valid empty suite, but
-      // plain arbitrary text must not be reclassified as a safe empty ledger.
-      if (!/<(?:testsuites?|testcase)\b/.test(evidence.reportBytes)) {
-        return {reason: 'current-gate JUnit report cannot be parsed'};
-      }
-      return {value: parseJUnitReport(evidence.reportBytes)};
-    }
-    default:
-      return {reason: 'current-gate proof format is unsupported'};
-  }
-}
-
 function observedBindingEdge(
   binding: TestBinding,
-  report: JUnitReport,
+  ledger: CurrentGateTestcaseLedger,
   proofIdentity: string,
 ): GraphIrV2ObservationEdge {
-  const reduction = reduceTestBindings([binding], report)[0];
+  const reduction = reduceTestBindings([binding], ledger)[0];
   const state = reduction?.state === 'failed'
     ? 'failed' as const
     : reduction?.state === 'verified'
@@ -207,15 +113,6 @@ function observedBindingEdge(
   });
 }
 
-function emptyLedgerReason(evidence: CurrentRunProofEvidence): string {
-  // JUnit testcases without a file/classname carrier cannot be attached to a
-  // source binding. Keep that diagnosis separate from a genuinely empty suite.
-  if (evidence.format === 'junit-xml' && /<testcase\b/.test(evidence.reportBytes)) {
-    return 'current-gate report has no case-level carriers';
-  }
-  return 'current-gate report has an empty case ledger';
-}
-
 function unknownLayer(reasons: readonly string[]): GraphIrV2Augmentation {
   return freezeLayer({
     layerId: LAYER_ID,
@@ -224,18 +121,6 @@ function unknownLayer(reasons: readonly string[]): GraphIrV2Augmentation {
     completeness: 'unknown',
     unknownReasons: [...new Set(reasons)].sort(),
   });
-}
-
-function isSha256(value: unknown): value is string {
-  return typeof value === 'string' && SHA256.test(value);
-}
-
-function commandSha256(command: readonly string[]): string {
-  return sha256(JSON.stringify([...command]));
-}
-
-function sha256(value: string): string {
-  return createHash('sha256').update(value, 'utf8').digest('hex');
 }
 
 function freezeLayer(layer: GraphIrV2Augmentation): GraphIrV2Augmentation {

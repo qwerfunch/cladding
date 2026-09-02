@@ -32,8 +32,17 @@ import {join, relative, resolve} from 'node:path';
 import process from 'node:process';
 
 import {safeProofWorkspacePath} from '../proof/fs-safety.js';
+import {
+  sealCurrentGateTestcaseLedger,
+  type CurrentGateTestcaseLedger,
+} from '../proof/testcase-ledger.js';
+import {parseJUnitReport, parseVitestJsonReport, type JUnitReport} from './junit-report.js';
 import type {StageResult} from './types.js';
 import {testReportCandidatePaths} from './toolchain/gate-config.js';
+
+const EXPECTED_EVIDENCE_ADAPTER = 'legacy-stage:stage_2.1';
+const EXPECTED_EVIDENCE_VERSION = '1';
+const SHA256 = /^[a-f0-9]{64}$/;
 
 /** The subset of an `execaSync(…, {reject: false})` result the two stages read —
  *  exit signal for both, plus stdout/stderr for the coverage stage's diagnostics.
@@ -199,6 +208,111 @@ export function currentGateProofEvidence(cwd: string, inputSha256: string): Curr
 /** Verifies that a report object was captured by this module's Unit seam. */
 export function isCurrentRunProofEvidence(value: unknown): value is CurrentRunProofEvidence {
   return value !== null && typeof value === 'object' && currentRunProofEvidence.has(value);
+}
+
+/**
+ * Reduces this gate's captured evidence to a sealed testcase ledger.
+ *
+ * This is the stage seam that owns every step a graph consumer must not take:
+ * it validates the evidence brand, its input seal, and its command/report
+ * digests, parses the runner report once, and refuses an empty or carrierless
+ * ledger instead of sealing absence as proof. Consumers therefore never reach
+ * for a report path, report bytes, or a parser of their own.
+ *
+ * @param cwd - The gate run's working directory; resolved for the session hit.
+ * @param inputSha256 - Closure input seal this gate captured evidence for.
+ * @returns The sealed ledger, or the exact reasons the ledger stays unknown.
+ * @example
+ * ```ts
+ * const result = currentGateTestcaseLedger(cwd, inputSha256);
+ * if ('ledger' in result) consume(result.ledger);
+ * ```
+ * @see spec/features/spec-02-graphir-v2-cutover-208eaa79.yaml AC-d452908b
+ * @since 0.10.0
+ * @internal
+ */
+export function currentGateTestcaseLedger(
+  cwd: string,
+  inputSha256: string,
+): {readonly ledger: CurrentGateTestcaseLedger} | {readonly reasons: readonly string[]} {
+  // Shape first: an unusable seal must not be reported as absent evidence.
+  if (!isSha256(inputSha256)) return {reasons: ['current-gate expected input SHA-256 is malformed']};
+  const evidence = currentGateProofEvidence(cwd, inputSha256);
+  if (!isCurrentRunProofEvidence(evidence)) {
+    return {reasons: ['current-gate proof evidence is missing or unbranded']};
+  }
+  const reasons = [
+    ...(isSha256(evidence.inputSha256) ? [] : ['current-gate proof input SHA-256 is malformed']),
+    ...(isSha256(evidence.commandSha256) ? [] : ['current-gate proof command SHA-256 is malformed']),
+    ...(isSha256(evidence.reportSha256) ? [] : ['current-gate proof report SHA-256 is malformed']),
+    ...(evidence.adapter?.id === EXPECTED_EVIDENCE_ADAPTER && evidence.adapter.version === EXPECTED_EVIDENCE_VERSION
+      ? []
+      : ['current-gate proof adapter is unsupported']),
+    ...(typeof evidence.reportBytes === 'string' ? [] : ['current-gate proof report bytes are unavailable']),
+  ];
+  if (reasons.length > 0) return {reasons: Object.freeze(reasons)};
+  if (inputSha256 !== evidence.inputSha256) {
+    return {reasons: ['current-gate proof input SHA-256 does not match the requested snapshot']};
+  }
+  if (commandDigest(evidence.command) !== evidence.commandSha256) {
+    return {reasons: ['current-gate proof command SHA-256 does not match its captured command']};
+  }
+  if (sha256(evidence.reportBytes) !== evidence.reportSha256) {
+    return {reasons: ['current-gate proof report SHA-256 does not match its captured bytes']};
+  }
+  const identity = currentRunProofIdentity(evidence);
+  if (!isSha256(identity)) return {reasons: ['current-gate proof identity is unavailable']};
+  const report = parseCurrentReport(evidence, cwd);
+  if ('reason' in report) return {reasons: [report.reason]};
+  if (!Array.isArray(report.value.cases)) {
+    return {reasons: ['current-gate report does not expose case-level carriers']};
+  }
+  if (report.value.cases.length === 0) return {reasons: [emptyLedgerReason(evidence)]};
+  return {
+    ledger: sealCurrentGateTestcaseLedger({
+      identity,
+      inputSha256,
+      format: evidence.format,
+      cases: report.value.cases,
+    }),
+  };
+}
+
+function parseCurrentReport(
+  evidence: CurrentRunProofEvidence,
+  cwd: string,
+): {readonly value: JUnitReport} | {readonly reason: string} {
+  switch (evidence.format) {
+    case 'vitest-json': {
+      const report = parseVitestJsonReport(evidence.reportBytes, cwd);
+      return report === undefined
+        ? {reason: 'current-gate Vitest report cannot be parsed'}
+        : {value: report};
+    }
+    case 'junit-xml': {
+      // The lightweight parser intentionally accepts a valid empty suite, but
+      // plain arbitrary text must not be reclassified as a safe empty ledger.
+      if (!/<(?:testsuites?|testcase)\b/.test(evidence.reportBytes)) {
+        return {reason: 'current-gate JUnit report cannot be parsed'};
+      }
+      return {value: parseJUnitReport(evidence.reportBytes)};
+    }
+    default:
+      return {reason: 'current-gate proof format is unsupported'};
+  }
+}
+
+function emptyLedgerReason(evidence: CurrentRunProofEvidence): string {
+  // JUnit testcases without a file/classname carrier cannot be attached to a
+  // source binding. Keep that diagnosis separate from a genuinely empty suite.
+  if (evidence.format === 'junit-xml' && /<testcase\b/.test(evidence.reportBytes)) {
+    return 'current-gate report has no case-level carriers';
+  }
+  return 'current-gate report has an empty case ledger';
+}
+
+function isSha256(value: unknown): value is string {
+  return typeof value === 'string' && SHA256.test(value);
 }
 
 /**

@@ -1,3 +1,5 @@
+// Cladding · spec · reverse index over modules, test citations, and depends_on — F-ee47fc2b
+
 import {describe, test, expect} from 'vitest';
 import {
 	buildReverseIndex,

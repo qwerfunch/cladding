@@ -6,15 +6,13 @@ import {schema02ConsumerView} from '../spec/compiler/consumer-view.js';
 import type {GraphPresentationRecord, Schema02FeatureContract, SpecCompilation} from '../spec/compiler/types.js';
 import {scanDocumentFacts, type DocumentFactScan} from '../spec/doc-references.js';
 import {currentSafeBindingCensus} from '../proof/current-bindings.js';
+import type {CurrentGateTestcaseLedger} from '../proof/testcase-ledger.js';
 import {knownCriteriaFromCompilerView} from '../proof/vitest-jest.js';
 import {loadSpecFromDiskUnlocked} from '../spec/load.js';
 import {prospectiveCompilationOverlay, prospectiveSpecOverlay} from '../spec/prospective.js';
 import {withStableSpecWorkspaceSnapshot} from '../spec/transaction.js';
 import type {Feature, Spec} from '../spec/types.js';
-import {
-  currentGateTestObservationAugmentation,
-  type CurrentGateTestObservationContext,
-} from './test-observations.js';
+import {currentGateTestObservationAugmentation} from './test-observations.js';
 import {documentFactAugmentation, workspaceFactAugmentation} from './workspace-facts.js';
 import {
   scanSourceReferences,
@@ -45,7 +43,7 @@ export interface GraphIrV2Workspace {
  * server processes must observe a new workspace snapshot on each call.
  *
  * @param cwd - Workspace root containing the canonical `spec.yaml`.
- * @param observationContext - Optional current-gate evidence; omitted reads never inspect persisted reports.
+ * @param ledger - Optional sealed current-gate testcase ledger; omitted reads never inspect persisted reports.
  * @returns Frozen presentation, compilation, and GraphIR kernel from one source snapshot.
  * @throws Error when the schema, contract, or prospective overlay pair is unsafe.
  * @example
@@ -60,7 +58,7 @@ export interface GraphIrV2Workspace {
  */
 export function loadGraphIrV2Workspace(
   cwd: string = '.',
-  observationContext?: CurrentGateTestObservationContext,
+  ledger?: CurrentGateTestcaseLedger,
 ): GraphIrV2Workspace {
   const prospectiveSpec = prospectiveSpecOverlay(cwd);
   const prospectiveCompilation = prospectiveCompilationOverlay(cwd);
@@ -74,10 +72,10 @@ export function loadGraphIrV2Workspace(
     const documents = scanDocumentFacts(cwd);
     const sourceReferences = scanSourceReferences(cwd, prospectiveCompilation);
     const census = currentSafeBindingCensus(cwd, knownCriteriaFromCompilerView(prospectiveCompilation.nodes));
-    return createWorkspace(cwd, prospectiveSpec, prospectiveCompilation, census, documents, sourceReferences, observationContext);
+    return createWorkspace(prospectiveSpec, prospectiveCompilation, census, documents, sourceReferences, ledger);
   }
   return withStableSpecWorkspaceSnapshot(cwd, () =>
-    loadGraphIrV2WorkspaceFromStableSnapshot(cwd, observationContext),
+    loadGraphIrV2WorkspaceFromStableSnapshot(cwd, ledger),
   );
 }
 
@@ -85,7 +83,7 @@ export function loadGraphIrV2Workspace(
  * Builds a GraphIR workspace view while a caller owns a stable reader snapshot.
  *
  * @param cwd - Workspace root guarded by `withStableSpecWorkspaceSnapshot` or the F4 writer lock.
- * @param observationContext - Optional current-gate evidence from the caller-owned stable snapshot.
+ * @param ledger - Optional sealed current-gate testcase ledger from the caller-owned stable snapshot.
  * @returns Frozen presentation, compilation, and GraphIR kernel from the caller-owned snapshot.
  * @throws Error when the caller has not supplied a coherent schema contract.
  * @example
@@ -99,7 +97,7 @@ export function loadGraphIrV2Workspace(
  */
 export function loadGraphIrV2WorkspaceFromStableSnapshot(
   cwd: string,
-  observationContext?: CurrentGateTestObservationContext,
+  ledger?: CurrentGateTestcaseLedger,
 ): GraphIrV2Workspace {
   // Compile first so schema 0.2 never travels through the legacy loader's
   // independently-created compiler snapshot. Schema 0.1 retains its typed
@@ -111,30 +109,29 @@ export function loadGraphIrV2WorkspaceFromStableSnapshot(
   const sourceReferences = scanSourceReferences(cwd, compilation);
   switch (compilation.schemaVersion) {
     case '0.1':
-      return createWorkspace(cwd, loadSpecFromDiskUnlocked(cwd), compilation, census, documents, sourceReferences, observationContext);
+      return createWorkspace(loadSpecFromDiskUnlocked(cwd), compilation, census, documents, sourceReferences, ledger);
     case '0.2':
-      return createWorkspace(cwd, schema02ConsumerView(cwd, compilation, census), compilation, census, documents, sourceReferences, observationContext);
+      return createWorkspace(schema02ConsumerView(cwd, compilation, census), compilation, census, documents, sourceReferences, ledger);
     default:
       return assertNeverSchema(compilation.schemaVersion);
   }
 }
 
 function createWorkspace(
-  cwd: string,
   spec: Spec,
   compilation: SpecCompilation,
   census: ReturnType<typeof currentSafeBindingCensus>,
   documents: DocumentFactScan | undefined,
   sourceReferences: ReturnType<typeof scanSourceReferences>,
-  observationContext: CurrentGateTestObservationContext | undefined,
+  ledger: CurrentGateTestcaseLedger | undefined,
 ): GraphIrV2Workspace {
   assertMatchingWorkspacePair(spec, compilation);
   freezeDeep(spec);
   freezeDeep(compilation);
   const facts = workspaceFactAugmentation(compilation, census);
-  const observations = observationContext === undefined
+  const observations = ledger === undefined
     ? undefined
-    : currentGateTestObservationAugmentation(cwd, compilation, census, observationContext);
+    : currentGateTestObservationAugmentation(compilation, census, ledger);
   const documentFacts = documentFactAugmentation(compilation, documents);
   const sourceFacts = sourceReferenceAugmentation(compilation, sourceReferences);
   const layers = [facts, observations, documentFacts, sourceFacts].filter((layer): layer is NonNullable<typeof layer> =>

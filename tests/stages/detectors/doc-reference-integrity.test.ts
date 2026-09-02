@@ -1,3 +1,5 @@
+// Cladding · drift detector · DOC_LINK_INTEGRITY link and declared-id resolution — F-ee5f643e
+
 import {docReferenceIntegrity} from '../../../src/stages/detectors/doc-reference-integrity.js';
 import {mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -53,7 +55,7 @@ describe('doc-reference-integrity / DOC_LINK_INTEGRITY', () => {
       .filter((f): f is Finding => f.detector === 'DOC_LINK_INTEGRITY')
       .map((f) => ({...f}));
 
-  test('a dead relative .md link is an error', () => {
+  test('[covers:F-ee5f643e/AC-cd5c3e00] a dead relative .md link is an error', () => {
     writeSpec();
     wdoc('docs/b.md', '# b');
     wdoc('docs/a.md', '[gone](./missing.md) [ok](./b.md)');
@@ -64,7 +66,7 @@ describe('doc-reference-integrity / DOC_LINK_INTEGRITY', () => {
     expect(fs.some((f) => f.severity === 'error' && f.message.includes('b.md') && !f.message.includes('missing.md'))).toBe(false);
   });
 
-  test('an unresolved F-id in a normal doc is a warn', () => {
+  test('[covers:F-ee5f643e/AC-3f1644f5] an unresolved F-id in a normal doc is a warn', () => {
     writeSpec();
     wdoc('docs/a.md', 'mentions F-deadbeef and F-001');
 

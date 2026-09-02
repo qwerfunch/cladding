@@ -82,32 +82,32 @@ describe('doc declarations · extraction + materialization (AC-b0e7dd4d)', () =>
     writeFileSync(full, body);
   };
 
-  test('an explicit clad-doc-links declaration binds exactly the named ids', () => {
+  test('[covers:F-bae800bd/AC-b0e7dd4d] an explicit clad-doc-links declaration binds exactly the named ids', () => {
     wdoc('docs/note.md', '<!-- clad-doc-links: F-16138071, F-06dfdad6 -->\n\nThis report never names a feature in prose.');
     const m = byDoc(extractDocReferences(dir));
     expect(m['docs/note.md'].features).toEqual(['F-06dfdad6', 'F-16138071']);
   });
 
-  test('declarations across multiple comment lines union their ids', () => {
+  test('[covers:F-bae800bd/AC-b0e7dd4d] declarations across multiple comment lines union their ids', () => {
     wdoc('docs/note.md', '<!-- clad-doc-links: F-16138071 -->\nprose\n<!-- clad-doc-links: F-06dfdad6, F-7794a6bc -->');
     const m = byDoc(extractDocReferences(dir));
     expect(m['docs/note.md'].features).toEqual(['F-06dfdad6', 'F-16138071', 'F-7794a6bc']);
   });
 
-  test('a clad-doc-links declaration inside a code fence is inert', () => {
+  test('[covers:F-bae800bd/AC-b0e7dd4d] a clad-doc-links declaration inside a code fence is inert', () => {
     wdoc('docs/note.md', 'How to declare a link:\n```\n<!-- clad-doc-links: F-16138071 -->\n```\nNo binding here.');
     const m = byDoc(extractDocReferences(dir));
     expect(m['docs/note.md'].features).toEqual([]);
   });
 
-  test('ids on a clad-doc-links: ignore line bind nothing', () => {
+  test('[covers:F-bae800bd/AC-b0e7dd4d] ids on a clad-doc-links: ignore line bind nothing', () => {
     wdoc('docs/note.md', '<!-- clad-doc-links: ignore - F-abc123 is only an illustrative example -->\n\nTeaching doc.');
     const m = byDoc(extractDocReferences(dir));
     expect(m['docs/note.md'].features).toEqual([]);
     expect(m['docs/note.md'].features).not.toContain('F-abc123');
   });
 
-  test('renderDocLinksYaml materializes declared ids into spec/_doc-links.yaml', () => {
+  test('[covers:F-bae800bd/AC-b0e7dd4d] renderDocLinksYaml materializes declared ids into spec/_doc-links.yaml', () => {
     mkdirSync(join(dir, 'spec'), {recursive: true});
     wdoc('docs/note.md', '<!-- clad-doc-links: F-16138071, F-06dfdad6 -->\nEvidence with no prose id.');
     const rendered = renderDocLinksYaml(dir);
@@ -125,7 +125,7 @@ describe('doc declarations · five A/B case docs bound in the real repo (AC-91d9
     expect(renderDocLinksYaml(repoRoot)).toBe(readFileSync(join(repoRoot, 'spec', '_doc-links.yaml'), 'utf8'));
   });
 
-  test('each of the five A/B case docs binds every id it declares, all resolving to real features', () => {
+  test('[covers:F-bae800bd/AC-91d9d1a5] each of the five A/B case docs binds every id it declares, all resolving to real features', () => {
     const known = new Set(loadSpec(repoRoot).features.map((f) => f.id));
     const rows = byDoc(extractDocReferences(repoRoot));
     for (const doc of CASE_DOCS) {
@@ -140,13 +140,13 @@ describe('doc declarations · five A/B case docs bound in the real repo (AC-91d9
     }
   });
 
-  test('case-efficiency-measurement.md binds F-16138071 (the README efficiency receipt)', () => {
+  test('[covers:F-bae800bd/AC-91d9d1a5] case-efficiency-measurement.md binds F-16138071 (the README efficiency receipt)', () => {
     const row = byDoc(extractDocReferences(repoRoot))['docs/ab-evaluation/case-efficiency-measurement.md'];
     expect(row).toBeDefined();
     expect(row.features).toContain('F-16138071');
   });
 
-  test('every extracted excluded-dir doc carries an explicit declaration (no organic-id leakage)', () => {
+  test('[covers:F-bae800bd/AC-91d9d1a5] every extracted excluded-dir doc carries an explicit declaration (no organic-id leakage)', () => {
     const excluded = extractDocReferences(repoRoot).docs.filter((d) => isExcluded(d.doc));
     expect(excluded.length, 'the five case docs make the bound excluded set non-empty').toBeGreaterThanOrEqual(5);
     for (const d of excluded) {
@@ -178,7 +178,7 @@ describe('doc declarations · marker-less byte-identity (AC-437fb005)', () => {
     writeFileSync(full, body);
   };
 
-  test('an excluded-dir doc with organic ids and a link but no declaration is absent', () => {
+  test('[covers:F-bae800bd/AC-437fb005] an excluded-dir doc with organic ids and a link but no declaration is absent', () => {
     wdoc('docs/ab-evaluation/organic.md', 'Findings mention F-ee47fc2b and F-7794a6bc. See [ref](./other.md).');
     wdoc('docs/ab-evaluation/other.md', '# other');
     wdoc('docs/dogfood/note.md', 'benchmark F-06dfdad6');
@@ -189,7 +189,7 @@ describe('doc declarations · marker-less byte-identity (AC-437fb005)', () => {
     expect(m['docs/dogfood/note.md']).toBeUndefined();
   });
 
-  test('a normal doc without a declaration extracts organic ids and links unchanged', () => {
+  test('[covers:F-bae800bd/AC-437fb005] a normal doc without a declaration extracts organic ids and links unchanged', () => {
     wdoc('docs/guide.md', 'covers F-ee47fc2b and F-7794a6bc. [see](./ref.md). inline `F-cafef00d` stays out.');
     wdoc('docs/ref.md', '# ref');
     const m = byDoc(extractDocReferences(dir));
@@ -215,7 +215,7 @@ describe('doc declarations · DOC_LINK_INTEGRITY stays green (AC-2ee28415)', () 
     writeFileSync(full, body);
   };
 
-  test('DOC_LINK_INTEGRITY reports zero findings referencing the five A/B case docs (real repo)', () => {
+  test('[covers:F-bae800bd/AC-2ee28415] DOC_LINK_INTEGRITY reports zero findings referencing the five A/B case docs (real repo)', () => {
     const findings = docReferenceIntegrity
       .run({cwd: repoRoot})
       .filter((f) => f.detector === 'DOC_LINK_INTEGRITY');
@@ -226,7 +226,7 @@ describe('doc declarations · DOC_LINK_INTEGRITY stays green (AC-2ee28415)', () 
     expect(offending).toEqual([]);
   });
 
-  test('DOC_LINK_INTEGRITY errors on an unresolved declared id and stays silent when it resolves', () => {
+  test('[covers:F-bae800bd/AC-2ee28415] DOC_LINK_INTEGRITY errors on an unresolved declared id and stays silent when it resolves', () => {
     writeFileSync(join(dir, 'spec.yaml'), SPEC);
     wdoc('docs/ab-evaluation/bogus.md', '<!-- clad-doc-links: F-deadbeef -->\nno prose id');
     wdoc('docs/ab-evaluation/good.md', '<!-- clad-doc-links: F-001 -->\nno prose id');

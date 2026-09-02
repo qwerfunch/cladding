@@ -13,6 +13,7 @@ import {workspaceFactAugmentation} from '../../src/graph/workspace-facts.js';
 import {loadGraphIrV2Workspace} from '../../src/graph/query.js';
 import {currentSafeBindingCensus} from '../../src/proof/current-bindings.js';
 import * as currentBindings from '../../src/proof/current-bindings.js';
+import type {CurrentGateTestcaseLedger} from '../../src/proof/testcase-ledger.js';
 import {knownCriteriaFromCompilerView} from '../../src/proof/vitest-jest.js';
 import {graphIrV2} from '../../src/spec/compiler/graph-ir-v2.js';
 import {compileSpecWorkspace} from '../../src/spec/compiler/compile.js';
@@ -20,14 +21,12 @@ import {
   captureCurrentJUnitProof,
   captureCurrentVitestProof,
   clearTestRunCache,
-  currentGateProofEvidence,
+  currentGateTestcaseLedger,
   primeTestRunCache,
-  type CurrentRunProofEvidence,
 } from '../../src/stages/test-run-cache.js';
 
 const roots: string[] = [];
 const INPUT_SHA = 'a'.repeat(64);
-const STALE_INPUT_SHA = 'b'.repeat(64);
 const CRITERION = 'F-aaaaaaaa/AC-bbbbbbbb';
 const SELECTOR = `[covers:${CRITERION}] current observation`;
 const SECOND_SELECTOR = `[covers:${CRITERION}] independent observation`;
@@ -81,31 +80,32 @@ function vitestBytes(root: string, assertionResults: readonly object[], extra: o
   });
 }
 
-function mintVitestEvidence(root: string, reportBytes: string, inputSha256: string = INPUT_SHA): CurrentRunProofEvidence {
+/** Mints gate evidence exactly as stage_2.1 does, then seals it at the stage seam. */
+function mintVitestLedger(root: string, reportBytes: string): CurrentGateTestcaseLedger {
   const report = join(root, 'current-vitest.json');
-  primeTestRunCache(root, inputSha256);
+  primeTestRunCache(root, INPUT_SHA);
   try {
     writeFileSync(report, reportBytes);
     captureCurrentVitestProof(root, report, ['vitest', 'run']);
-    const evidence = currentGateProofEvidence(root, inputSha256);
-    if (!evidence) throw new Error('fixture failed to capture current Vitest evidence');
-    return evidence;
+    const result = currentGateTestcaseLedger(root, INPUT_SHA);
+    if (!('ledger' in result)) throw new Error(`fixture failed to seal a Vitest ledger: ${result.reasons.join('; ')}`);
+    return result.ledger;
   } finally {
     clearTestRunCache();
   }
 }
 
-function mintJUnitEvidence(root: string, reportBytes: string, inputSha256: string = INPUT_SHA): CurrentRunProofEvidence {
+function mintJUnitLedger(root: string, reportBytes: string): CurrentGateTestcaseLedger {
   mkdirSync(join(root, '.cladding'), {recursive: true});
   writeFileSync(join(root, '.cladding', 'config.yaml'), 'gate:\n  test_report: current.junit.xml\n');
   const report = join(root, 'current.junit.xml');
-  primeTestRunCache(root, inputSha256);
+  primeTestRunCache(root, INPUT_SHA);
   try {
     writeFileSync(report, reportBytes);
     captureCurrentJUnitProof(root, ['vitest', 'run']);
-    const evidence = currentGateProofEvidence(root, inputSha256);
-    if (!evidence) throw new Error('fixture failed to capture current JUnit evidence');
-    return evidence;
+    const result = currentGateTestcaseLedger(root, INPUT_SHA);
+    if (!('ledger' in result)) throw new Error(`fixture failed to seal a JUnit ledger: ${result.reasons.join('; ')}`);
+    return result.ledger;
   } finally {
     clearTestRunCache();
   }
@@ -122,14 +122,11 @@ describe('current-gate GraphIR testcase observations', () => {
     const root = workspaceRoot();
     writeBindings(root);
     const {compilation, census} = compiledBindings(root);
-    const evidence = mintVitestEvidence(root, vitestBytes(root, [{
+    const ledger = mintVitestLedger(root, vitestBytes(root, [{
       status: 'passed', title: SELECTOR, ancestorTitles: [], opaqueOutput: 'report-body-must-not-leak',
     }], {opaqueReport: 'report-body-must-not-leak'}));
     const authored = workspaceFactAugmentation(compilation, census);
-    const observed = currentGateTestObservationAugmentation(root, compilation, census, {
-      currentRun: evidence,
-      expectedInputSha256: INPUT_SHA,
-    });
+    const observed = currentGateTestObservationAugmentation(compilation, census, ledger);
     const criterion = `criterion:${CRITERION}`;
     const kernel = graphIrV2(compilation, [authored, observed]);
     const covers = kernel.criterionProofs(criterion).records.filter((edge) => edge.relation === 'covers');
@@ -159,10 +156,9 @@ describe('current-gate GraphIR testcase observations', () => {
     writeBindings(root);
     const {compilation, census} = compiledBindings(root);
     const state = (assertionResults: readonly object[]) => currentGateTestObservationAugmentation(
-      root,
       compilation,
       census,
-      {currentRun: mintVitestEvidence(root, vitestBytes(root, assertionResults)), expectedInputSha256: INPUT_SHA},
+      mintVitestLedger(root, vitestBytes(root, assertionResults)),
     ).edges[0]?.state;
 
     expect(state([{status: 'passed', title: SELECTOR, ancestorTitles: []}])).toBe('passed');
@@ -172,19 +168,20 @@ describe('current-gate GraphIR testcase observations', () => {
     ])).toBe('failed');
     expect(state([{status: 'skipped', title: SELECTOR, ancestorTitles: []}])).toBe('skipped');
     expect(state([{status: 'passed', title: 'unrelated same-file pass', ancestorTitles: []}])).toBe('unobserved');
-    expect(currentGateTestObservationAugmentation(root, compilation, census, {
-      currentRun: mintJUnitEvidence(root, `<testsuite><testcase file="tests/live.test.ts" name="${SELECTOR}"/></testsuite>`),
-      expectedInputSha256: INPUT_SHA,
-    }).edges[0]?.state).toBe('passed');
+    expect(currentGateTestObservationAugmentation(
+      compilation,
+      census,
+      mintJUnitLedger(root, `<testsuite><testcase file="tests/live.test.ts" name="${SELECTOR}"/></testsuite>`),
+    ).edges[0]?.state).toBe('passed');
 
     for (const assertionResults of [
       [{status: 'error', title: SELECTOR, ancestorTitles: []}],
       [{status: 'skipped', title: SELECTOR, ancestorTitles: []}],
       [{status: 'passed', title: 'unrelated same-file pass', ancestorTitles: []}],
     ]) {
-      const observed = currentGateTestObservationAugmentation(root, compilation, census, {
-        currentRun: mintVitestEvidence(root, vitestBytes(root, assertionResults)), expectedInputSha256: INPUT_SHA,
-      });
+      const observed = currentGateTestObservationAugmentation(
+        compilation, census, mintVitestLedger(root, vitestBytes(root, assertionResults)),
+      );
       expect(graphIrV2(compilation, [workspaceFactAugmentation(compilation, census), observed])
         .criterionProofs(`criterion:${CRITERION}`).completeness).toBe('complete');
     }
@@ -194,75 +191,40 @@ describe('current-gate GraphIR testcase observations', () => {
     const root = workspaceRoot();
     writeBindings(root, [SELECTOR, SECOND_SELECTOR]);
     const {compilation, census} = compiledBindings(root);
-    const evidence = mintVitestEvidence(root, vitestBytes(root, [
+    const ledger = mintVitestLedger(root, vitestBytes(root, [
       {status: 'passed', title: SELECTOR, ancestorTitles: []},
       {status: 'failed', title: SECOND_SELECTOR, ancestorTitles: []},
     ]));
-    const observed = currentGateTestObservationAugmentation(root, compilation, census, {
-      currentRun: evidence,
-      expectedInputSha256: INPUT_SHA,
-    });
+    const observed = currentGateTestObservationAugmentation(compilation, census, ledger);
 
     expect(observed.edges).toHaveLength(2);
     expect(observed.edges.map((edge) => edge.state)).toEqual(['passed', 'failed']);
     expect(observed.edges.map((edge) => edge.identity)).toEqual([...observed.edges.map((edge) => edge.identity)].sort());
-    expect(JSON.stringify(observed)).toBe(JSON.stringify(currentGateTestObservationAugmentation(root, compilation, census, {
-      currentRun: evidence,
-      expectedInputSha256: INPUT_SHA,
-    })));
+    expect(JSON.stringify(observed))
+      .toBe(JSON.stringify(currentGateTestObservationAugmentation(compilation, census, ledger)));
   });
 
-  test('[covers:F-208eaa79/AC-d452908b] refuses empty or carrierless ledgers instead of treating absence as safe', () => {
+  test('[covers:F-208eaa79/AC-d452908b] treats a missing or unsealed ledger as unknown rather than empty proof', () => {
     const root = workspaceRoot();
     writeBindings(root);
     const {compilation, census} = compiledBindings(root);
-    const empty = currentGateTestObservationAugmentation(root, compilation, census, {
-      currentRun: mintVitestEvidence(root, vitestBytes(root, [])), expectedInputSha256: INPUT_SHA,
-    });
-    const carrierless = currentGateTestObservationAugmentation(root, compilation, census, {
-      currentRun: mintJUnitEvidence(root, `<testsuite><testcase name="${SELECTOR}"/></testsuite>`), expectedInputSha256: INPUT_SHA,
-    });
+    const sealed = mintVitestLedger(root, vitestBytes(root, [{status: 'passed', title: SELECTOR, ancestorTitles: []}]));
+    // A structurally identical copy is exactly the look-alike the seal exists
+    // to refuse: same fields, no gate-seam provenance.
+    const unsealed = JSON.parse(JSON.stringify(sealed)) as unknown;
 
-    expect(empty).toEqual(expect.objectContaining({
-      completeness: 'unknown', edges: [], unknownReasons: ['current-gate report has an empty case ledger'],
-    }));
-    expect(carrierless).toEqual(expect.objectContaining({
-      completeness: 'unknown', edges: [], unknownReasons: ['current-gate report has no case-level carriers'],
-    }));
-  });
-
-  test('[covers:F-208eaa79/AC-d452908b] reduces invalid, stale, unbranded, and unparseable evidence to stable unknown facts', () => {
-    const root = workspaceRoot();
-    writeBindings(root);
-    const {compilation, census} = compiledBindings(root);
-    const evidence = mintVitestEvidence(root, vitestBytes(root, [{status: 'passed', title: SELECTOR, ancestorTitles: []}]));
-    const unbranded = {
-      inputSha256: INPUT_SHA,
-      adapter: {id: 'legacy-stage:stage_2.1', version: '1'},
-      command: ['vitest', 'run'],
-      commandSha256: 'c'.repeat(64),
-      reportSha256: 'd'.repeat(64),
-      format: 'vitest-json',
-      reportBytes: vitestBytes(root, []),
-    } as unknown as CurrentRunProofEvidence;
-    const unknownReasons = (currentRun: CurrentRunProofEvidence | undefined, expectedInputSha256: string | undefined) =>
-      currentGateTestObservationAugmentation(root, compilation, census, {currentRun, expectedInputSha256}).unknownReasons;
-
-    expect(currentGateTestObservationAugmentation(root, compilation, census, undefined).unknownReasons)
-      .toEqual(['current-gate observation context is missing']);
-    expect(unknownReasons(evidence, 'invalid')).toEqual(['current-gate expected input SHA-256 is malformed']);
-    expect(unknownReasons(evidence, STALE_INPUT_SHA))
-      .toEqual(['current-gate proof input SHA-256 does not match the requested snapshot']);
-    expect(unknownReasons(unbranded, INPUT_SHA)).toEqual(['current-gate proof evidence is missing or unbranded']);
-    expect(unknownReasons(mintVitestEvidence(root, '{broken json'), INPUT_SHA))
-      .toEqual(['current-gate Vitest report cannot be parsed']);
+    expect(currentGateTestObservationAugmentation(compilation, census, undefined))
+      .toMatchObject({completeness: 'unknown', edges: [], unknownReasons: ['current-gate observation context is missing']});
+    expect(currentGateTestObservationAugmentation(compilation, census, unsealed))
+      .toMatchObject({completeness: 'unknown', edges: [], unknownReasons: ['current-gate testcase ledger is unsealed']});
+    expect(currentGateTestObservationAugmentation(compilation, census, sealed).completeness).toBe('complete');
   });
 
   test('[covers:F-208eaa79/AC-d452908b] refuses unsafe and diagnostic caller-owned binding censuses', () => {
     const root = workspaceRoot();
     writeBindings(root);
     const {compilation, census} = compiledBindings(root);
-    const evidence = mintVitestEvidence(root, vitestBytes(root, [{status: 'passed', title: SELECTOR, ancestorTitles: []}]));
+    const ledger = mintVitestLedger(root, vitestBytes(root, [{status: 'passed', title: SELECTOR, ancestorTitles: []}]));
     const unsafe = {...census, safe: false};
     const malformed = {
       ...census,
@@ -279,21 +241,18 @@ describe('current-gate GraphIR testcase observations', () => {
       }],
     };
 
-    expect(currentGateTestObservationAugmentation(root, compilation, unsafe, {
-      currentRun: evidence, expectedInputSha256: INPUT_SHA,
-    })).toMatchObject({completeness: 'unknown', edges: [], unknownReasons: ['current-safe binding census is unsafe']});
-    expect(currentGateTestObservationAugmentation(root, compilation, malformed, {
-      currentRun: evidence, expectedInputSha256: INPUT_SHA,
-    })).toMatchObject({completeness: 'unknown', edges: [], unknownReasons: ['current-safe binding census does not match the compiler snapshot']});
-    expect(currentGateTestObservationAugmentation(root, compilation, diagnostic, {
-      currentRun: evidence, expectedInputSha256: INPUT_SHA,
-    })).toMatchObject({completeness: 'unknown', edges: [], unknownReasons: ['current-safe binding census has diagnostics']});
+    expect(currentGateTestObservationAugmentation(compilation, unsafe, ledger))
+      .toMatchObject({completeness: 'unknown', edges: [], unknownReasons: ['current-safe binding census is unsafe']});
+    expect(currentGateTestObservationAugmentation(compilation, malformed, ledger))
+      .toMatchObject({completeness: 'unknown', edges: [], unknownReasons: ['current-safe binding census does not match the compiler snapshot']});
+    expect(currentGateTestObservationAugmentation(compilation, diagnostic, ledger))
+      .toMatchObject({completeness: 'unknown', edges: [], unknownReasons: ['current-safe binding census has diagnostics']});
   });
 
   test('[covers:F-208eaa79/AC-616e6e74] adds observations only from explicit context and scans bindings once per workspace read', () => {
     const root = workspaceRoot();
     writeBindings(root);
-    const evidence = mintVitestEvidence(root, vitestBytes(root, [{status: 'passed', title: SELECTOR, ancestorTitles: []}]));
+    const ledger = mintVitestLedger(root, vitestBytes(root, [{status: 'passed', title: SELECTOR, ancestorTitles: []}]));
     writeFileSync(join(root, 'current.junit.xml'), `<testsuite><testcase file="tests/live.test.ts" name="${SELECTOR}"/></testsuite>`);
     const census = vi.spyOn(currentBindings, 'currentSafeBindingCensus');
 
@@ -306,7 +265,7 @@ describe('current-gate GraphIR testcase observations', () => {
     });
     expect(defaultWorkspace.kernel.artifactOwners('artifact:tests/live.test.ts')).toMatchObject({completeness: 'complete'});
 
-    const observedWorkspace = loadGraphIrV2Workspace(root, {currentRun: evidence, expectedInputSha256: INPUT_SHA});
+    const observedWorkspace = loadGraphIrV2Workspace(root, ledger);
     expect(observedWorkspace.kernel.criterionProofs(`criterion:${CRITERION}`).records)
       .toEqual(expect.arrayContaining([expect.objectContaining({provenance: 'observed', state: 'passed'})]));
     expect(census).toHaveBeenCalledTimes(2);
