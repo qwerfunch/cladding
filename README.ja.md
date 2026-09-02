@@ -31,7 +31,7 @@
 - **たどれる** — **出荷されたものは記録に残る**: 何を検証したかはコミットされた内容に刻まれ、誰がいつやったかはローカルのセッション台帳に、なぜかは spec に残る — だから引き継ぎもレビューも、掘り起こさずに済む。
 - **拡張しても揺るがない** — 人と AI が増えれば、普通は衝突と乖離も増える。だが全員が一つの spec を基準に働くので、それらは自動でせき止められる — だから規模を広げても崩れない。
 
-cladding は **自分自身も cladding で作っている** — 292 個の feature のうち 281 個が同じゲートを通過した、[Ironclad](https://github.com/qwerfunch/ironclad) 標準を L4 で実装した最初の事例だ。
+cladding は **自分自身も cladding で作っている** — 292 個の feature のうち 282 個が同じゲートを通過した、[Ironclad](https://github.com/qwerfunch/ironclad) 標準を L4 で実装した最初の事例だ。
 
 <!-- ─────────────── What changes ─────────────── -->
 
@@ -347,7 +347,7 @@ clad update              # 3. プロジェクト接続と派生状態を更新�
 
 | Version | 準拠レベル | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.9.4 worktree（2026-08） | L4 · [自己申告](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 3733 / 3733 | 15 段階 · 41 detectors | 292（281 done） |
+| v0.9.4 worktree（2026-08） | L4 · [自己申告](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 3733 / 3733 | 15 段階 · 41 detectors | 292（282 done） |
 
 <sub>317 test files · capability 6 個 · カバレッジ低下は COVERAGE_DROP detector がブロック</sub>
 
