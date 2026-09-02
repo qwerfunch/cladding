@@ -102,6 +102,27 @@ describe('F6 assurance reducer', () => {
     expect(na.results.find((result) => result.obligation === 'stage_2.2')?.state).toBe('unobserved');
   });
 
+  test('[covers:F-6f0a2106/AC-6f0a2115] an unresolved applicability names itself instead of borrowing the stale label', () => {
+    // Both rows are unobserved, but only one is waiting on a runner. Calling
+    // an undecided applicability `stale` sends a reader to re-run a gate that
+    // can never clear it; the closure inputs are what is missing.
+    const undecided = reduceAssurancePlan(compileAssuranceReductionPlan({
+      profile: reportProfile, configuredAssuranceLevel: 'L2', scopeSha256: 's', inputSha256: 'i',
+      scopeAddresses: ['project'], obligations: [reportObligation], observations: [observation('pass')],
+      applicabilityFacts: {complete: false, hasExecutableTests: true, hasOracleProof: false, hasDeliverable: false, requiresQuality: false, requiresHuman: false},
+    }));
+    expect(undecided.results.find((result) => result.obligation === 'stage_2.2'))
+      .toMatchObject({state: 'unobserved', reason: 'unresolved'});
+    expect(undecided.state).toBe('unresolved');
+
+    const unobserved = authorityReduce({
+      profile: reportProfile, configuredAssuranceLevel: 'L2', scopeSha256: 's', inputSha256: 'i',
+      scopeAddresses: ['project'], obligations: [reportObligation], observations: [],
+    });
+    expect(unobserved.results.find((result) => result.obligation === 'stage_2.2'))
+      .toMatchObject({state: 'unobserved', reason: 'stale'});
+  });
+
   test('[covers:F-061/AC-151][covers:F-6f0a2106/AC-6f0a2106] current runner proof is derived per obligation from current observations', () => {
     const verdict = reduceLegacyStageAdapter({
       profile: assuranceProfile('push', 'L2'), configuredAssuranceLevel: 'L2', completeScope: true,

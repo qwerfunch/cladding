@@ -95,11 +95,11 @@ import {reduceLegacyStageAdapter} from '../assurance/adapters.js';
 import {createAttestationV3RetentionContext} from '../assurance/attestation.js';
 import {canonicalClosureJson} from '../assurance/closures.js';
 import {mintRunCheckStagesAuthority} from '../assurance/run-authority.js';
-import {assuranceClosureInputFromWorkspace, createWorkspaceAttestations, currentProofViewsFromWorkspace, effectiveFeatureScope, featureClosureSeals, hasApplicableSchema02TestCriteria, workspaceClosureSeals, workspaceProfileSnapshot, type WorkspaceProfileSnapshot} from '../assurance/workspace.js';
+import {assuranceClosureInputFromWorkspace, createWorkspaceAttestations, currentProofViewsFromWorkspace, effectiveFeatureScope, featureClosureSeals, hasApplicableSchema02TestCriteria, workspaceClosureSeals, workspaceProfileSnapshot, type BoundCriteriaCollector, type WorkspaceProfileSnapshot} from '../assurance/workspace.js';
 import {liveCriterionReportsFromCurrentRun, staticCriterionReportsFromWorkspace, staticCriterionScopeFromWorkspace} from '../assurance/criterion-observations.js';
 import {emptyTrustSnapshot} from '../proof/receipt.js';
 import {assuranceProfile, invalidateAssuranceVerdict, resolveRequestedAssuranceLevel, type AssuranceProfile, type AssuranceVerdict} from '../assurance/kernel.js';
-import {normalizeProfile, OBLIGATION_DESCRIPTORS, type AssuranceLevel, type AssuranceProfileId} from '../assurance/registry.js';
+import {normalizeProfile, OBLIGATION_DESCRIPTORS, profileBlocksWarnClass, type AssuranceLevel, type AssuranceProfileId} from '../assurance/registry.js';
 import {buildBlindPayload, renderBlindBrief} from '../oracle/payload.js';
 import {requiredOracleWorklist} from '../oracle/policy.js';
 import {loadSpec, loadSpecFromDiskUnlocked} from '../spec/load.js';
@@ -757,10 +757,20 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
   const base: {focusModules?: readonly string[]} = profileCompilation?.schemaVersion === '0.2'
     ? (gateAssurancePlan?.focusModules ? {focusModules: gateAssurancePlan.focusModules} : {})
     : (profileCompilation?.schemaVersion === '0.1' || rootSelectsSchema01('.')) ? {focusModules: opts.focusModules} : {};
+  // D21 — authority comes from the DECLARED PROFILE, not the strict flag. A
+  // schema 0.2 completion/push/release run asserts its scope is fit to claim,
+  // so a warn-class drift finding blocks it with no transport escalation;
+  // `--strict` stays the explicit escalation that schema 0.1's legacy tiers
+  // (and the advisory feedback/checkpoint profiles) still rely on. Schema 0.1
+  // is byte-identical: `profileCompilation.schemaVersion` gates the whole
+  // predicate, so a legacy tier keeps its warn-tolerant non-strict run.
+  const profileOwnedWarnBlocking = profileCompilation?.schemaVersion === '0.2'
+    && selectedProfile !== undefined
+    && profileBlocksWarnClass(selectedProfile);
   const allStages = [
     ['stage_1.1', () => runType(base)],
     ['stage_1.2', () => runLint(base)],
-    ['stage_1.3', () => runDrift({...base, strict: opts.strict})],
+    ['stage_1.3', () => runDrift({...base, strict: opts.strict || profileOwnedWarnBlocking})],
     ['stage_1.4', runCommit],
     ['stage_1.5', runArch],
     ['stage_1.6', runSecret],
@@ -922,9 +932,13 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
   // one self-staleness finding before F6 reduces its observations.  Doing this
   // afterwards would leave a schema 0.2 profile unresolved and deadlock the
   // very run that must replace the old receipt.
+  // The exemption must hold wherever warn-class blocking is active, so it
+  // reads the same profile-owned predicate the drift stage did. Keying it on
+  // the resolved plan alone would deadlock a completion run whose planning
+  // failed: drift would block on the stale receipt this very run replaces.
   if (exemptSolelyStaleAttestation({
     strict: opts.strict === true,
-    authoritative: gateAssurancePlan?.profile.authoritative === true,
+    authoritative: profileOwnedWarnBlocking || gateAssurancePlan?.profile.authoritative === true,
     tier,
     stages: collected,
   })) {
@@ -1007,6 +1021,16 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
             expectedGateInputSha256: plan?.snapshot.inputSha256,
           })
           : [];
+        // The criteria whose selection named a binding source. Without it the
+        // reducer cannot separate "nothing renewed this proof" from "this
+        // criterion never named a testcase", and would tell a reader to re-run
+        // a gate that can never clear the row. It is resolved BEFORE the
+        // adapter input is built, so the reducer never reads a half-filled
+        // collector, and it stays absent whenever no report joined.
+        const boundProofCriteria: BoundCriteriaCollector = {};
+        const currentProofViews = compilation.schemaVersion === '0.2'
+          ? currentProofViewsFromWorkspace('.', compilation, scopeAddresses, currentRunProof, plan?.snapshot.inputSha256, boundProofCriteria)
+          : [];
         assurance = reduceLegacyStageAdapter({
           profile,
           configuredAssuranceLevel: plan?.configured ?? configured,
@@ -1030,7 +1054,8 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
             ? {migrationBaselineCandidates: plan.snapshot.migrationBaselineCandidates}
             : {}),
           ...(compilation.schemaVersion === '0.2' ? {
-            proofViews: currentProofViewsFromWorkspace('.', compilation, scopeAddresses, currentRunProof, plan?.snapshot.inputSha256),
+            proofViews: currentProofViews,
+            ...(boundProofCriteria.criteria === undefined ? {} : {boundProofCriteria: boundProofCriteria.criteria}),
             currentProofObservationIdentity: currentRunProofIdentity(currentRunProof),
             exactProofRequired: true,
           } : {}),
@@ -1194,6 +1219,13 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
         input_sha256: assurance.input_sha256,
         profile_complete: assurance.profile_complete,
         obligations: assurance.results,
+        // An unresolved verdict has to name WHY it could not resolve. The
+        // snapshot already addressed every incomplete closure; publishing it
+        // turns `profile_complete: false` from a verdict into a work list.
+        // Schema 0.1 has no such closure, and its JSON stays byte-identical.
+        ...(assuranceSchema === '0.2'
+          ? {incomplete_addresses: gateAssurancePlan?.snapshot.incompleteAddresses ?? []}
+          : {}),
         independence: assurance.independence,
         attestation_freshness: v3Freshness,
         ...(attestationError ? {attestation_error: attestationError} : {}),

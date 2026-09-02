@@ -41,7 +41,7 @@ import {scanLegacyStatement} from '../spec/legacy-statement-scanner.js';
 import {loadSpec} from '../spec/load.js';
 import type {Spec} from '../spec/types.js';
 import {currentSafeBindingCensus, currentSafeBindings} from '../proof/current-bindings.js';
-import {selectCriterionTestBindings} from '../proof/legacy-bindings.js';
+import {selectCriterionTestBindings, type CriterionBindingSelection} from '../proof/legacy-bindings.js';
 import type {TestBinding} from '../proof/types.js';
 import {buildProofView, type CriterionProofView} from '../proof/view.js';
 import {criterionBaselineMatchShape} from '../spec/compiler/consumer-view.js';
@@ -733,6 +733,23 @@ export function workspaceProfileSnapshot(
 }
 
 /**
+ * Out-collector for the criteria whose current selection named a binding
+ * source at all — live, reviewed, or legacy, including a historic selection
+ * whose bytes have since moved.  F6 reads it to tell "nothing renewed this
+ * proof" from "this criterion never named a testcase"; the F5 view itself
+ * cannot carry the distinction, since both reduce to the same unverified
+ * observation.
+ */
+export interface BoundCriteriaCollector {
+  /**
+   * Present ONLY when a current run report actually joined.  Its absence is
+   * how a caller learns this run observed no runner at all, so an empty set
+   * can never be mistaken for proof that no criterion is bound.
+   */
+  criteria?: ReadonlySet<string>;
+}
+
+/**
  * Adapts current runner evidence into F5's exact binding reducer.  This owns
  * only safe input collection: F5 remains the sole proof evaluator.  No report,
  * invalid source, unsafe path, or unsupported test carrier yields unobserved
@@ -744,6 +761,7 @@ export function currentProofViewsFromWorkspace(
   scopeSubjects: readonly string[],
   currentRun?: CurrentRunProofEvidence,
   expectedInputSha256?: string,
+  boundCriteria?: BoundCriteriaCollector,
 ): readonly CriterionProofView[] {
   if (compilation.schemaVersion !== '0.2') return [];
   const selected = new Set(scopeSubjects.flatMap((subject) => {
@@ -769,7 +787,16 @@ export function currentProofViewsFromWorkspace(
       ? parseVitestJsonReport(currentRun.reportBytes, cwd)
       : currentJUnitReport(currentRun.reportBytes)
     : undefined;
-  const bindings = report ? currentProofBindingsFromWorkspace(cwd, compilation) : [];
+  const selections = report ? criterionBindingSelections(cwd, compilation) : [];
+  // Only a joined report proves anything about bindings. Leaving `criteria`
+  // absent otherwise is the whole point of the wrapper: a bare empty set
+  // would read as "nothing is bound" on exactly the runs that learned least.
+  if (boundCriteria && report) {
+    boundCriteria.criteria = new Set(selections
+      .filter((selection) => selection.source !== 'none')
+      .map((selection) => selection.criterion));
+  }
+  const bindings = observableBindings(selections);
   return buildProofView({schemaVersion: '0.2', criteria, bindings, ...(report ? {report} : {})});
 }
 
@@ -784,26 +811,47 @@ export function currentProofBindingsFromWorkspace(
   cwd: string,
   compilation: SpecCompilation,
 ): readonly TestBinding[] {
+  return observableBindings(criterionBindingSelections(cwd, compilation));
+}
+
+/**
+ * Runs F5's selection once per current done criterion.  SELECTION and
+ * OBSERVABLE BINDING answer different questions: a criterion can name a
+ * reviewed source whose bytes have since moved, which selects a source but
+ * yields nothing a runner can observe.  Both readers share this one scan of
+ * the live surface rather than walking the test tree twice.
+ */
+function criterionBindingSelections(
+  cwd: string,
+  compilation: SpecCompilation,
+): readonly CriterionBindingSelection[] {
   if (compilation.schemaVersion !== '0.2') return [];
   const live = currentSafeBindings(cwd, compilation);
   return (compilation.contract?.features ?? [])
     .filter((feature) => feature.status === 'done')
-    .flatMap((feature) => feature.acceptanceCriteria.flatMap((criterion) => {
+    .flatMap((feature) => feature.acceptanceCriteria.map((criterion) => {
       const address = `${feature.id}/${criterion.id}`;
-      const selection = selectCriterionTestBindings({
+      return selectCriterionTestBindings({
         cwd,
         baseline: compilation.migrationBaseline,
         criterion: address,
         currentCriterion: criterionBaselineMatchShape(criterion, compilation.migrationBaseline, address),
         live,
       });
+    }));
+}
+
+/** Projects only the selections a runner can actually observe, in stable order. */
+function observableBindings(selections: readonly CriterionBindingSelection[]): readonly TestBinding[] {
+  return selections
+    .flatMap((selection) => {
       if (selection.source === 'live') return selection.live;
       const historic = selection.source === 'reviewed' ? selection.reviewed
         : selection.source === 'legacy' ? selection.legacy : [];
       return historic.flatMap((binding) => binding.state === 'available' && hasExactSelector(binding.selector)
-        ? [{criterion: address, framework: 'vitest' as const, file: binding.file, selector: binding.selector, carrier: 'title' as const}]
+        ? [{criterion: selection.criterion, framework: 'vitest' as const, file: binding.file, selector: binding.selector, carrier: 'title' as const}]
         : []);
-    }))
+    })
     .sort((left, right) => comparePath(
       `${left.criterion}\u0000${left.file}\u0000${left.selector}`,
       `${right.criterion}\u0000${right.file}\u0000${right.selector}`,

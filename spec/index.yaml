@@ -173,7 +173,7 @@ features:
   F-6d943d: {slug: version-bump-script, status: done, modules: 4}
   F-6e49fd24: {slug: inventory-churn-diet, status: done, modules: 1}
   F-6ed216f3: {slug: interactive-drift-profile, status: done, modules: 5}
-  F-6f0a2106: {slug: spec-02-assurance-attestation, status: in_progress, modules: 32}
+  F-6f0a2106: {slug: spec-02-assurance-attestation, status: in_progress, modules: 35}
   F-6f80e7: {slug: claude-code-dogfood, status: done, modules: 1}
   F-7076f7: {slug: smoke-probe-demand, status: done, modules: 3}
   F-70ed1afd: {slug: adoption-honors-host-capabilities, status: done, modules: 1}

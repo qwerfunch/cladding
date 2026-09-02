@@ -14,6 +14,7 @@ modules:
   - src/spec/edit.ts
   - src/spec/prospective.ts
   - src/stages/detectors/stale-attestation.ts
+  - src/stages/detectors/stale-specification.ts
   - src/stages/test-run-cache.ts
   - src/stages/unit.ts
   - src/cli/clad.ts
@@ -32,6 +33,8 @@ modules:
   - tests/serve/assurance-gate.test.ts
   - tests/stages/test-run-dedup.test.ts
   - tests/stages/stale-attestation.test.ts
+  - tests/stages/stale-specification.test.ts
+  - tests/assurance/adapters.test.ts
   - tests/design/spec-0.2/requirements.yaml
   - scripts/spec-0.2-validate.ts
 depends_on: []
@@ -77,6 +80,23 @@ acceptance_criteria:
       from structural relations and enumerable inputs only, so an unresolved or
       unbuilt proof-channel reference remains a visible negative fact for its
       own criterion without making the repository profile unresolved.
+  - id: AC-6f0a2113
+    kind: behavior
+    statement: When a schema 0.2 gate runs an authoritative profile (completion,
+      push, or release), the assurance authority shall block on warn-class drift
+      findings without a transport strict flag, while the advisory profiles
+      (feedback and checkpoint) block on error-class findings only.
+  - id: AC-6f0a2114
+    kind: behavior
+    statement: While the superseding feature of an archived feature is not yet
+      done, the drift authority shall report the surviving modules of that
+      archived feature as informational, restoring the warning once the
+      successor is done.
+  - id: AC-6f0a2115
+    kind: behavior
+    statement: The assurance authority shall label an unresolved-applicability
+      row unresolved and an unbound criterion row unbound, and expose the
+      incomplete closure addresses in its machine verdict.
 design_impact:
   classification: structural
   rationale: F6 centralizes assurance identity, closure freshness, profile

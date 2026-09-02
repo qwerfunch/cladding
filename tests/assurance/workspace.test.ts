@@ -15,6 +15,7 @@ import {
   createWorkspaceAttestations,
   currentProofBindingsFromWorkspace,
   currentProofViewsFromWorkspace,
+  type BoundCriteriaCollector,
   featureClosureSeals,
   migrationBaselineCandidatesFromWorkspace,
   runnerConfigurationResolver,
@@ -887,6 +888,46 @@ describe('F6 workspace profile closure', () => {
     const current = currentGateProofEvidence(cwd, 'sealed-input');
     expect(currentProofViewsFromWorkspace(cwd, compilation, ['feature:F-aaaaaaaa'], current, 'sealed-input')[0]?.test.state).toBe('verified');
     expect(currentProofViewsFromWorkspace(cwd, compilation, ['feature:F-aaaaaaaa'], current, 'other-input')[0]?.test.state).toBe('unverified');
+    clearTestRunCache();
+  });
+
+  test('[covers:F-6f0a2106/AC-6f0a2115] the bound-criteria collector names only the criteria whose selection found a source', () => {
+    const cwd = fixture();
+    const feature = join(cwd, 'spec', 'features', 'closure-aaaaaaaa.yaml');
+    writeFileSync(feature, readFileSync(feature, 'utf8').replace(
+      '    statement: The system shall keep closure requirements explicit.\n',
+      [
+        '    statement: The system shall keep closure requirements explicit.',
+        '  - id: AC-bbbbbbbb', '    kind: behavior',
+        '    statement: The system shall name an unbound criterion honestly.', '',
+      ].join('\n'),
+    ));
+    mkdirSync(join(cwd, 'tests'), {recursive: true});
+    const selector = '[covers:F-aaaaaaaa/AC-aaaaaaaa] names the bound criterion';
+    writeFileSync(join(cwd, 'tests', 'a.test.ts'), `it('${selector}', () => {});\n`);
+    const compilation = compileSpecWorkspace(cwd);
+    const snapshot = workspaceProfileSnapshot(cwd, compilation, {
+      profile: assuranceProfile('completion', 'L2'), scopeAddresses: ['feature:F-aaaaaaaa'],
+      hasExecutableTests: true, oracleRequiredSubjects: new Set<string>(), requiresHuman: false,
+    });
+    const reporter = join(cwd, 'current-vitest.json');
+    writeFileSync(reporter, JSON.stringify({testResults: [{
+      name: join(cwd, 'tests', 'a.test.ts'), assertionResults: [{status: 'passed', fullName: selector}],
+    }]}));
+    primeTestRunCache(cwd, snapshot.inputSha256);
+    captureCurrentVitestProof(cwd, reporter, ['vitest', 'run']);
+    const current = currentGateProofEvidence(cwd, snapshot.inputSha256);
+
+    const bound: BoundCriteriaCollector = {};
+    currentProofViewsFromWorkspace(cwd, compilation, snapshot.effectiveScopeAddresses, current, snapshot.inputSha256, bound);
+    expect([...bound.criteria ?? []]).toEqual(['F-aaaaaaaa/AC-aaaaaaaa']);
+
+    // A run whose report never joined proves nothing about bindings. The
+    // collector stays ABSENT rather than empty, so a reader can never mistake
+    // "this run saw no runner" for "no criterion is bound".
+    const unjoined: BoundCriteriaCollector = {};
+    currentProofViewsFromWorkspace(cwd, compilation, snapshot.effectiveScopeAddresses, current, 'other-input', unjoined);
+    expect(unjoined.criteria).toBeUndefined();
     clearTestRunCache();
   });
 

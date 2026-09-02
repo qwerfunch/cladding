@@ -81,6 +81,31 @@ export const PROFILE_ALIASES: Readonly<Record<string, AssuranceProfileId>> = Obj
   all: 'release',
 });
 
+/**
+ * Whether a canonical profile blocks on warn-class drift findings.
+ *
+ * Authority comes from the declared profile, not the strict flag: an
+ * authoritative profile (completion, push, release) already asserts that its
+ * scope is fit to claim, so a warn-class finding inside that scope is a
+ * blocking fact whether or not a transport passed `--strict`.  The two
+ * advisory profiles (feedback, checkpoint) keep the warn-tolerant contract,
+ * and `--strict` remains the explicit transport escalation that raises them.
+ *
+ * @see docs/design/spec-0.2/assurance.md#d21--iron-law-assurance-kernel
+ */
+const PROFILE_WARN_CLASS_BLOCKING: Readonly<Record<AssuranceProfileId, boolean>> = Object.freeze({
+  feedback: false,
+  checkpoint: false,
+  completion: true,
+  push: true,
+  release: true,
+});
+
+/** Returns whether the declared profile — not a transport flag — blocks on warn-class findings. */
+export function profileBlocksWarnClass(profile: AssuranceProfileId): boolean {
+  return PROFILE_WARN_CLASS_BLOCKING[profile];
+}
+
 /** UTF-16 code-unit comparison used by all signed and canonical projections. */
 export function compareCodeUnits(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;

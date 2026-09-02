@@ -61,7 +61,16 @@ export interface Observation {
   readonly adapter: {readonly id: string; readonly version: string};
   readonly provenance: 'authored' | 'derived' | 'observed';
   readonly assurance: 'asserted' | 'verified';
-  readonly reason?: 'skipped' | 'timeout' | 'pending_env' | 'unsupported' | 'stale' | 'cancelled';
+  /**
+   * Why a row is not a current observation.  `stale` means the proof existed
+   * but this run did not renew it; `unresolved` means the compiler could not
+   * decide applicability at all; `unbound` means the criterion never named a
+   * testcase, so there is nothing for a runner to renew.  Collapsing the last
+   * two into `stale` would tell a reader to re-run when the real remedy is to
+   * complete the closure or write the binding.
+   */
+  readonly reason?: 'skipped' | 'timeout' | 'pending_env' | 'unsupported' | 'stale' | 'cancelled'
+  | 'unresolved' | 'unbound';
   readonly locator?: string;
   readonly observed_at: string;
   readonly environment_class: string;
@@ -580,8 +589,12 @@ function reduceObligation(obligation: ProofObligation, observations: readonly Ob
   if (obligation.applicability === 'na') {
     return {obligation: obligation.descriptor, subject: obligation.subject, state: 'na', source_strictness: obligation.source_strictness, blocking: obligation.blocking, observation_identities: []};
   }
+  // An unresolved applicability is not a stale observation: no runner can
+  // clear it, because the compiler never decided whether the obligation
+  // applies. Labeling it `stale` sent readers to re-run the gate instead of
+  // completing the closure inputs the verdict names.
   if (obligation.applicability === 'unresolved') {
-    return {obligation: obligation.descriptor, subject: obligation.subject, state: 'unobserved', source_strictness: obligation.source_strictness, blocking: obligation.blocking, reason: 'stale', observation_identities: []};
+    return {obligation: obligation.descriptor, subject: obligation.subject, state: 'unobserved', source_strictness: obligation.source_strictness, blocking: obligation.blocking, reason: 'unresolved', observation_identities: []};
   }
   const descriptor = obligationDescriptor(obligation.descriptor);
   const expectedAdapter = obligation.adapter ?? descriptor?.adapter;

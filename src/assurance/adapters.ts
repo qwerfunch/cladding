@@ -44,6 +44,12 @@ export interface AssuranceAdapterInput {
   readonly exactProofRequired?: boolean;
   /** Opaque current Unit invocation identity, retained only as a compact observation locator. */
   readonly currentProofObservationIdentity?: string;
+  /**
+   * Criteria whose F5 selection named a binding source at all.  Absent means
+   * the caller could not decide, and every unobserved row keeps `stale`; it
+   * is never read as proof that nothing is bound.
+   */
+  readonly boundProofCriteria?: ReadonlySet<string>;
   /** Compiler-classified accepted migration receipt candidates, never stage input. */
   readonly migrationBaselineCandidates?: readonly MigrationBaselineCandidate[];
   readonly stages: readonly LegacyStageObservation[];
@@ -136,7 +142,8 @@ export function reduceLegacyStageAdapter(input: AssuranceAdapterInput): Assuranc
       // criterion report below. Unregistered criteria retain legacy F5 flow.
       if (proofView && rule === undefined) {
         observations.push(proofViewObservation(obligation, descriptor.id, proofView, stage,
-          descriptor.adapter, input.environmentClass, input.currentProofObservationIdentity));
+          descriptor.adapter, input.environmentClass, input.currentProofObservationIdentity,
+          input.boundProofCriteria));
       } else if (!proofView) {
         observations.push(stageObservation(obligation, stage, descriptor.adapter, input.environmentClass));
       }
@@ -206,6 +213,7 @@ function proofViewObservation(
   adapter: {readonly id: string; readonly version: string},
   environmentClass: string,
   currentProofObservationIdentity?: string,
+  boundProofCriteria?: ReadonlySet<string>,
 ): Observation {
   if (requiresLegacyStageOutcome(descriptor) && stage?.status !== 'pass') {
     const reason = stage === undefined ? 'stale' : stage.status === 'pending_env' ? 'pending_env'
@@ -233,11 +241,29 @@ function proofViewObservation(
     adapter,
     provenance: 'observed',
     assurance: state === 'unobserved' ? 'asserted' : 'verified',
-    ...(state === 'unobserved' ? {reason: 'stale' as const} : {}),
+    ...(state === 'unobserved' ? {reason: unobservedProofReason(descriptor, view.criterion, boundProofCriteria)} : {}),
     ...(currentProofObservationIdentity === undefined ? {} : {locator: currentProofObservationIdentity}),
     observed_at: '1970-01-01T00:00:00.000Z',
     environment_class: environmentClass,
   };
+}
+
+/**
+ * Names why a criterion's proof row is not current.  Only the two test-driven
+ * obligations can be `unbound`: their proof comes from the criterion's own
+ * testcase binding, so an absent binding is the whole reason and a re-run
+ * would change nothing.  Blind, Audit, and UAT are unobserved for receipt
+ * reasons instead, and keep `stale`.
+ */
+function unobservedProofReason(
+  descriptor: string,
+  criterion: string,
+  boundProofCriteria: ReadonlySet<string> | undefined,
+): 'stale' | 'unbound' {
+  return (descriptor === 'stage_2.1' || descriptor === 'stage_2.2')
+    && boundProofCriteria !== undefined && !boundProofCriteria.has(criterion)
+    ? 'unbound'
+    : 'stale';
 }
 
 function isExactProofDescriptor(descriptor: string): boolean {

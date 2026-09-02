@@ -23,16 +23,18 @@ docs:
   "docs/design/ironclad-obligation-rfc.md":
     doc_links: ["docs/design/spec-0.2/assurance.md"]
   "docs/design/spec-0.2.md":
-    doc_links: ["AGENTS.md", "docs/design/spec-0.2/assurance-evidence.md", "docs/design/spec-0.2/assurance.md", "docs/design/spec-0.2/context-and-orchestration.md", "docs/design/spec-0.2/decision-log.md", "docs/design/spec-0.2/delivery.md", "docs/design/spec-0.2/evidence.md", "docs/design/spec-0.2/graph.md", "docs/design/spec-0.2/hygiene.md", "docs/design/spec-0.2/mcp.md", "docs/design/spec-0.2/model-and-migration.md", "docs/design/spec-0.2/proof-and-editing.md", "docs/design/spec-0.2/validation.md", "docs/ssot-model.md", "spec/README.md"]
+    doc_links: ["AGENTS.md", "docs/design/spec-0.2/assurance-evidence.md", "docs/design/spec-0.2/assurance.md", "docs/design/spec-0.2/change-log.md", "docs/design/spec-0.2/context-and-orchestration.md", "docs/design/spec-0.2/decision-log.md", "docs/design/spec-0.2/delivery.md", "docs/design/spec-0.2/evidence.md", "docs/design/spec-0.2/graph.md", "docs/design/spec-0.2/hygiene.md", "docs/design/spec-0.2/mcp.md", "docs/design/spec-0.2/model-and-migration.md", "docs/design/spec-0.2/proof-and-editing.md", "docs/design/spec-0.2/validation.md", "docs/ssot-model.md", "spec/README.md"]
   "docs/design/spec-0.2/assurance-evidence.md":
     doc_links: ["docs/design/spec-0.2.md", "docs/design/spec-0.2/assurance.md"]
   "docs/design/spec-0.2/assurance.md":
     doc_links: ["docs/design/ironclad-obligation-rfc.md", "docs/design/spec-0.2.md", "docs/design/spec-0.2/assurance-evidence.md"]
+  "docs/design/spec-0.2/change-log.md":
+    features: [F-048, F-06dfdad6, F-12d740]
+    doc_links: ["docs/design/spec-0.2.md", "docs/design/spec-0.2/evidence.md"]
   "docs/design/spec-0.2/context-and-orchestration.md":
     doc_links: ["docs/design/spec-0.2.md", "docs/design/spec-0.2/assurance.md"]
   "docs/design/spec-0.2/decision-log.md":
-    features: [F-048, F-06dfdad6, F-12d740]
-    doc_links: ["docs/ab-evaluation/case-working-set-landmine.md", "docs/design/spec-0.2.md", "docs/design/spec-0.2/evidence.md"]
+    doc_links: ["docs/ab-evaluation/case-working-set-landmine.md", "docs/design/spec-0.2.md", "docs/design/spec-0.2/change-log.md"]
   "docs/design/spec-0.2/delivery.md":
     features: [F-041, F-063]
     doc_links: ["docs/design/spec-0.2.md", "docs/design/spec-0.2/assurance.md", "docs/design/spec-0.2/evidence.md", "docs/design/spec-0.2/hygiene.md"]

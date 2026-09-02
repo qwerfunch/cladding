@@ -67,6 +67,38 @@ describe('STALE_SPECIFICATION detector', () => {
     expect(findings[0].message).toContain('no archived_at');
   });
 
+  test('[covers:F-6f0a2106/AC-6f0a2114] an archived feature whose successor is still in flight reports its surviving modules as info', () => {
+    // Retirement window: the successor OWNS the removal, so while it is
+    // unfinished the surviving module is the expected state, not stale spec.
+    writeFileSync(join(dir, 'stages', 'survivor.ts'), '// still here\nexport const s = 1;\n');
+    writeFileSync(
+      join(dir, 'spec', 'features', 'F-001.yaml'),
+      'id: F-001\ntitle: t\nstatus: archived\narchived_at: "2024-01-01T00:00:00Z"\n'
+      + 'superseded_by: F-002\nmodules: [stages/survivor.ts]\n',
+    );
+    writeFileSync(join(dir, 'spec', 'features', 'F-002.yaml'), 'id: F-002\ntitle: successor\nstatus: in_progress\n');
+    const findings = staleSpecification.run({cwd: dir});
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe('info');
+    expect(findings[0].message).toContain('stages/survivor.ts');
+    expect(findings[0].message).toContain('retirement is owned by successor F-002');
+    expect(findings[0].suggestion).toBeUndefined();
+  });
+
+  test('[covers:F-6f0a2106/AC-6f0a2114] the surviving-module warning returns once the successor is done', () => {
+    writeFileSync(join(dir, 'stages', 'survivor.ts'), '// still here\nexport const s = 1;\n');
+    writeFileSync(
+      join(dir, 'spec', 'features', 'F-001.yaml'),
+      'id: F-001\ntitle: t\nstatus: archived\narchived_at: "2024-01-01T00:00:00Z"\n'
+      + 'superseded_by: F-002\nmodules: [stages/survivor.ts]\n',
+    );
+    writeFileSync(join(dir, 'spec', 'features', 'F-002.yaml'), 'id: F-002\ntitle: successor\nstatus: done\n');
+    const findings = staleSpecification.run({cwd: dir}).filter((finding) => finding.message.includes('F-001'));
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe('warn');
+    expect(findings[0].message).toBe('feature F-001 is archived but 1 module(s) still exist: stages/survivor.ts');
+  });
+
   test('status=archived + surviving module on disk → warn finding', () => {
     writeFileSync(join(dir, 'stages', 'survivor.ts'), '// still here\nexport const s = 1;\n');
     writeFileSync(
