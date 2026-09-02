@@ -23,6 +23,11 @@ describe('impact card', () => {
     expect(card).toContain('F-abc123 Login'); // focus id + title (F-f46d5c61)
     expect(card).toContain('2 features depend on this');
     expect(card).toContain('3 tests guard it');
+    // The count alone never said WHAT to run, so the fallback card names up to two paths.
+    const lines = card.split('\n');
+    expect(lines).toHaveLength(2);
+    expect(lines[1]).toBe('run: t1, t2 (+1 more)');
+    expect(card.length).toBeLessThanOrEqual(600);
 
     const moduleSlice: ImpactSlice = {
       focus: {module: 'src/x.ts', owners: ['F-aaa', 'F-bbb']},
@@ -36,6 +41,18 @@ describe('impact card', () => {
     expect(moduleCard).not.toBe('');
     expect(moduleCard).toContain('F-aaa');
     expect(moduleCard).toContain('co-owner');
+    expect(moduleCard.split('\n')).toHaveLength(1); // no regression set → the original one-liner
+
+    // Two or fewer paths name themselves with no "+N more" tail, and a very long set is
+    // still clipped to the 600-char ceiling rather than flooding the transcript.
+    const two = formatImpactCard({...slice, test_refs: ['t1', 't2']}, 'src/login.ts');
+    expect(two.split('\n')[1]).toBe('run: t1, t2');
+    const long = formatImpactCard(
+      {...slice, test_refs: [`tests/${'a'.repeat(400)}.test.ts`, `tests/${'b'.repeat(400)}.test.ts`]},
+      'src/login.ts',
+    );
+    expect(long.length).toBe(600);
+    expect(long.endsWith('…')).toBe(true);
   });
 
   test('[covers:F-d6b93648/AC-ee0f17] formatImpactCard is empty when the file touches no feature', () => {

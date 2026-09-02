@@ -103,6 +103,8 @@ interface WorkingSetShape {
   };
   guidance: {preferred_patterns: {when: string; prefer: string; over?: string}[]};
   budget: {max_tokens: number; used_tokens: number; truncated: string[]};
+  /** Graph-provenance label, attached outside the budget (F-208eaa79/AC-616e6e74). */
+  authority?: 'graph-ir' | 'spec-structural';
 }
 
 interface MissShape {
@@ -447,10 +449,15 @@ describe('working-set', () => {
     expect(Number(breakCounts?.[2])).toBe(roomy.breaks_if_changed.regression_tests.length - clipped.breaks_if_changed.regression_tests.length);
 
     expect(clipped.budget.used_tokens).toBeLessThanOrEqual(maxTokens);
+    // `authority` is the graph-provenance label, attached after every clip is decided and
+    // deliberately outside the budget: its two spellings differ in length, so counting it
+    // would make the same query clip differently on the GraphIR and structural lanes.
     expect(clipped.budget.used_tokens).toBe(estTokens(JSON.stringify({
       ...clipped,
       budget: {...clipped.budget, used_tokens: 0},
+      authority: undefined,
     })));
+    expect(clipped.authority).toBe('spec-structural');
 
     const overflowAcs = [ac({
       id: 'AC-overflow',

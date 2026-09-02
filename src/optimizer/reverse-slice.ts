@@ -2,16 +2,20 @@
 //
 // clad_get_context answers "what does this feature NEED?" (forward: walk
 // depends_on up). This module answers the missing complement: "what BREAKS if
-// I change this?" (backward: walk the reverse-index dependents down). For a
-// module path it resolves the many-to-many owners first, so changing a shared
-// file surfaces every feature that touches it and everything downstream.
+// I change this?" (backward: walk the dependent edges down). For a module path
+// it resolves the many-to-many owners first, so changing a shared file surfaces
+// every feature that touches it and everything downstream.
+//
+// Every graph question here goes through the one GraphConsumerView contract, so
+// the answer comes from GraphIR whenever the caller supplies (or affords) the
+// canonical view and from the parity-checked structural projection otherwise.
 //
 // The returned slice is the LLM's safe-refactor working set in a long project:
 // the impacted features, the scenarios at risk, the deduped union of tests to
 // re-run (the regression set), and the modules in the blast radius — bounded
 // and deterministic so a host can cache and diff it.
 
-import {reverseIndexOf, type ReverseIndex} from '../spec/reverse-index.js';
+import {viewFor, type GraphConsumerView} from '../graph/consumers.js';
 import type {Feature, Spec} from '../spec/types.js';
 
 /**
@@ -53,6 +57,10 @@ export interface ImpactSlice {
   readonly test_refs: readonly string[];
   /** Spec-wide ledger counts + blank-map fallback hints. Optional for payload compat. */
   readonly ledger?: LedgerSummary;
+  /** Which graph authority answered — `graph-ir` is canonical, `spec-structural` is the
+   *  parity-checked projection a latency-bounded lane reads. Additive: every other field
+   *  is byte-identical across the two. */
+  readonly authority?: GraphConsumerView['authority'];
 }
 
 export interface ImpactLookupMiss {
@@ -62,42 +70,21 @@ export interface ImpactLookupMiss {
 }
 
 /**
- * Collects the transitive dependents of a seed set by walking reverse edges
- * breadth-first, bounded to `depth` hops (default unbounded). The returned set
- * EXCLUDES the seeds — it is the downstream blast radius only.
+ * Collects the transitive dependents of a seed set from one graph view, bounded
+ * to `depth` hops (default unbounded). The returned set EXCLUDES the seeds — it
+ * is the downstream blast radius only.
  */
 export function collectDependents(
   seedIds: Iterable<string>,
-  dependents: ReadonlyMap<string, ReadonlySet<string>>,
+  view: GraphConsumerView,
   depth: number = Infinity,
 ): Set<string> {
-  const result = new Set<string>();
-  const seen = new Set<string>(seedIds);
-  let frontier = [...seen];
-  let hop = 0;
-  while (frontier.length > 0 && hop < depth) {
-    const next: string[] = [];
-    for (const id of frontier) {
-      for (const dep of dependents.get(id) ?? []) {
-        if (!seen.has(dep)) {
-          seen.add(dep);
-          result.add(dep);
-          next.push(dep);
-        }
-      }
-    }
-    frontier = next;
-    hop++;
-  }
-  return result;
+  return new Set(view.dependents([...seedIds], depth).ids);
 }
 
-/** Spec-wide edge counts from the (memoised) reverse index — O(map size), ~0.04ms measured. */
-export function ledgerOf(ri: ReverseIndex): LedgerSummary {
-  let dep = 0;
-  for (const s of ri.dependents.values()) dep += s.size;
-  let test = 0;
-  for (const s of ri.testRefCitations.values()) test += s.size;
+/** Spec-wide edge counts from one graph view — sub-millisecond on either lane. */
+export function ledgerOf(view: GraphConsumerView): LedgerSummary {
+  const {depends_on_edges: dep, test_ref_edges: test} = view.ledger();
   return {
     depends_on_edges: dep,
     test_ref_edges: test,
@@ -110,16 +97,6 @@ export function ledgerOf(ri: ReverseIndex): LedgerSummary {
   };
 }
 
-/** id (F-…) or slug → the feature; else null. */
-function resolveFeature(spec: Spec, query: string): Feature | null {
-  const features = spec.features ?? [];
-  return (
-    features.find((f) => f.id === query) ??
-    features.find((f) => (f as {slug?: string}).slug === query) ??
-    null
-  );
-}
-
 /**
  * Builds the backward (blast-radius) slice for a feature id/slug or a module
  * path. Returns a not_found result when the query resolves to neither.
@@ -127,27 +104,28 @@ function resolveFeature(spec: Spec, query: string): Feature | null {
  * @param spec  The loaded spec.
  * @param query Feature id, slug, or module path.
  * @param opts.depth  Bound the dependent walk to N hops (default: unbounded).
+ * @param opts.graph  An already-built graph view; omitted reads the structural projection.
  */
 export function buildImpactSlice(
   spec: Spec,
   query: string,
-  opts: {readonly depth?: number} = {},
+  opts: {readonly depth?: number; readonly graph?: GraphConsumerView} = {},
 ): ImpactSlice | ImpactLookupMiss {
   const depth = opts.depth ?? Infinity;
-  const ri = reverseIndexOf(spec);
+  const view = viewFor(spec, {graph: opts.graph});
   const byId = new Map((spec.features ?? []).map((f) => [f.id, f]));
 
   // Resolve: a feature query is one seed; a module query fans out to all owners.
   let seedFeatures: Feature[] = [];
   let moduleQuery: string | undefined;
-  const direct = resolveFeature(spec, query);
+  const direct = view.resolveFeature(query);
   if (direct) {
     seedFeatures = [direct];
   } else {
-    const owners = ri.moduleOwners.get(query);
-    if (owners && owners.size > 0) {
+    const owners = view.owners(query);
+    if (owners.length > 0) {
       moduleQuery = query;
-      seedFeatures = [...owners].map((id) => byId.get(id)).filter((f): f is Feature => Boolean(f));
+      seedFeatures = owners.map((id) => byId.get(id)).filter((f): f is Feature => Boolean(f));
     }
   }
 
@@ -162,7 +140,7 @@ export function buildImpactSlice(
   }
 
   const seedIds = seedFeatures.map((f) => f.id);
-  const dependentIds = collectDependents(seedIds, ri.dependents, depth);
+  const dependentIds = collectDependents(seedIds, view, depth);
 
   const impacted = [...dependentIds]
     .map((id) => byId.get(id))
@@ -195,5 +173,5 @@ export function buildImpactSlice(
     ? {module: moduleQuery, owners: [...seedIds].sort()}
     : {id: seedFeatures[0].id, title: seedFeatures[0].title, status: seedFeatures[0].status};
 
-  return {focus, impacted, impacted_modules, scenarios, test_refs, ledger: ledgerOf(ri)};
+  return {focus, impacted, impacted_modules, scenarios, test_refs, ledger: ledgerOf(view), authority: view.authority};
 }

@@ -2,8 +2,7 @@ id: F-ee47fc2b
 title: Reverse-edge index — backlinks (dependents, module owners, test
   citations) derived from the spec, memoized per instance
 status: archived
-modules:
-  - src/spec/reverse-index.ts
+modules: []
 depends_on: []
 capability_refs:
   - knowledge-graph

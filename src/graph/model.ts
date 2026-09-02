@@ -1,7 +1,7 @@
 // Cladding · graph · knowledge-graph model — F-569f4b37
 //
 // The edges already exist, scattered: forward in the shards (depends_on,
-// modules, test_refs), backward in the reverse-index, doc edges in
+// modules, test_refs), backward in the graph consumer view, doc edges in
 // _doc-links. buildGraph is the ONE place that materialises them into a single
 // typed graph every exporter (mermaid / Obsidian / DOT / JSON) and the LLM read.
 // Pure + derived: reads the spec, allocates a fresh graph, mutates nothing.
@@ -10,6 +10,7 @@ import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 
 import {extractDocReferences} from '../spec/doc-references.js';
+import {testRefPath} from '../spec/compiler/legacy-reference.js';
 import type {Spec} from '../spec/types.js';
 
 export type NodeKind = 'feature' | 'module' | 'skill' | 'test' | 'scenario' | 'capability' | 'doc';
@@ -49,20 +50,10 @@ export interface KnowledgeGraph {
   readonly edges: readonly GraphEdge[];
 }
 
-const PSEUDO_REF_PREFIXES = ['derived:', 'fixture:', 'script:', 'self-dogfood:'];
-
 /** A skill artifact (skills/<verb>/… incl. plugin mirrors like plugins/codex/skills/…) —
  *  its own node kind so SKILL.md files read distinctly from ordinary code modules. */
 function isSkillPath(p: string): boolean {
   return /(?:^|\/)skills\//.test(p);
-}
-
-/** Strips a test_ref to its file path, or null for pseudo-refs. */
-function testRefPath(ref: string): string | null {
-  if (PSEUDO_REF_PREFIXES.some((p) => ref.startsWith(p))) return null;
-  const hash = ref.indexOf('#');
-  const path = (hash >= 0 ? ref.slice(0, hash) : ref).trim();
-  return path.length > 0 ? path : null;
 }
 
 /** node id helpers — kind prefix keeps ids unique across kinds. */

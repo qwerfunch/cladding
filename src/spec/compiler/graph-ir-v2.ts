@@ -446,7 +446,11 @@ class GraphIrV2Index implements GraphIrV2Kernel {
     // An anchor selector is an exact identity component; trimming would silently
     // convert a distinct selector into a different canonical address.
     const spelling = input;
-    if (/^AC-[^\s/]+$/i.test(spelling)) {
+    // Case-sensitive on purpose: a criterion id is authored `AC-<digits|lowercase hex>`
+    // (spec/schema.json), so a lowercase `ac-…` spelling is a feature slug, not a bare
+    // criterion id. A case-insensitive test refused real slugs — cladding-self carries
+    // `ac-hash-ids` — and a refused slug is a silently missing consumer answer.
+    if (/^AC-[^\s/]+$/.test(spelling)) {
       return freeze({state: 'unresolved', input, form: 'noncanonical', reason: 'bare criterion ids are noncanonical and are never guessed'});
     }
     const candidates = new Map<string, GraphAddressResolution['state'] extends never ? never : 'canonical' | 'feature_id' | 'feature_slug' | 'path' | 'anchor'>();

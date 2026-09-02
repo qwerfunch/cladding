@@ -51,6 +51,7 @@ import {idPolicyDescription, readableIdPattern} from '../spec/compiler/id-policy
 import {recordOracle} from '../oracle/record.js';
 import {doneFeatureCount, oracleRequired, resolveOraclePolicy} from '../oracle/policy.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
+import {graphIrView} from '../graph/query.js';
 import {buildImpactSlice} from '../optimizer/reverse-slice.js';
 import {buildWorkingSet} from '../optimizer/working-set.js';
 import {buildGraph, resolveNodeIds, subgraph} from '../graph/model.js';
@@ -1451,7 +1452,7 @@ function registerInitializedTools(
         if ('error' in loaded) {
           return {isError: true, content: [{type: 'text', text: loaded.error}]};
         }
-        const ws = buildWorkingSet(loaded.spec, args.query, {cwd, maxTokens: args.max_tokens});
+        const ws = buildWorkingSet(loaded.spec, args.query, {cwd, maxTokens: args.max_tokens, graph: graphIrView(cwd, loaded.spec)});
         const budget = 'not_found' in ws ? null : {truncated: ws.budget.truncated.length > 0, sliceTokens: ws.budget.used_tokens};
         recordServe(cwd, 'clad_get_working_set', args.query, budget !== null, budget ?? undefined);
         return {
@@ -1465,7 +1466,7 @@ function registerInitializedTools(
   );
 
   // clad_get_impact (F-7794a6bc) — the backward complement of clad_get_context.
-  // "What breaks if I change this?" Walks the reverse-index dependents and
+  // "What breaks if I change this?" Walks the canonical GraphIR dependents and
   // returns the blast radius: impacted features, scenarios at risk, the
   // regression test set to run, and the modules in the radius.
   server.registerTool(
@@ -1495,7 +1496,7 @@ function registerInitializedTools(
         if ('error' in loaded) {
           return {isError: true, content: [{type: 'text', text: loaded.error}]};
         }
-        const slice = buildImpactSlice(loaded.spec, args.query, {depth: args.max_depth});
+        const slice = buildImpactSlice(loaded.spec, args.query, {depth: args.max_depth, graph: graphIrView(cwd, loaded.spec)});
         const miss = 'not_found' in slice;
         recordServe(cwd, 'clad_get_impact', args.query, !miss);
         return {

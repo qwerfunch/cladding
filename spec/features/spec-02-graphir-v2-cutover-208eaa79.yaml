@@ -9,7 +9,8 @@ modules:
   - src/spec/compiler/consumer-view.ts
   - src/spec/compiler/types.ts
   - src/spec/compiler/graph-ir-v2.ts
-  - src/spec/reverse-index.ts
+  - src/spec/compiler/legacy-reference.ts
+  - src/graph/consumers.ts
   - src/graph/model.ts
   - src/graph/query.ts
   - src/graph/workspace-facts.ts
@@ -37,7 +38,6 @@ modules:
   - src/proof/testcase-ledger.ts
   - scripts/spec-0.2-validate.ts
   - tests/spec/compiler/graph-ir-v2.test.ts
-  - tests/spec/reverse-index.test.ts
   - tests/graph/graph-ir-v2-query.test.ts
   - tests/graph/workspace-facts.test.ts
   - tests/graph/test-observations.test.ts
@@ -90,7 +90,9 @@ acceptance_criteria:
   - id: AC-616e6e74
     kind: constraint
     statement: The graph implementation shall use GraphIR as the sole graph
-      authority for every F8-owned consumer.
+      authority for every F8-owned consumer, with a latency-bounded lane
+      reading a structural projection only while the parity suite proves it
+      identical to the kernel.
     rationale: One compiler IR prevents divergent graph authorities during cutover.
       Consumers cover impact, iterative slices, working sets, measurement,
       dependency inference, reports, graph health, CLI, MCP, live HTTP, export,

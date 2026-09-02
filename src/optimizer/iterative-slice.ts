@@ -9,7 +9,8 @@
 // result is self-describing.
 //
 // Pure + deterministic (no LLM, no test execution, no fs beyond what buildImpactSlice/spec
-// already use): every stop criterion is a graph query over the spec's reverse-index.
+// already use): every stop criterion is a query on the one GraphConsumerView contract, so
+// the widening loop reads the same authority the slice it wraps reads.
 //
 // Stop criteria + DEFAULTS were calibrated on cladding-self (522 queries, two simulation
 // rounds), NOT guessed: the originally-proposed 'target-nodes' default fired at depth 1
@@ -20,7 +21,7 @@
 // depth yields ≥90% — there, "report 79%, stop at diminishing returns" is the correct move).
 
 import {buildImpactSlice, collectDependents, type ImpactLookupMiss, type ImpactSlice} from './reverse-slice.js';
-import {reverseIndexOf} from '../spec/reverse-index.js';
+import {viewFor, type GraphConsumerView} from '../graph/consumers.js';
 import type {Spec} from '../spec/types.js';
 
 export type StopReason = 'exhaustion' | 'coverage' | 'marginal-yield' | 'max-depth' | 'no-known-dependents';
@@ -32,6 +33,9 @@ export interface IterativeImpactOptions {
   readonly coverageThreshold?: number;
   /** Stop after two consecutive hops each add < this fraction of new nodes (default 0.05). */
   readonly marginYieldThreshold?: number;
+  /** An already-built graph view, threaded into every nested slice so one workspace read
+   *  serves the whole widening loop instead of one per hop. */
+  readonly graph?: GraphConsumerView;
 }
 
 export interface IterativeImpactResult {
@@ -79,21 +83,18 @@ export function buildIterativeImpactSlice(
   const margT = opts.marginYieldThreshold ?? DEFAULTS.marginYieldThreshold;
 
   // Resolve once + establish the coverage denominator (all reachable dependents, unbounded).
-  const ri = reverseIndexOf(spec);
+  const view = viewFor(spec, {graph: opts.graph});
   const byId = new Map((spec.features ?? []).map((f) => [f.id, f]));
   let seedIds: string[] = [];
-  const direct = (spec.features ?? []).find((f) => f.id === query || (f as {slug?: string}).slug === query);
+  const direct = view.resolveFeature(query);
   if (direct) seedIds = [direct.id];
-  else {
-    const owners = ri.moduleOwners.get(query);
-    if (owners && owners.size > 0) seedIds = [...owners].filter((id): id is string => byId.has(id));
-  }
+  else seedIds = view.owners(query).filter((id) => byId.has(id));
   if (seedIds.length === 0) {
     // Delegate the canonical miss shape to buildImpactSlice (single source of truth).
-    const miss = buildImpactSlice(spec, query, {depth: 1});
+    const miss = buildImpactSlice(spec, query, {depth: 1, graph: view});
     return 'not_found' in miss ? miss : (miss as never);
   }
-  const totalKnown = collectDependents(seedIds, ri.dependents, Infinity).size;
+  const totalKnown = collectDependents(seedIds, view, Infinity).size;
 
   // ZERO KNOWN DEPENDENTS — a genuine leaf on a dense map, or a blank ledger where
   // nothing was ever declared. Either way the widening loop has nothing to widen into,
@@ -101,7 +102,7 @@ export function buildIterativeImpactSlice(
   // 100% completeness on both. Stop honestly instead; the slice's ledger counts are
   // what distinguish leaf (edges elsewhere) from blank map (zero edges anywhere).
   if (totalKnown === 0) {
-    const slice = buildImpactSlice(spec, query, {depth: initialDepth});
+    const slice = buildImpactSlice(spec, query, {depth: initialDepth, graph: view});
     if ('not_found' in slice) return slice; // defensive; resolution already succeeded
     return {
       slice,
@@ -116,7 +117,7 @@ export function buildIterativeImpactSlice(
   let lastSlice: ImpactSlice | null = null;
 
   for (let depth = initialDepth; depth <= maxDepth; depth++) {
-    const slice = buildImpactSlice(spec, query, {depth});
+    const slice = buildImpactSlice(spec, query, {depth, graph: view});
     if ('not_found' in slice) return slice; // defensive; resolution already succeeded
     lastSlice = slice;
     const n = impactedCount(slice);
@@ -138,7 +139,7 @@ export function buildIterativeImpactSlice(
   }
 
   // Hit the hard cap — report honestly (slice is the widest we computed).
-  const slice = lastSlice ?? (buildImpactSlice(spec, query, {depth: maxDepth}) as ImpactSlice);
+  const slice = lastSlice ?? (buildImpactSlice(spec, query, {depth: maxDepth, graph: view}) as ImpactSlice);
   const n = impactedCount(slice);
   return {
     slice,

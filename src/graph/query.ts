@@ -12,6 +12,7 @@ import {loadSpecFromDiskUnlocked} from '../spec/load.js';
 import {prospectiveCompilationOverlay, prospectiveSpecOverlay} from '../spec/prospective.js';
 import {withStableSpecWorkspaceSnapshot} from '../spec/transaction.js';
 import type {Feature, Spec} from '../spec/types.js';
+import {degradedConsumerView, graphIrConsumerView, type GraphConsumerView} from './consumers.js';
 import {receiptFactAugmentation, type ReceiptFactTrust} from './receipt-facts.js';
 import {currentGateTestObservationAugmentation} from './test-observations.js';
 import {documentFactAugmentation, workspaceFactAugmentation} from './workspace-facts.js';
@@ -398,4 +399,33 @@ function freezeDeep(value: unknown, seen: WeakSet<object> = new WeakSet()): void
     freezeDeep(Reflect.get(value, key), seen);
   }
   Object.freeze(value);
+}
+
+/**
+ * Builds the canonical GraphIR consumer view for one workspace.
+ *
+ * A workspace that cannot be built (blocking compiler diagnostics, a presentation and
+ * compiler pair that cannot prove one identity) degrades to the structural projection
+ * carrying the reason — never a silent skip, because a caller that asked for the
+ * canonical authority has to know it did not get it.
+ *
+ * @param cwd - Workspace root containing the canonical `spec.yaml`.
+ * @param spec - The caller's already-loaded presentation, so resolved features stay the
+ *   caller's own objects.
+ * @returns The GraphIR view, or the structural view carrying the failure reason.
+ * @example
+ * ```ts
+ * const graph = graphIrView(cwd, spec);
+ * buildImpactSlice(spec, 'src/spec/load.ts', {graph});
+ * ```
+ * @see spec/features/spec-02-graphir-v2-cutover-208eaa79.yaml AC-d452908b
+ * @since 0.10.0
+ * @internal
+ */
+export function graphIrView(cwd: string, spec: Spec): GraphConsumerView {
+  try {
+    return graphIrConsumerView(loadGraphIrV2Workspace(cwd), spec);
+  } catch (error) {
+    return degradedConsumerView(spec, `graph-ir workspace unavailable: ${(error as Error).message}`);
+  }
 }

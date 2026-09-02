@@ -33,6 +33,7 @@ import {getCurrentCladdingVersion, runHostSetup} from '../init/host-setup.js';
 import {recordEvent} from '../events/log.js';
 import {blockingDetectorNames, gateStopFingerprint} from '../events/stop-telemetry.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
+import {graphIrView} from '../graph/query.js';
 import {buildImpactSlice} from '../optimizer/reverse-slice.js';
 import {inferDependsOn} from '../optimizer/infer-depends-on.js';
 import {measureGraphEfficiency, MEASUREMENT_DISCLAIMER} from '../optimizer/measurement.js';
@@ -1424,7 +1425,7 @@ export function runImpactCommand(query: string, opts: {depth?: string} = {}): vo
   try {
     const spec = loadSpec();
     const depth = opts.depth !== undefined ? Number(opts.depth) : undefined;
-    const slice = buildImpactSlice(spec, query, {depth});
+    const slice = buildImpactSlice(spec, query, {depth, graph: graphIrView('.', spec)});
     process.stdout.write(`${JSON.stringify(slice, null, 2)}\n`);
     process.exit('not_found' in slice ? 1 : 0);
   } catch (err) {
@@ -1449,7 +1450,10 @@ export function runInferDepsCommand(opts: {ambiguity?: string} = {}): void {
         return null;
       }
     };
-    const result = inferDependsOn(spec, read, ambiguity !== undefined ? {maxOwnerAmbiguity: ambiguity} : {});
+    const result = inferDependsOn(spec, read, {
+      ...(ambiguity !== undefined ? {maxOwnerAmbiguity: ambiguity} : {}),
+      graph: graphIrView('.', spec),
+    });
     process.stdout.write(
       `${JSON.stringify({suggestions: result.suggestions, new_edges: result.edges.length, already_declared: result.alreadyDeclared.length, dynamic_import_files: result.dynamicImportFiles}, null, 2)}\n`,
     );
@@ -1490,7 +1494,7 @@ export function runMeasureCommand(opts: {json?: boolean; sessions?: boolean; tre
         return null;
       }
     };
-    const r = measureGraphEfficiency(spec, read, '.');
+    const r = measureGraphEfficiency(spec, read, '.', graphIrView('.', spec));
     // Persist the summary BEFORE printing so the numbers stop evaporating on
     // stdout (F-39609db4). Best-effort: a failed/deduped write never blocks the
     // report or changes the exit code.

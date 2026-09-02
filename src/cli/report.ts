@@ -44,7 +44,8 @@ import {
 import {toSarif} from '../report/sarif.js';
 import {attestedFeatureCount, readAttestation} from '../spec/attestation.js';
 import {loadSpec} from '../spec/load.js';
-import {reverseIndexOf, testRefPath} from '../spec/reverse-index.js';
+import {graphIrView} from '../graph/query.js';
+import {testRefPath} from '../spec/compiler/legacy-reference.js';
 import type {Feature, Spec} from '../spec/types.js';
 import {runDrift} from '../stages/drift.js';
 import {pulse} from '../ui/pulse.js';
@@ -169,15 +170,17 @@ function gatherInputs(
   baseRef: string,
   manifest: ChangelogManifest,
 ): ReportInputs {
-  const ri = reverseIndexOf(spec);
-  const ledgerEmpty = ledgerOf(ri).depends_on_edges === 0;
+  // The review packet has no latency budget, so it reads the canonical GraphIR authority;
+  // one workspace read serves every owner lookup below.
+  const graph = graphIrView(cwd, spec);
+  const ledgerEmpty = ledgerOf(graph).depends_on_edges === 0;
   const byId = new Map((spec.features ?? []).map((f) => [f.id, f]));
 
   const allChanged = changedPaths(cwd, baseRef);
   const codeChanges: CodeChangeInput[] = allChanged
     .filter(isReviewableSourcePath)
     .map((path) => {
-      const slice = buildImpactSlice(spec, path);
+      const slice = buildImpactSlice(spec, path, {graph});
       if ('not_found' in slice) return {path, owners: [], testRefs: []};
       const owners = (slice.focus.owners ?? []).map((id) => ownerOf(id, byId));
       return {path, owners, testRefs: slice.test_refs};

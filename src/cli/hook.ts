@@ -491,9 +491,20 @@ export function editMagnitude(toolInput: unknown): number {
   return asString(t.new_string).length; // Edit
 }
 
+/** Cap on named regression paths in the fallback card's `run:` line. */
+const IMPACT_CARD_RUN_TOP_N = 2;
+/** Hard ceiling on the whole fallback card, matching the Tier-2 push card's budget. */
+const IMPACT_CARD_MAX_CHARS = 600;
+
 /**
- * One-line impact card from a resolved slice — owning feature(s) + how many downstream
- * features could break + how many regression tests to run. '' when the file touches no feature.
+ * Impact card from a resolved slice — owning feature(s) + how many downstream features
+ * could break + how many regression tests to run, then the tests themselves. '' when the
+ * file touches no feature.
+ *
+ * The counting one-liner alone told the agent a regression set existed without saying what
+ * to run, so this fallback (the lane taken when the working set cannot be assembled) names
+ * up to two paths on a second line. Bounded to 2 lines / 600 chars; a slice with no
+ * regression set degrades to the original one-liner byte-for-byte.
  */
 export function formatImpactCard(slice: ImpactSlice, filePath: string): string {
   const owners = slice.focus.owners ?? [];
@@ -509,7 +520,13 @@ export function formatImpactCard(slice: ImpactSlice, filePath: string): string {
   // slices without a ledger stay unmarked rather than mis-firing). Wording shared
   // with the push card so both surfaces read identically.
   const unledgered = slice.ledger?.depends_on_edges === 0 ? UNLEDGERED_NOTE : '';
-  return `cladding impact: ${filePath} → ${label}${co}${dependSegment(slice.impacted.length)}${guardSegment(slice.test_refs.length)}${unledgered}`;
+  const line1 = `cladding impact: ${filePath} → ${label}${co}${dependSegment(slice.impacted.length)}${guardSegment(slice.test_refs.length)}${unledgered}`;
+  const tests = slice.test_refs;
+  if (tests.length === 0) return line1;
+  const top = tests.slice(0, IMPACT_CARD_RUN_TOP_N);
+  const more = tests.length > IMPACT_CARD_RUN_TOP_N ? ` (+${tests.length - IMPACT_CARD_RUN_TOP_N} more)` : '';
+  const card = `${line1}\nrun: ${top.join(', ')}${more}`;
+  return card.length > IMPACT_CARD_MAX_CHARS ? `${card.slice(0, IMPACT_CARD_MAX_CHARS - 1)}…` : card;
 }
 
 // --- impact-card telemetry (F-6ba22c5c) --------------------------------
@@ -859,6 +876,12 @@ function emitFallbackPushCard(
 function emitCardForPath(cwd: string, sessionId: string, rel: string, lane?: 'bash'): string {
   try {
     const spec = loadSpec(cwd);
+    // GRAPH LANE: this path deliberately keeps the structural projection (no `graph` opt).
+    // The card fires on EVERY watched edit, and a cold canonical workspace read measures
+    // ~840 ms on cladding-self (compile 668 ms + live-binding census 150 ms) against a
+    // single-digit-millisecond budget — a hook that slow is a hook users switch off. The
+    // parity suite is what makes the projection legitimate here; a content-addressed
+    // compilation cache (F9a) is what would let this lane read the kernel directly.
     // Tier path: the Tier-2 impact card (code-free, 350-token lane — AC-1bfccb6b). A
     // buildWorkingSet throw OR lookup miss falls back byte-identically to the shipped
     // formatImpactCard path, leaving the callers' gates untouched (AC-38141a9e).

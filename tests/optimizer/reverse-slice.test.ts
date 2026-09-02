@@ -1,5 +1,6 @@
 import {describe, test, expect} from 'vitest';
 import {buildImpactSlice, collectDependents} from '../../src/optimizer/reverse-slice.js';
+import {structuralView} from '../../src/graph/consumers.js';
 import type {Spec} from '../../src/spec/types.js';
 
 type Feature = {
@@ -112,16 +113,19 @@ describe('reverse-slice / impact (F-7794a6bc)', () => {
   });
 
   test('depth bounds the dependent walk and output is deterministic', () => {
-    const deps = new Map<string, Set<string>>([
-      ['A', new Set(['B'])],
-      ['B', new Set(['C'])],
-      ['C', new Set(['D'])],
-    ]);
+    // The dependent walk now reads the one graph contract, so the chain is declared as
+    // spec depends_on edges (B depends on A, C on B, D on C) instead of a private map.
+    const chain = structuralView(mkSpec([
+      {id: 'A', title: 'A', status: 'done'},
+      {id: 'B', title: 'B', status: 'done', depends_on: ['A']},
+      {id: 'C', title: 'C', status: 'done', depends_on: ['B']},
+      {id: 'D', title: 'D', status: 'done', depends_on: ['C']},
+    ]));
 
-    expect([...collectDependents(['A'], deps, 1)].sort()).toEqual(['B']);
-    expect([...collectDependents(['A'], deps, 2)].sort()).toEqual(['B', 'C']);
-    expect([...collectDependents(['A'], deps)].sort()).toEqual(['B', 'C', 'D']);
-    expect(collectDependents(['A'], deps).has('A')).toBe(false);
+    expect([...collectDependents(['A'], chain, 1)].sort()).toEqual(['B']);
+    expect([...collectDependents(['A'], chain, 2)].sort()).toEqual(['B', 'C']);
+    expect([...collectDependents(['A'], chain)].sort()).toEqual(['B', 'C', 'D']);
+    expect(collectDependents(['A'], chain).has('A')).toBe(false);
 
     const spec = mkSpec(
       [

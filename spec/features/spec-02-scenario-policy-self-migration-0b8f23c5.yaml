@@ -33,7 +33,6 @@ modules:
   - src/graph/model.ts
   - src/optimizer/context-slice.ts
   - src/optimizer/reverse-slice.ts
-  - src/spec/reverse-index.ts
   - scripts/spec-0.2-validate.ts
   - tests/spec/compiler/schema-02-scenarios.test.ts
   - tests/spec/schema-02-consumer-cutover.test.ts
