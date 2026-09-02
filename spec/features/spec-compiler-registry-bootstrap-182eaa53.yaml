@@ -1,6 +1,6 @@
 id: F-182eaa53
 title: Spec compiler and registry bootstrap
-status: in_progress
+status: done
 modules:
   - CLAUDE.md
   - src/spec/compiler/artifact-registry.ts

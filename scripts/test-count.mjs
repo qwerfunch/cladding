@@ -4,9 +4,15 @@
 // Public test totals are derived from Vitest collection rather than a manually
 // remembered number. `--check` is release-safe and read-only; `--write` updates
 // every published README variant only after all six claim sites validate.
+//
+// `--write` additionally syncs the published feature counts (authored spec
+// entries and the subset already marked done) from the worktree's
+// `spec/features/`, so a completion no longer needs a hand-edited README.
+// `--check` stays test-count-only; the feature claims keep their own guard in
+// tests/readme-record-honesty.test.ts.
 
 import {spawnSync} from 'node:child_process';
-import {readFileSync, writeFileSync} from 'node:fs';
+import {readFileSync, readdirSync, writeFileSync} from 'node:fs';
 import {dirname, join, resolve} from 'node:path';
 import process from 'node:process';
 import {fileURLToPath} from 'node:url';
@@ -27,6 +33,48 @@ const MARKDOWN_STATUS_RE = /\|\s*(\d+)\s*\/\s*(\d+)(?=\s*(?:\||·))/g;
 const HTML_STATUS_RE = />(\d+)<span style="font-size:16px;color:#94a3b8">\/(\d+)<\/span>/g;
 const TEST_FILE_CLAIM_RE = /(\d+)\s*(?:test files|个测试文件)/g;
 const INVENTORY_TEST_FILES_RE = /^(\s*test_files:\s*)(\d+)(\s*(?:#.*)?)$/m;
+/** One authored spec entry counts as done only on its own `status:` line. */
+const FEATURE_DONE_RE = /^status:\s*done\s*$/m;
+
+// Public feature-count claim shapes, one entry per README surface. Every
+// pattern captures five groups: the two counts sit in groups 2 and 4 and the
+// surrounding literals are preserved verbatim on rewrite, so no other number in
+// the README can move. `doneFirst` marks the shapes that lead with the done
+// count instead of the total.
+const FEATURE_CLAIM_RULES = {
+  'README.md': [
+    {label: 'headline', pattern: /(\s)(\d+)( of its )(\d+)( features)/g, doneFirst: true},
+    {label: 'status row', pattern: /(\|\s*)(\d+)( \()(\d+)( done\))/g, doneFirst: false},
+  ],
+  'README.ko.md': [
+    {label: 'headline', pattern: /(기능 )(\d+)(개 중 )(\d+)(개)/g, doneFirst: false},
+    {label: 'status row', pattern: /(\|\s*)(\d+)( · )(\d+)( done)/g, doneFirst: false},
+  ],
+  'README.ja.md': [
+    {label: 'headline', pattern: /(\s)(\d+)( 個の feature のうち )(\d+)( 個)/g, doneFirst: false},
+    {label: 'status row', pattern: /(\|\s*)(\d+)(（)(\d+)( done）)/g, doneFirst: false},
+  ],
+  'README.zh.md': [
+    {label: 'headline', pattern: /(\s)(\d+)( 个 feature 里有 )(\d+)( 个)/g, doneFirst: false},
+    {label: 'status row', pattern: /(\|\s*)(\d+)(（)(\d+)( done）)/g, doneFirst: false},
+  ],
+  'README.html': [
+    {label: 'headline', pattern: /(\s)(\d+)( of its )(\d+)( features)/g, doneFirst: true},
+    {
+      label: 'status tile',
+      pattern: /(letter-spacing:-0\.5px">)(\d+)(<\/div>\s*<div style="font-size:11px;color:#64748b">)(\d+)( done · self-spec<\/div>)/g,
+      doneFirst: false,
+    },
+  ],
+  'README.ko.html': [
+    {label: 'headline', pattern: /(기능 )(\d+)(개 중 )(\d+)(개)/g, doneFirst: false},
+    {
+      label: 'status tile',
+      pattern: /(letter-spacing:-0\.5px">)(\d+)(<\/div>\s*<div style="font-size:11px;color:#64748b">)(\d+)( done · 자기 스펙<\/div>)/g,
+      doneFirst: false,
+    },
+  ],
+};
 
 /**
  * Returns the two public pass/total pairs from one README variant.
@@ -248,6 +296,74 @@ export function runTestCount(mode, options = {}) {
   return expected;
 }
 
+/**
+ * Counts the worktree's authored spec entries and the subset marked done.
+ *
+ * Mirrors tests/readme-record-honesty.test.ts exactly, so the published claim
+ * and the pin that guards it read the same worktree the same way.
+ *
+ * @param {string} [root] Repository root to read `spec/features/` from.
+ * @returns {{total: number, done: number}} Authored and completed entry counts.
+ */
+export function featureCounts(root = ROOT) {
+  const dir = join(root, 'spec', 'features');
+  const files = readdirSync(dir).filter((name) => name.endsWith('.yaml') || name.endsWith('.yml'));
+  const done = files.filter((name) => FEATURE_DONE_RE.test(readFileSync(join(dir, name), 'utf8'))).length;
+  return {total: files.length, done};
+}
+
+/**
+ * Rewrites one README surface's feature-count claims in place.
+ *
+ * @param {string} body README source text.
+ * @param {string} file Registered README surface carrying the claims.
+ * @param {number} total Authored spec-entry count.
+ * @param {number} done Completed spec-entry count.
+ * @returns {string} README text with both feature-count claims updated.
+ * @throws {Error} When a registered claim shape is missing or ambiguous.
+ */
+export function rewriteFeatureClaims(body, file, total, done) {
+  const rules = FEATURE_CLAIM_RULES[file];
+  if (rules === undefined) throw new Error(`${file}: no registered feature-count claim shapes`);
+  let rewritten = body;
+  for (const rule of rules) {
+    const found = [...rewritten.matchAll(rule.pattern)].length;
+    if (found !== 1) {
+      throw new Error(`${file}: expected one ${rule.label} feature-count claim; found ${found}`);
+    }
+    rewritten = rewritten.replace(
+      rule.pattern,
+      (_match, lead, _first, middle, _second, trail) =>
+        `${lead}${rule.doneFirst ? done : total}${middle}${rule.doneFirst ? total : done}${trail}`,
+    );
+  }
+  return rewritten;
+}
+
+/**
+ * Syncs every registered README feature-count claim to the current worktree.
+ *
+ * Every surface is read and rewritten before the first write, matching the
+ * test-count command's all-surface preflight invariant.
+ *
+ * @param {string} [root] Repository root holding the README surfaces.
+ * @returns {{total: number, done: number}} The counts written to every surface.
+ * @throws {Error} When a registered claim shape is missing or ambiguous.
+ */
+export function syncFeatureCounts(root = ROOT) {
+  const {total, done} = featureCounts(root);
+  const rewritten = new Map(
+    CLAIM_SITES.map((site) => [
+      site.file,
+      rewriteFeatureClaims(readFileSync(join(root, site.file), 'utf8'), site.file, total, done),
+    ]),
+  );
+  for (const site of CLAIM_SITES) {
+    writeFileSync(join(root, site.file), rewritten.get(site.file), 'utf8');
+  }
+  return {total, done};
+}
+
 function main() {
   const mode = process.argv[2] ?? '--check';
   if (process.argv.length > 3) {
@@ -255,6 +371,11 @@ function main() {
   }
   const expected = runTestCount(mode);
   process.stdout.write(`cladding test-count: ${expected} tests · ${mode.slice(2)} passed\n`);
+  if (mode === '--write') {
+    // Read back from disk: runTestCount has just rewritten these surfaces.
+    const {total, done} = syncFeatureCounts();
+    process.stdout.write(`cladding feature-count: ${total} total · ${done} done · write passed\n`);
+  }
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

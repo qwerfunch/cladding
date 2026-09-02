@@ -1,6 +1,6 @@
 id: F-94285dd8
 title: Spec 0.2 project, capability, and architecture contracts
-status: in_progress
+status: done
 modules:
   - src/spec/compiler/schema-02-contract.ts
   - src/spec/compiler/compile.ts

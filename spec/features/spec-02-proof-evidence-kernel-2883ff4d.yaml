@@ -1,6 +1,6 @@
 id: F-2883ff4d
 title: Spec 0.2 proof and portable evidence kernel
-status: in_progress
+status: done
 modules:
   - src/proof/types.ts
   - src/proof/vitest-jest.ts

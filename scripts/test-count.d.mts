@@ -96,3 +96,23 @@ export function runTestCount(
   mode: '--check' | '--write',
   options?: RunTestCountOptions,
 ): number;
+
+/** Authored spec-entry totals derived from the worktree. */
+export interface FeatureCounts {
+  readonly total: number;
+  readonly done: number;
+}
+
+/** Counts the worktree's authored spec entries and the subset marked done. */
+export function featureCounts(root?: string): FeatureCounts;
+
+/** Rewrites one README surface's feature-count claims in place. */
+export function rewriteFeatureClaims(
+  body: string,
+  file: string,
+  total: number,
+  done: number,
+): string;
+
+/** Rewrites every registered README feature-count claim from the worktree. */
+export function syncFeatureCounts(root?: string): FeatureCounts;

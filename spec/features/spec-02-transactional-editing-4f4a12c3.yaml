@@ -1,6 +1,6 @@
 id: F-4f4a12c3
 title: Spec 0.2 typed transactional editing and recovery
-status: in_progress
+status: done
 modules:
   - src/spec/edit.ts
   - src/spec/transaction.ts

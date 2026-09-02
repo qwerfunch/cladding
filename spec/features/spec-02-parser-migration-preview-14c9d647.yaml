@@ -1,6 +1,6 @@
 id: F-14c9d647
 title: Spec 0.2 parser and migration preview
-status: in_progress
+status: done
 modules:
   - src/spec/statement-parser.ts
   - src/spec/legacy-statement-scanner.ts
