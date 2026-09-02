@@ -12,7 +12,8 @@ import {dirname, join, resolve} from 'node:path';
 import yaml from 'yaml';
 import {afterEach, describe, expect, test} from 'vitest';
 
-import {buildGraph, resolveNodeId} from '../../src/graph/model.js';
+import {presentGraph, resolveNodeId} from '../../src/graph/presentation.js';
+import {loadGraphIrV2Workspace} from '../../src/graph/query.js';
 import {buildContextSlice} from '../../src/optimizer/context-slice.js';
 import {buildImpactSlice} from '../../src/optimizer/reverse-slice.js';
 import {selectCriterionTestBindings} from '../../src/proof/legacy-bindings.js';
@@ -354,7 +355,7 @@ describe('schema 0.2 consumer cutover', () => {
   test('graph v1 and context/impact preserve their wire shape over migrated compiler-derived identities', () => {
     const root = migratedWorkspace();
     const spec = loadSpec(root);
-    const graph = buildGraph(spec, root);
+    const graph = presentGraph(loadGraphIrV2Workspace(root), {cwd: root});
 
     expect(Object.keys(graph).sort()).toEqual(['edges', 'nodes']);
     expect(resolveNodeId(spec, graph, 'account-recovery')).toBe(`feature:${FEATURE_ID}`);

@@ -33,7 +33,7 @@ already largely exists (`REFERENCE_INTEGRITY`, `UNMAPPED_ARTIFACT`,
 `CAPABILITIES_FEATURE_MAPPING`, `ARCHITECTURE_FROM_SPEC`). We add the *reverse*
 direction, the *doc* axis, and a *view*.
 
-**The realized model** (`src/graph/model.ts`, since v0.7.0) — seven node kinds:
+**The realized model** (`src/graph/presentation.ts`, since v0.7.0) — seven node kinds:
 `feature` · `module` · `skill` · `test` · `scenario` · `capability` · `doc`, each
 tier-classified A/B/C/D (features labeled by slug); and seven typed edges:
 `depends_on` (feature→feature) · `touches` (feature→module) · `covers` (feature→test) ·

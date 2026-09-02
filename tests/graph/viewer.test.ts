@@ -2,11 +2,11 @@ import {mkdtempSync, mkdirSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, dirname} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
-import {buildGraph, extractTierFromDoc} from '../../src/graph/model.js';
+import {extractTierFromDoc, presentGraph} from '../../src/graph/presentation.js';
+import {loadGraphIrV2Workspace} from '../../src/graph/query.js';
 import {getTierColor, getTierLegend, TIER_META, CODE_COLOR} from '../../src/graph/render.js';
 import {toHtmlShell} from '../../src/graph/viewer-shell.js';
-import type {Spec} from '../../src/spec/types.js';
-import type {KnowledgeGraph} from '../../src/graph/model.js';
+import type {KnowledgeGraph} from '../../src/graph/presentation.js';
 
 describe('F-02343cd1 — SSoT-tier coloring + slug labels + self-contained HTML viewer', () => {
   let tmp: string;
@@ -28,30 +28,42 @@ describe('F-02343cd1 — SSoT-tier coloring + slug labels + self-contained HTML 
   };
 
   test('[covers:F-02343cd1/AC-5bab5d89] assigns tier by kind and parses doc banner; feature label prefers slug', () => {
-    const spec = {
-      schema: '0.1',
-      project: {name: 'x', language: 'typescript'},
-      features: [
-        {id: 'F-1', slug: 'my-slug', title: 'My Feature', status: 'done', modules: ['src/a.ts']},
-        {id: 'F-2', title: 'No Slug', status: 'done'},
-      ],
-      scenarios: [{id: 'S-1', title: 'sc', features: ['F-1']}],
-      capabilities: [{id: 'cap', title: 'Cap', features: ['F-1']}],
-    } as unknown as Spec;
+    writeFile(tmp, 'spec.yaml', [
+      'schema: "0.1"',
+      'project: {name: x, language: typescript}',
+      'features:',
+      '  - id: F-aaa111',
+      '    slug: my-slug',
+      '    title: My Feature',
+      '    status: done',
+      '    modules: [src/a.ts]',
+      '  - id: F-bbb222',
+      '    title: No Slug',
+      '    status: done',
+      'scenarios:',
+      '  - id: S-001',
+      '    title: sc',
+      '    features: [F-aaa111]',
+      'capabilities:',
+      '  - id: cap',
+      '    title: Cap',
+      '    features: [F-aaa111]',
+      '',
+    ].join('\n'));
 
-    const g = buildGraph(spec, tmp);
+    const g = presentGraph(loadGraphIrV2Workspace(tmp), {cwd: tmp});
 
-    const f1 = byId(g, 'feature:F-1');
+    const f1 = byId(g, 'feature:F-aaa111');
     expect(f1).toBeDefined();
     expect(f1!.tier).toBe('A');
     expect(f1!.label).toBe('my-slug');
 
-    const f2 = byId(g, 'feature:F-2');
+    const f2 = byId(g, 'feature:F-bbb222');
     expect(f2).toBeDefined();
     expect(f2!.tier).toBe('A');
     expect(f2!.label).toBe('No Slug');
 
-    const s1 = byId(g, 'scenario:S-1');
+    const s1 = byId(g, 'scenario:S-001');
     expect(s1).toBeDefined();
     expect(s1!.tier).toBe('A');
 

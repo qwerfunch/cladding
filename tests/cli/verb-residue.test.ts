@@ -40,7 +40,7 @@ import {
   saveState,
   type OnboardingState,
 } from '../../src/cli/scan/onboarding-state.js';
-import {extractTierFromDoc} from '../../src/graph/model.js';
+import {extractTierFromDoc} from '../../src/graph/presentation.js';
 import {linkCapability} from '../../src/spec/new.js';
 import {specConformance} from '../../src/stages/detectors/spec-conformance.js';
 

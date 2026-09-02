@@ -226,6 +226,10 @@ describe('GraphIR v2 public wire records', () => {
         'feature slug',
         'repository path',
       ]);
+      // A non-answer also names the route back — grep the index, or fall back to
+      // normal code search for a file the graph never declared.
+      expect(answer.resolution?.discovery).toContain('grep spec/index.yaml');
+      expect(answer.resolution?.discovery).toContain('normal code search');
       expect(answer.meta.payload_utf8_bytes).toBe(serializedBytes(answer));
     }
     expect(missing.resolution).toMatchObject({state: 'unresolved', input: 'feature:F-99999999'});

@@ -8,10 +8,10 @@
 // retired everywhere else.
 //
 // `presentGraph` derives the identical shape from one GraphIR workspace, so the renderers
-// keep their contract while the answers come from the kernel. The presentation types
-// themselves live here now (`src/graph/model.ts` re-exports them) because they describe
-// the VIEW, not the graph: `module` vs `skill` is a display distinction the compiler has
-// no opinion about, and `Tier` is an SSoT banner read off the file, not a compiled fact.
+// keep their contract while the answers come from the kernel. The presentation types live
+// here because they describe the VIEW, not the graph: `module` vs `skill` is a display
+// distinction the compiler has no opinion about, and `Tier` is an SSoT banner read off the
+// file, not a compiled fact.
 //
 // WHY doc nodes are derived from EDGES and not from `roles: ['doc']` artifacts: the
 // document fact layer materializes an artifact for every enumerated `docs/**.md`,
@@ -38,6 +38,7 @@ import {join} from 'node:path';
 import {parseAnchorAddress} from '../spec/compiler/graph-address.js';
 import {testRefPath} from '../spec/compiler/legacy-reference.js';
 import type {GraphIrV2Kernel} from '../spec/compiler/graph-ir-v2.js';
+import type {CompilerSchemaVersion} from '../spec/compiler/types.js';
 import type {Spec} from '../spec/types.js';
 
 export type NodeKind = 'feature' | 'module' | 'skill' | 'test' | 'scenario' | 'capability' | 'doc';
@@ -139,6 +140,8 @@ export interface PresentableWorkspace {
   readonly kernel: GraphIrV2Kernel;
   /** The compatibility presentation from the SAME snapshot, the only source of `test_refs`. */
   readonly spec: Spec;
+  /** Source schema of that same compilation; selects the capability read (see below). */
+  readonly compilation: {readonly schemaVersion: CompilerSchemaVersion};
 }
 
 /** How the adapter resolves doc tier banners. */
@@ -278,6 +281,28 @@ export function presentGraph(workspace: PresentableWorkspace, options: PresentGr
         // `traces_to` have no presentation edge kind — they address criteria, shard
         // files, anchors, and rules the exported graph does not draw.
         break;
+    }
+  }
+
+  // Capabilities under schema 0.1. That schema has no capability catalog the compiler
+  // can own, so it materializes neither a capability record nor a `contributes_to`
+  // edge; reading `spec.capabilities` here is the same sanctioned compatibility read
+  // `test_refs` already use, and it is exactly what `buildGraph` did. Under 0.2 the
+  // kernel is the sole authority and this loop must never run — a capability catalog
+  // read twice would be the second authority F8 retired.
+  if (workspace.compilation.schemaVersion === '0.1') {
+    for (const capability of workspace.spec.capabilities ?? []) {
+      addNode({
+        id: nodeId.capability(capability.id),
+        kind: 'capability',
+        label: capability.title ?? capability.id,
+        tier: 'B',
+      });
+      for (const featureId of capability.features ?? []) {
+        if (nodes.has(nodeId.feature(featureId))) {
+          addEdge(nodeId.capability(capability.id), nodeId.feature(featureId), 'implements');
+        }
+      }
     }
   }
 

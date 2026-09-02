@@ -30,7 +30,6 @@ modules:
   - src/stages/detectors/architecture-from-spec.ts
   - src/stages/vacuous-tests.ts
   - src/stages/skip-policy.ts
-  - src/graph/model.ts
   - src/optimizer/context-slice.ts
   - src/optimizer/reverse-slice.ts
   - scripts/spec-0.2-validate.ts

@@ -16,6 +16,7 @@
 // and deterministic so a host can cache and diff it.
 
 import {viewFor, type GraphConsumerView} from '../graph/consumers.js';
+import {MISS_DISCOVERY_HINT} from '../graph/wire-v2.js';
 import type {Feature, Spec} from '../spec/types.js';
 
 /**
@@ -134,8 +135,8 @@ export function buildImpactSlice(
       not_found: query,
       accepted_forms: ['feature id (F-…)', 'slug', 'module path (e.g. src/spec/load.ts)'],
       discovery:
-        'grep spec/index.yaml — one line per feature (run clad sync if missing); module paths live in each ' +
-        'shard’s modules:; if the query is a file, fall back to normal code search — the graph only knows declared modules',
+        `${MISS_DISCOVERY_HINT} — the graph only knows declared modules; ` +
+        'module paths live in each shard’s modules:',
     };
   }
 

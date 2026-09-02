@@ -4,8 +4,9 @@
      tests/self-consistency.test.ts fails when a CLI verb, persona, MCP tool,
      event type, or detector id ships without a fully populated row here.
      States: stable | alias | deprecated | removed | frozen (wire identifier —
-     never renamed, display label may improve). KO column = 한국어 대응 표현
-     (식별자는 영문 유지). -->
+     never renamed, display label may improve) | versioned (wire identifier that
+     carries its own schema_version, which may advance independently of the other
+     surfaces). KO column = 한국어 대응 표현 (식별자는 영문 유지). -->
 
 ## Brand / model terms (frozen — definitions locked)
 
@@ -108,7 +109,7 @@
 | `clad_get_context` | frozen | Return the no-code context slice for one feature by id, slug, or module path. | 컨텍스트 슬라이스 조회 |
 | `clad_get_working_set` | frozen | Return the token-budgeted code-bearing working set for one feature or module. | 워킹셋 조회 |
 | `clad_get_impact` | frozen | Return the blast-radius slice for a proposed change. | 영향 범위 조회 |
-| `clad_get_graph` | frozen | Return the current spec-to-code-to-doc knowledge graph. | 지식 그래프 조회 |
+| `clad_get_graph` | versioned (schema_version 2) | Return a bounded projection of the spec-to-code-to-doc knowledge graph, or its corpus statistics when no query is given. | 지식 그래프 조회 |
 | `clad_changelog` | frozen | Return the deterministic shipped-changes manifest since a git ref. | 변경 이력 조회 |
 | `clad_get_events` | frozen | Return a bounded tail of the lifecycle event log. | 수명주기 이벤트 조회 |
 | `clad_prepare_spec_edit` | frozen | Return a typed edit projection and canonical input revisions without writing. | 스펙 편집 준비 |

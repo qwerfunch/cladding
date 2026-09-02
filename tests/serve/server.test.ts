@@ -562,10 +562,25 @@ describe('serve/server — MCP read surface', () => {
       expect(mutation.isError).toBe(true);
       expect(existsSync(join(bare, 'spec'))).toBe(false);
 
+      // clad_get_graph is a graph tool, so its own non-answer must carry the
+      // fall-back-to-normal-search wording — the measured `unresolved` envelope
+      // states it inside `resolution.discovery`, from the one home the impact
+      // miss below shares (src/graph/wire-v2.ts MISS_DISCOVERY_HINT).
       const miss = await graphPair.client.callTool({name: 'clad_get_graph', arguments: {query: 'not-present'}});
       expect(miss.isError).toBe(true);
-      const missingGraph = JSON.parse((miss.content as Array<{text: string}>)[0].text) as {discovery: string};
-      expect(missingGraph.discovery).toContain('normal code search');
+      const missingGraph = JSON.parse((miss.content as Array<{text: string}>)[0].text) as {
+        kind: string;
+        resolution: {input: string; accepted_forms: string[]; discovery: string};
+      };
+      expect(missingGraph.kind).toBe('unresolved');
+      expect(missingGraph.resolution.input).toBe('not-present');
+      expect(missingGraph.resolution.accepted_forms).toContain('repository path');
+      expect(missingGraph.resolution.discovery).toContain('normal code search');
+
+      const missImpact = await graphPair.client.callTool({name: 'clad_get_impact', arguments: {query: 'not-present'}});
+      expect(missImpact.isError).toBe(true);
+      const missingImpact = JSON.parse((missImpact.content as Array<{text: string}>)[0].text) as {discovery: string};
+      expect(missingImpact.discovery).toContain('normal code search');
     } finally {
       await barePair.cleanup();
       await graphPair.cleanup();
@@ -1409,52 +1424,179 @@ describe('clad_get_impact (F-7794a6bc)', () => {
   });
 });
 
-// ─── F-64a5c159 — clad_get_graph (live knowledge graph) over MCP ───
+// ─── F-64a5c159 / F-208eaa79 — clad_get_graph over the GraphIR v2 public wire ───
 
 describe('clad_get_graph (F-64a5c159)', () => {
-  test('no-query answers a stats SUMMARY (token-budget discipline), focus answers a subgraph, miss is isError', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'clad-serve-graph-'));
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-serve-graph-'));
     writeFileSync(join(dir, 'spec.yaml'), IMPACT_SPEC);
     mkdirSync(join(dir, '.cladding'), {recursive: true});
+  });
+  afterEach(() => {
+    rmSync(dir, {recursive: true, force: true});
+  });
+
+  const textOf = (result: Record<string, unknown>): string =>
+    (result.content as Array<{type: string; text: string}>)[0].text;
+
+  test('[covers:F-64a5c159/AC-236bcc1e][covers:F-208eaa79/AC-f7f39bb9] a no-query call answers with schema_version 2 corpus statistics, never a record dump', async () => {
     const {client, cleanup} = await makePair(dir);
     try {
       const {tools} = await client.listTools();
       expect(tools.map((t) => t.name)).toContain('clad_get_graph');
 
-      // v0.7.1: the no-query form used to dump the WHOLE graph (~70k tokens on a
-      // mid-size project) into one MCP result — now it is a compact summary.
       const all = await client.callTool({name: 'clad_get_graph', arguments: {}});
       expect(all.isError).toBeFalsy();
-      const summaryText = (all.content as Array<{type: string; text: string}>)[0].text;
-      const summary = JSON.parse(summaryText) as {
+      const text = textOf(all);
+      const envelope = JSON.parse(text) as {
         schema_version: number;
-        summary: boolean;
-        stats: {nodeCount: number; edgeCount: number; hubs: Array<{id: string}>};
-        hint: string;
+        kind: string;
+        workspace_schema: string;
+        completeness: string;
+        statistics?: {nodes: {total: number; by_kind: Record<string, number>}; edges: {total: number}};
+        nodes?: unknown;
+        edges?: unknown;
+        meta: {counts: {nodes: number; edges: number}; payload_utf8_bytes: number};
       };
-      expect(summary.schema_version).toBe(1);
-      expect(summary.summary).toBe(true);
-      expect(summary.stats.nodeCount).toBeGreaterThan(0);
-      expect(summary.stats.hubs.length).toBeGreaterThan(0);
-      expect(summary.hint).toContain('clad graph export');
-      expect(summaryText).not.toContain('"from"'); // no raw edge dump rides the summary
 
-      const focused = await client.callTool({name: 'clad_get_graph', arguments: {query: 'F-001', max_depth: 1}});
-      expect(focused.isError).toBeFalsy();
-      const sub = JSON.parse((focused.content as Array<{type: string; text: string}>)[0].text) as {
-        nodes: Array<{id: string}>;
-        edges: unknown[];
-      };
-      expect(sub.nodes.some((n) => n.id === 'feature:F-001')).toBe(true);
-      expect(sub.edges.length).toBeGreaterThan(0);
-
-      const gmiss = await client.callTool({name: 'clad_get_graph', arguments: {query: 'nope'}});
-      expect(gmiss.isError).toBe(true);
-      const gparsed = JSON.parse((gmiss.content as Array<{type: string; text: string}>)[0].text) as {not_found: string};
-      expect(gparsed.not_found).toBe('nope');
+      expect(envelope.schema_version).toBe(2);
+      expect(envelope.kind).toBe('statistics');
+      expect(envelope.workspace_schema).toBe('0.1');
+      expect(envelope.completeness).toBe('complete');
+      expect(envelope.statistics?.nodes.total).toBeGreaterThan(0);
+      expect(envelope.statistics?.edges.total).toBeGreaterThan(0);
+      // v0.7.1 replaced a whole-graph dump with a summary; the v2 statistics keep
+      // that discipline — counts only, no node or edge records ride the response.
+      expect(envelope.nodes).toBeUndefined();
+      expect(envelope.edges).toBeUndefined();
+      expect(envelope.meta.counts).toEqual({nodes: 0, edges: 0});
+      expect(text).not.toContain('"from"');
+      expect(envelope.meta.payload_utf8_bytes).toBe(Buffer.byteLength(text, 'utf8'));
     } finally {
       await cleanup();
-      rmSync(dir, {recursive: true, force: true});
+    }
+  });
+
+  test('[covers:F-208eaa79/AC-d183d625][covers:F-208eaa79/AC-286cc0a8][covers:F-208eaa79/AC-a0d60a0b] a focused call is a measured, bounded depth-1 projection within the 16 KiB observe ceiling', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const focused = await client.callTool({name: 'clad_get_graph', arguments: {query: 'F-001'}});
+      expect(focused.isError).toBeFalsy();
+      const text = textOf(focused);
+      const envelope = JSON.parse(text) as {
+        schema_version: number;
+        kind: string;
+        nodes: Array<{address: string}>;
+        edges: Array<{from: string; to: string}>;
+        meta: {
+          seeds: string[];
+          bounds: {max_depth: number; max_nodes: number; max_edges: number};
+          counts: {nodes: number; edges: number};
+          omitted: {nodes: number; edges: number; reasons: number; fields: number};
+          required_overflow: boolean;
+          payload_utf8_bytes: number;
+          byte_ceiling: number | null;
+          token_estimate: {estimator: string; tokens: number};
+        };
+      };
+
+      expect(envelope.schema_version).toBe(2);
+      expect(envelope.kind).toBe('projection');
+      expect(envelope.meta.seeds).toEqual(['feature:F-001']);
+      expect(envelope.meta.bounds).toEqual({max_depth: 1, max_nodes: 64, max_edges: 128});
+      expect(envelope.nodes.some((node) => node.address === 'feature:F-001')).toBe(true);
+
+      // The measured size is the size of THIS serialization, to a fixed point, and
+      // it honours the D19 observe profile ceiling.
+      expect(envelope.meta.payload_utf8_bytes).toBe(Buffer.byteLength(text, 'utf8'));
+      expect(envelope.meta.payload_utf8_bytes).toBeLessThanOrEqual(16 * 1024);
+      expect(envelope.meta.byte_ceiling).toBe(16 * 1024);
+      expect(envelope.meta.token_estimate.estimator).toBe('characters/4');
+
+      // Omission is always reported exactly, never approximated or left implicit.
+      expect(envelope.meta.omitted).toEqual({nodes: 0, edges: 0, reasons: 0, fields: 0});
+      expect(envelope.meta.required_overflow).toBe(false);
+      expect(envelope.meta.counts).toEqual({nodes: envelope.nodes.length, edges: envelope.edges.length});
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('[covers:F-208eaa79/AC-98be095b] an unmatched query is an explicit unresolved answer, not an empty success', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const miss = await client.callTool({name: 'clad_get_graph', arguments: {query: 'nope'}});
+      expect(miss.isError).toBe(true);
+      const envelope = JSON.parse(textOf(miss)) as {
+        schema_version: number;
+        kind: string;
+        completeness: string;
+        nodes?: unknown;
+        reasons: string[];
+        resolution: {state: string; input: string; reason: string; accepted_forms: string[]};
+      };
+
+      expect(envelope.schema_version).toBe(2);
+      expect(envelope.kind).toBe('unresolved');
+      expect(envelope.completeness).toBe('unresolved');
+      // An empty node list would read as "this node has no neighbours"; there is none.
+      expect(envelope.nodes).toBeUndefined();
+      expect(envelope.resolution.state).toBe('unresolved');
+      expect(envelope.resolution.input).toBe('nope');
+      expect(envelope.reasons.length).toBeGreaterThan(0);
+      expect(envelope.resolution.accepted_forms).toContain('feature id (F-…)');
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('[covers:F-208eaa79/AC-4ce9a97d] an out-of-range bound is rejected with its reason instead of widening the read', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const rejected = await client.callTool({name: 'clad_get_graph', arguments: {query: 'F-001', max_depth: 4}});
+      expect(rejected.isError).toBe(true);
+      const envelope = JSON.parse(textOf(rejected)) as {
+        schema_version: number;
+        kind: string;
+        completeness: string;
+        nodes?: unknown;
+        reasons: string[];
+      };
+      expect(envelope.schema_version).toBe(2);
+      expect(envelope.kind).toBe('rejected');
+      expect(envelope.completeness).toBe('unknown');
+      expect(envelope.nodes).toBeUndefined();
+      expect(envelope.reasons).toContain('max_depth must be an integer between 1 and 3');
+
+      const nodes = await client.callTool({name: 'clad_get_graph', arguments: {query: 'F-001', max_nodes: 0}});
+      expect(nodes.isError).toBe(true);
+      expect(textOf(nodes)).toContain('max_nodes must be an integer between 1 and 200');
+
+      const edges = await client.callTool({name: 'clad_get_graph', arguments: {query: 'F-001', max_edges: 4000}});
+      expect(edges.isError).toBe(true);
+      expect(textOf(edges)).toContain('max_edges must be an integer between 1 and 400');
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test('[covers:F-208eaa79/AC-e5fc267b] the graph wire version does not travel to the frozen context contract', async () => {
+    const {client, cleanup} = await makePair(dir);
+    try {
+      const graph = await client.callTool({name: 'clad_get_graph', arguments: {}});
+      expect((JSON.parse(textOf(graph)) as {schema_version: number}).schema_version).toBe(2);
+
+      for (const name of ['clad_get_context', 'clad_get_impact']) {
+        const result = await client.callTool({name, arguments: {query: 'F-001'}});
+        expect(result.isError, `${name} must answer for F-001`).toBeFalsy();
+        expect(
+          (JSON.parse(textOf(result)) as {schema_version: number}).schema_version,
+          `${name} stays on the frozen payload version`,
+        ).toBe(1);
+      }
+    } finally {
+      await cleanup();
     }
   });
 });

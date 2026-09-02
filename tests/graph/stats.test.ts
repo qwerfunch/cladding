@@ -1,6 +1,6 @@
 import {describe, expect, test} from 'vitest';
 import {graphStats, renderStats} from '../../src/graph/stats.js';
-import type {KnowledgeGraph} from '../../src/graph/model.js';
+import type {KnowledgeGraph} from '../../src/graph/presentation.js';
 
 describe('graph stats (F-569f4b37)', () => {
   test('counts nodes and edges by kind and ranks hubs by degree', () => {

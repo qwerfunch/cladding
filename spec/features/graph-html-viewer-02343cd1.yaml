@@ -3,7 +3,6 @@ title: Bespoke HTML graph viewer — SSoT 4-tier colors + slug labels +
   self-contained canvas force render (offline export)
 status: done
 modules:
-  - src/graph/model.ts
   - src/graph/render.ts
   - src/graph/viewer-shell.ts
   - src/cli/graph.ts

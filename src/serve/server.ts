@@ -54,8 +54,8 @@ import {buildContextSlice} from '../optimizer/context-slice.js';
 import {graphIrView} from '../graph/query.js';
 import {buildImpactSlice} from '../optimizer/reverse-slice.js';
 import {buildWorkingSet} from '../optimizer/working-set.js';
-import {buildGraph, resolveNodeIds, subgraph} from '../graph/model.js';
-import {graphStats} from '../graph/stats.js';
+import {loadGraphIrV2Workspace} from '../graph/query.js';
+import {focusedProjectionV2, statisticsV2, type WireEnvelopeV2} from '../graph/wire-v2.js';
 import {runDrift} from '../stages/drift.js';
 import {ingestPortableReceipt} from '../proof/ingest.js';
 import {recordAssertedSignoff} from '../proof/signoff.js';
@@ -334,6 +334,17 @@ function requireInitialized(cwd: string): string | null {
     'ordinary work must remain ordinary until the user explicitly requests Cladding initialization.';
 }
 
+/**
+ * Serializes one graph envelope EXACTLY as the packer measured it.
+ *
+ * `meta.payload_utf8_bytes` is the fixed point of `JSON.stringify(envelope)`, so any
+ * re-serialization — indentation, an added field — would make the reported size a lie
+ * and break the ceiling the packer trimmed to.
+ */
+function graphPayload(envelope: WireEnvelopeV2): string {
+  return JSON.stringify(envelope);
+}
+
 function initializedMutationBoundary(cwd: string): ReturnType<typeof mcpPayload> | null {
   const error = requireInitialized(cwd);
   return error ? mcpPayload({ok: false, code: 'NOT_INITIALIZED', message: error}, true) : null;
@@ -341,6 +352,14 @@ function initializedMutationBoundary(cwd: string): ReturnType<typeof mcpPayload>
 
 /** Frozen wire field (F-570a3f): bump when a tool's payload shape changes. */
 const PAYLOAD_SCHEMA_VERSION = 1;
+/**
+ * The graph surface versions on its own. `clad_get_context` and every other tool
+ * stay on PAYLOAD_SCHEMA_VERSION 1 — a separately accepted, frozen contract — so
+ * GraphIR wire evolution can never drag an unrelated payload shape with it.
+ *
+ * @see spec/features/spec-02-graphir-v2-cutover-208eaa79.yaml AC-e5fc267b
+ */
+const GRAPH_SCHEMA_VERSION = 2;
 // Observe responses share the D24 task-profile ceiling. This is separate from
 // the edit packet limit by purpose, but intentionally equal in byte budget.
 const EVENT_RESPONSE_BYTE_LIMIT = 16 * 1024;
@@ -1509,91 +1528,66 @@ function registerInitializedTools(
     },
   );
 
-  // clad_get_graph (F-64a5c159) — the live spec↔code↔doc knowledge graph as a
-  // focused neighborhood, or a stats SUMMARY when no focus is given. The whole
-  // graph is ~285KB (~70k tokens) on cladding-self and grows with the project —
-  // an unbudgeted MCP payload that contradicts the working-set discipline — so
-  // the no-query form answers with graphStats + hubs and points at the CLI
-  // export for full dumps. Always recomputed from the current spec (never stale).
+  // clad_get_graph (F-64a5c159 / F-208eaa79) — the live spec↔code↔doc knowledge
+  // graph as a BOUNDED, relation-aware GraphIR projection, or deterministic corpus
+  // statistics when no query is given. The whole graph is megabytes on cladding-self
+  // and grows with the project, so no request can widen a focused read into a corpus
+  // walk: bounds are validated, the payload is measured to a fixed point against the
+  // D19 observe ceiling, and an unmatched spelling is an explicit unresolved answer
+  // rather than an empty success. Always recomputed from the current spec (never stale).
   server.registerTool(
     'clad_get_graph',
     {
-      title: 'Get the live knowledge graph (focused neighborhood, or a stats summary)',
+      title: 'Get the live knowledge graph (bounded projection, or corpus statistics)',
       description:
-        'Return a focused live graph neighborhood, or a compact stats summary when query is omitted. ' +
+        `Return a bounded GraphIR schema_version ${GRAPH_SCHEMA_VERSION} projection around one query ` +
+        '(canonical address, feature id, slug, or repository path) at default depth 1, or corpus ' +
+        'statistics when query is omitted. Bounds: max_depth 1-3, max_nodes 1-200, max_edges 1-400; ' +
+        'out-of-range bounds and unmatched queries answer with an explicit error. ' +
         'skill nodes and graph taxonomy: docs/knowledge-graph/design.md.',
       inputSchema: {
         query: z
           .string()
           .optional()
-          .describe('Focus node: feature id (F-…), slug, or module path. Omit for the stats summary.'),
-        max_depth: z
-          .number()
-          .int()
-          .positive()
-          .max(6)
-          .optional()
-          .describe('Neighborhood radius around the focus node (default: full reachable subgraph from the focus)'),
+          .describe('Seed node: canonical address, feature id (F-…), slug, or repository path. Omit for corpus statistics.'),
+        // The wire owns every semantic bound so an out-of-range request returns a
+        // `rejected` envelope naming its reason, not an opaque protocol error.
+        max_depth: z.number().int().optional().describe('Relation hops from the seed, 1 to 3 (default: 1)'),
+        max_nodes: z.number().int().optional().describe('Maximum materialized nodes, 1 to 200 (default: 64)'),
+        max_edges: z.number().int().optional().describe('Maximum materialized edges, 1 to 400 (default: 128)'),
       },
     },
     async (args) => {
+      let workspace;
       try {
-        const loaded = loadSpecOrError(cwd);
-        if ('error' in loaded) {
-          return {isError: true, content: [{type: 'text', text: loaded.error}]};
-        }
-        const spec = loaded.spec;
-        const graph = buildGraph(spec, cwd);
-        if (!args.query) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(
-                  {
-                    schema_version: PAYLOAD_SCHEMA_VERSION,
-                    summary: true,
-                    stats: graphStats(graph),
-                    hint:
-                      'pass query (feature id, slug, or module path) for a neighborhood subgraph; ' +
-                      '`clad graph export --format json` dumps the full graph',
-                  },
-                  null,
-                  2,
-                ),
-              },
-            ],
-          };
-        }
-        const focusIds = resolveNodeIds(spec, graph, args.query);
-        if (focusIds.length === 0) {
-          return {
-            isError: true,
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(
-                  {
-                    schema_version: PAYLOAD_SCHEMA_VERSION,
-                    not_found: args.query,
-                    accepted_forms: ['feature id (F-…)', 'slug', 'module path'],
-                    discovery:
-                      'grep spec/index.yaml — one line per feature (run clad sync if missing); ' +
-                      'if the query is a file, fall back to normal code search',
-                  },
-                  null,
-                  2,
-                ),
-              },
-            ],
-          };
-        }
-        const focused = subgraph(graph, focusIds, args.max_depth ?? Infinity);
+        workspace = loadGraphIrV2Workspace(cwd);
+      } catch (err) {
         return {
+          isError: true,
           content: [
-            {type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, ...focused}, null, 2)},
+            {
+              type: 'text',
+              text: `cladding: graph not loaded — ${(err as Error).message}. Run \`clad init\` to scaffold spec.yaml first.`,
+            },
           ],
         };
+      }
+      try {
+        if (!args.query) {
+          return {content: [{type: 'text', text: graphPayload(statisticsV2(workspace))}]};
+        }
+        const envelope = focusedProjectionV2(workspace, {
+          query: args.query,
+          ...(args.max_depth === undefined ? {} : {max_depth: args.max_depth}),
+          ...(args.max_nodes === undefined ? {} : {max_nodes: args.max_nodes}),
+          ...(args.max_edges === undefined ? {} : {max_edges: args.max_edges}),
+        });
+        const text = graphPayload(envelope);
+        // A non-answer is an error result carrying the SAME envelope: the caller
+        // reads why it failed and which spellings resolve, never an empty success.
+        return envelope.kind === 'projection'
+          ? {content: [{type: 'text', text}]}
+          : {isError: true, content: [{type: 'text', text}]};
       } catch (err) {
         return {isError: true, content: [{type: 'text', text: (err as Error).message}]};
       }

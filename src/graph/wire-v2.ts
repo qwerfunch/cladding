@@ -51,6 +51,15 @@ const ACCEPTED_FORMS: readonly string[] = Object.freeze([
   'repository path',
 ]);
 
+/**
+ * The one home for the graph tools' miss recovery wording, so a non-answer always
+ * names the route back: the spec index a caller can grep, and normal code search for
+ * a file the graph never declared. `src/optimizer/reverse-slice.ts` imports it.
+ */
+export const MISS_DISCOVERY_HINT =
+  'grep spec/index.yaml — one line per feature (run clad sync if missing); ' +
+  'if the query is a file, fall back to normal code search';
+
 /** One public wire node; absent fields are omitted rather than emitted as null. */
 export interface WireNodeV2 {
   /** Canonical GraphIR address; the sole identity on the wire. */
@@ -177,6 +186,8 @@ export interface WireResolutionV2 {
   readonly candidates?: readonly string[];
   /** Spellings the resolver accepts, so a caller can retry without guessing. */
   readonly accepted_forms: readonly string[];
+  /** Recovery route for a miss, so a non-answer never dead-ends the caller. */
+  readonly discovery: string;
 }
 
 /** Deterministic corpus counts for a no-query graph read. */
@@ -523,6 +534,7 @@ function wireResolution(resolution: GraphAddressResolution): WireResolutionV2 {
       reason: resolution.reason,
       candidates: [...resolution.candidates],
       accepted_forms: ACCEPTED_FORMS,
+      discovery: MISS_DISCOVERY_HINT,
     };
   }
   return {
@@ -530,6 +542,7 @@ function wireResolution(resolution: GraphAddressResolution): WireResolutionV2 {
     input: resolution.input,
     reason: resolution.state === 'resolved' ? 'address resolved' : resolution.reason,
     accepted_forms: ACCEPTED_FORMS,
+    discovery: MISS_DISCOVERY_HINT,
   };
 }
 

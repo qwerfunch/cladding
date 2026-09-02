@@ -11,7 +11,6 @@ modules:
   - src/spec/compiler/graph-ir-v2.ts
   - src/spec/compiler/legacy-reference.ts
   - src/graph/consumers.ts
-  - src/graph/model.ts
   - src/graph/presentation.ts
   - src/graph/query.ts
   - src/graph/workspace-facts.ts

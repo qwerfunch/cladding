@@ -3,7 +3,8 @@
 // `clad graph serve` is the LIVE view: the graph is a pure derivation of the
 // spec, so instead of re-exporting a snapshot, we serve it and recompute on
 // every request. A stdlib node:http server (zero deps) serves the viewer at
-// `/`, the freshly-computed graph at `/graph.json`, and an SSE stream at
+// `/`, the freshly-computed presentation graph at `/graph.json`, the public
+// schema_version 2 corpus statistics at `/graph-v2.json`, and an SSE stream at
 // `/events`. node:fs.watch on spec/ + docs/ broadcasts a debounced refresh so
 // open browsers auto-reload as development proceeds — build the view once, it
 // stays live. No stale-trap: the server always recomputes from the live spec;
@@ -13,11 +14,12 @@ import {createServer, type ServerResponse} from 'node:http';
 import {existsSync, watch, type FSWatcher} from 'node:fs';
 import {join} from 'node:path';
 
-import {buildGraph} from '../graph/model.js';
+import {presentGraph, type KnowledgeGraph} from '../graph/presentation.js';
+import {loadGraphIrV2Workspace, type GraphIrV2Workspace} from '../graph/query.js';
+import {statisticsV2} from '../graph/wire-v2.js';
 import {toJson} from '../graph/render.js';
 import {toHtmlShell} from '../graph/viewer-shell.js';
 import {nodeHealth} from '../stages/graph-health.js';
-import {loadSpec} from '../spec/load.js';
 import {pulse} from '../ui/pulse.js';
 
 export interface GraphServer {
@@ -28,14 +30,19 @@ export interface GraphServer {
 }
 
 /**
- * Boots the live graph HTTP server bound to localhost. Recomputes buildGraph on
- * every request (always current). Resolves once listening. `port: 0` lets the
- * OS pick a free port (used by tests).
+ * Boots the live graph HTTP server bound to localhost. Recomputes the graph from
+ * a freshly loaded GraphIR workspace on every request (always current). Resolves
+ * once listening. `port: 0` lets the OS pick a free port (used by tests).
  */
 export function createGraphServer(opts: {readonly port?: number; readonly cwd?: string} = {}): Promise<GraphServer> {
   const cwd = opts.cwd ?? '.';
   const clients = new Set<ServerResponse>();
-  const liveGraph = (): ReturnType<typeof buildGraph> => buildGraph(loadSpec(cwd), cwd);
+  // Every request pays one full GraphIR workspace load (~1s on cladding-self).
+  // That is the price of "always live, never stale" until the F9c workspace cache
+  // lands; a cached workspace here would reintroduce exactly the stale-trap this
+  // server exists to avoid, so the fix belongs in the cache, not in a snapshot.
+  const liveWorkspace = (): GraphIrV2Workspace => loadGraphIrV2Workspace(cwd);
+  const liveGraph = (): KnowledgeGraph => presentGraph(liveWorkspace(), {cwd});
   const broadcast = (): void => {
     for (const c of clients) {
       try {
@@ -62,6 +69,14 @@ export function createGraphServer(opts: {readonly port?: number; readonly cwd?: 
       // turned that into an HTTP 200 with a prose YAML error as the "JSON" body.
       if (path === '/graph.json') {
         const body = toJson(liveGraph());
+        res.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-store'});
+        res.end(body);
+        return;
+      }
+      if (path === '/graph-v2.json') {
+        // The public schema_version 2 surface: deterministic corpus counts, never a
+        // whole-graph dump. `/graph.json` keeps the presentation shape the viewer reads.
+        const body = JSON.stringify(statisticsV2(liveWorkspace()));
         res.writeHead(200, {'Content-Type': 'application/json', 'Cache-Control': 'no-store'});
         res.end(body);
         return;

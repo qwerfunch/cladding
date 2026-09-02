@@ -2022,9 +2022,11 @@ export function createProgram(): Command {
   graph
     .command('export')
     .description('Export the graph: mermaid/dot/json to stdout, or an Obsidian vault to --out')
-    .option('--format <fmt>', 'mermaid | dot | json | obsidian | html (default: mermaid). html = a single self-contained offline viewer (requires --out)')
-    .option('--focus <query>', 'restrict to a feature/file node’s neighborhood (id, slug, or module path)')
-    .option('--depth <n>', 'neighborhood radius around --focus (default: unbounded)')
+    .option('--format <fmt>', 'mermaid | dot | json | obsidian | html (default: mermaid). json without --focus is the complete schema_version 2 export; html = a single self-contained offline viewer (requires --out)')
+    .option('--focus <query>', 'restrict to one node’s bounded, relation-aware projection (canonical address, feature id, slug, or repository path)')
+    .option('--depth <n>', 'relation hops from --focus, 1 to 3 (default: 1)')
+    .option('--max-nodes <n>', 'maximum nodes the --focus projection may materialize, 1 to 200 (default: 64)')
+    .option('--max-edges <n>', 'maximum edges the --focus projection may materialize, 1 to 400 (default: 128)')
     .option('--out <path>', 'write to a file (or, for obsidian, a vault dir — default .cladding/graph)')
     .action((opts) => runGraphExportCommand(opts));
   graph

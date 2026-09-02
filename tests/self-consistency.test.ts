@@ -173,7 +173,10 @@ describe('cladding self-consistency (no Vacuous Green against itself)', () => {
 
 describe('glossary is the terminology SSoT (F-7ce18e)', () => {
   const glossary = read('docs/glossary.md');
-  const lifecycleStates = new Set(['stable', 'alias', 'deprecated', 'removed', 'frozen']);
+  // `versioned` joined the vocabulary with the GraphIR v2 cutover: clad_get_graph
+  // is a frozen wire IDENTIFIER whose payload carries its own schema_version, which
+  // advances while every other tool stays on the frozen payload contract.
+  const lifecycleStates = new Set(['stable', 'alias', 'deprecated', 'removed', 'frozen', 'versioned']);
 
   interface GlossaryRow {
     readonly term: string;

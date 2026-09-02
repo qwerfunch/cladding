@@ -1,6 +1,6 @@
 import {describe, expect, test} from 'vitest';
 import {toMermaid, toDot, toJson, toObsidianVault} from '../../src/graph/render.js';
-import type {KnowledgeGraph} from '../../src/graph/model.js';
+import type {KnowledgeGraph} from '../../src/graph/presentation.js';
 
 describe('graph render (F-569f4b37)', () => {
   const g: KnowledgeGraph = {

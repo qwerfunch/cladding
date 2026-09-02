@@ -9,9 +9,9 @@ import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {buildGraph} from '../../src/graph/model.js';
+import {presentGraph} from '../../src/graph/presentation.js';
+import {loadGraphIrV2Workspace} from '../../src/graph/query.js';
 import {nodeHealth} from '../../src/stages/graph-health.js';
-import {loadSpec} from '../../src/spec/load.js';
 
 let dir: string;
 beforeEach(() => {
@@ -41,7 +41,7 @@ function touch(rel: string): void {
 describe('nodeHealth (live SSoT conformance)', () => {
   test('[covers:F-af45042a/AC-2590c81a] maps an untested done-AC finding to its feature node', () => {
     writeSpec([]); // done AC with NO test_refs → MISSING_TESTS / UNTESTED_AC fire
-    const graph = buildGraph(loadSpec(dir), dir);
+    const graph = presentGraph(loadGraphIrV2Workspace(dir), {cwd: dir});
     const health = nodeHealth(graph, dir);
 
     const hv = health['feature:F-abc123'];
@@ -54,7 +54,7 @@ describe('nodeHealth (live SSoT conformance)', () => {
   test('[covers:F-af45042a/AC-2590c81a] a healthy feature (resolving test_ref) is absent from the health map', () => {
     writeSpec(['tests/x.test.ts#it works']);
     touch('tests/x.test.ts'); // the cited test exists → no missing/untested finding
-    const graph = buildGraph(loadSpec(dir), dir);
+    const graph = presentGraph(loadGraphIrV2Workspace(dir), {cwd: dir});
     const health = nodeHealth(graph, dir);
 
     // The feature is either entirely clean, or at least not flagged for missing/untested tests.
@@ -67,7 +67,7 @@ describe('nodeHealth (live SSoT conformance)', () => {
 
   test('[covers:F-af45042a/AC-3d67e1c9] returns a plain object keyed by graph node id', () => {
     writeSpec([]);
-    const graph = buildGraph(loadSpec(dir), dir);
+    const graph = presentGraph(loadGraphIrV2Workspace(dir), {cwd: dir});
     const health = nodeHealth(graph, dir);
     for (const key of Object.keys(health)) {
       expect(graph.nodes.some((n) => n.id === key)).toBe(true); // every health key is a real node
