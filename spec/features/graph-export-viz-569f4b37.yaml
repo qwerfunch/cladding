@@ -1,7 +1,7 @@
 id: F-569f4b37
 title: Knowledge-graph model + export (mermaid / Obsidian vault / DOT / JSON) +
   hub stats — see the graph in best-in-class viewers
-status: in_progress
+status: done
 modules:
   - src/graph/render.ts
   - src/graph/stats.ts

@@ -369,7 +369,7 @@ describe('compiler GraphIR v2 query kernel', () => {
     }, proofCompilation)).toEqual(['criterion rationale missing']);
   });
 
-  test('[covers:F-208eaa79/AC-6110ed01] reports environment-labelled cold and warm timings while indexing 5,000 features linearly', () => {
+  test('[covers:F-208eaa79/AC-6110ed01][covers:F-208eaa79/AC-1d2c4213] reports environment-labelled cold and warm timings while indexing 5,000 features linearly', () => {
     const selfStart = performance.now();
     const selfCompilation = compileSpecWorkspace(process.cwd());
     const selfKernel = graphIrV2(selfCompilation);

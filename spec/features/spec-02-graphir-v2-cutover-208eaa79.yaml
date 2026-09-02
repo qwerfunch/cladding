@@ -1,6 +1,6 @@
 id: F-208eaa79
 title: Spec 0.2 GraphIR v2 directed query and public graph cutover
-status: in_progress
+status: done
 purpose: Make every graph-aware Cladding surface consume one canonical,
   provenance-preserving, bounded GraphIR so impact and retrieval remain complete
   without unbounded context or parallel graph authorities.
@@ -91,9 +91,9 @@ acceptance_criteria:
   - id: AC-616e6e74
     kind: constraint
     statement: The graph implementation shall use GraphIR as the sole graph
-      authority for every F8-owned consumer, with a latency-bounded lane
-      reading a structural projection only while the parity suite proves it
-      identical to the kernel.
+      authority for every F8-owned consumer, with a latency-bounded lane reading
+      a structural projection only while the parity suite proves it identical to
+      the kernel.
     rationale: One compiler IR prevents divergent graph authorities during cutover.
       Consumers cover impact, iterative slices, working sets, measurement,
       dependency inference, reports, graph health, CLI, MCP, live HTTP, export,

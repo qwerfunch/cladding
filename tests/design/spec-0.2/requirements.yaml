@@ -17,7 +17,7 @@ decisions:
   - {id: D14, owner: docs/design/spec-0.2/model-and-migration.md, scenario: schema-migration, implementation: validation-active}
   - {id: D15, owner: docs/design/spec-0.2/delivery.md, scenario: delivery-order, implementation: pending}
   - {id: D16, owner: docs/design/spec-0.2/delivery.md, scenario: acceptance-gates, implementation: pending}
-  - {id: D17, owner: docs/design/spec-0.2/graph.md, scenario: assurance-closure-slice-only, implementation: validation-active}
+  - {id: D17, owner: docs/design/spec-0.2/graph.md, scenario: graph-v2-cutover, implementation: validation-active}
   - {id: D18, owner: docs/design/spec-0.2/hygiene.md, scenario: authority-retirement, implementation: pending}
   - {id: D19, owner: docs/design/spec-0.2/context-and-orchestration.md, scenario: context-accounting, implementation: pending}
   - {id: D20, owner: docs/design/spec-0.2/context-and-orchestration.md, scenario: evidence-orchestration, implementation: validation-active}
@@ -88,7 +88,7 @@ mcp_scenarios:
   - {id: MCP05-prepare-apply-replay-and-rollback, implementation: pending}
   - {id: MCP06-concurrent-write-and-stale-revision, implementation: pending}
   - {id: MCP07-malformed-oversized-and-path-inputs, implementation: pending}
-  - {id: MCP08-graph-context-and-catalog-budgets, implementation: pending}
+  - {id: MCP08-graph-context-and-catalog-budgets, implementation: validation-active, slice: graph-v2-focused-projection-and-statistics}
   - {id: MCP09-receipt-and-blindness-boundary, implementation: validation-active, slice: f5-receipt-ingestion-and-asserted-fallback}
   - {id: MCP10-tools-only-host-degradation, implementation: pending}
   - {id: MCP11-reference-host-spec-02-cycle, implementation: pending}

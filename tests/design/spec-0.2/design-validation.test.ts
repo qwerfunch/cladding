@@ -47,7 +47,7 @@ describe('Spec 0.2 validation ledger', () => {
     expect(manifest.integration_journeys.filter((journey) => ['J04', 'J09'].includes(journey.id)).map((journey) => journey.status))
       .toEqual(['implementation_pending', 'implementation_pending']);
     expect(manifest.decisions.find((decision) => decision.id === 'D17')).toMatchObject({
-      scenario: 'assurance-closure-slice-only', implementation: 'validation-active',
+      scenario: 'graph-v2-cutover', implementation: 'validation-active',
     });
 
     const designRoot = join(process.cwd(), 'docs/design/spec-0.2');
@@ -184,7 +184,7 @@ describe('Spec 0.2 validation ledger', () => {
     expect(decisions).toContain('Broader LLM GraphIR retrieval study');
   });
 
-  test('[covers:F-182eaa53/AC-6d69273c] locks the 0.10 rebaseline without upgrading pending runtime evidence', () => {
+  test('[covers:F-182eaa53/AC-6d69273c][covers:F-208eaa79/AC-05f6d0bd] locks the 0.10 rebaseline without upgrading pending runtime evidence', () => {
     const model = readFileSync(join(process.cwd(), 'docs/design/spec-0.2/model-and-migration.md'), 'utf8');
     const delivery = readFileSync(join(process.cwd(), 'docs/design/spec-0.2/delivery.md'), 'utf8');
     const context = readFileSync(join(process.cwd(), 'docs/design/spec-0.2/context-and-orchestration.md'), 'utf8');

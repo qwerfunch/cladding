@@ -19,6 +19,7 @@ The graph claim ladder in D17 is cumulative but not substitutable: structural va
 - D21–D23 define an obligation target in which existing runners are adapters, self policy persists L2, and a stronger one-run level requires a complete bounded current closure.
 - Bounded background checking may provide speculative observations in 0.10, but only a foreground profile-complete reduction may change lifecycle state or write attestation.
 - The current MCP server's declared catalog, in-memory negotiation, and bootstrap list-change path are executable wire facts; D24 makes MCP an optional adapter over shared kernels, not a second authority.
+- GraphIR v2 is structurally valid on the self corpus (rung 1 of the D17 claim ladder); it says nothing about retrieval efficiency or adoption.
 
 ### Claims prohibited until new evidence exists
 

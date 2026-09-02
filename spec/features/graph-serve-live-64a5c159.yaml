@@ -1,7 +1,7 @@
 id: F-64a5c159
 title: Live graph view — clad graph serve (http + fs.watch + SSE auto-reload) +
   clad_get_graph MCP
-status: in_progress
+status: done
 modules:
   - src/cli/graph-serve.ts
   - src/cli/clad.ts

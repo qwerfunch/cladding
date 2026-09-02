@@ -1,7 +1,7 @@
 id: F-7794a6bc
 title: Blast-radius impact query — backward slice (what breaks if I change X)
   over MCP + CLI
-status: in_progress
+status: done
 modules:
   - src/optimizer/reverse-slice.ts
   - src/serve/server.ts

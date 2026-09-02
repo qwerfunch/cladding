@@ -70,7 +70,10 @@ interface HostAbPolicy {
 interface McpScenarioRequirement {
   readonly id: string;
   readonly implementation: 'pending' | 'validation-active';
-  readonly slice?: 'f5-receipt-operation' | 'f5-receipt-ingestion-and-asserted-fallback';
+  readonly slice?:
+    | 'f5-receipt-operation'
+    | 'f5-receipt-ingestion-and-asserted-fallback'
+    | 'graph-v2-focused-projection-and-statistics';
 }
 
 export interface ValidationManifest {
@@ -440,7 +443,7 @@ function checkCompilerRegistry(root: string, manifest: ValidationManifest): Vali
       id: 'compiler-registry-boundary',
       status: valid ? 'pass' : 'fail',
       evidence: valid
-        ? `D05-D14 compiler/proof/attestation inputs, the D09 scenario policy and closure slice, the D17 assurance closure slice only, D20 portable receipt mechanics, and the D21-D23 assurance kernel/profile/verdict slice cover ${snapshot.records.semanticOwners.length} semantic owners, ${snapshot.derived.proofOccurrences} live authored proof records, and ${migrationProofs.length} source-located migration bindings. F8 public GraphIR cutover, F9 scheduler/cache/issuer paths, and host cycles remain pending or not run.`
+        ? `D05-D14 compiler/proof/attestation inputs, the D09 scenario policy and closure slice, the D17 GraphIR v2 cutover, D20 portable receipt mechanics, and the D21-D23 assurance kernel/profile/verdict slice cover ${snapshot.records.semanticOwners.length} semantic owners, ${snapshot.derived.proofOccurrences} live authored proof records, and ${migrationProofs.length} source-located migration bindings. F8 public GraphIR cutover is validation-active; F9 scheduler/cache/issuer paths and host cycles remain pending or not run.`
         : 'D05-D14 compiler/proof/attestation inputs, the D09 scenario policy, the D17 closure slice, D20 portable receipt mechanics, D21-D23 profiles, region ownership, or authored-only provenance failed.',
     };
   } catch (error) {
@@ -491,15 +494,20 @@ function checkMcpScenarioLedger(root: string, manifest: ValidationManifest): Val
     && referenceHosts
     && codexOnlyAb
     && stableJson(manifest.mcp_scenarios.filter((scenario) => scenario.implementation === 'validation-active').map((scenario) => scenario.id))
-      === stableJson(['MCP04-cli-and-kernel-semantic-parity', 'MCP09-receipt-and-blindness-boundary'])
+      === stableJson([
+        'MCP04-cli-and-kernel-semantic-parity',
+        'MCP08-graph-context-and-catalog-budgets',
+        'MCP09-receipt-and-blindness-boundary',
+      ])
     && manifest.mcp_scenarios.find((scenario) => scenario.id.startsWith('MCP04-'))?.slice === 'f5-receipt-operation'
+    && manifest.mcp_scenarios.find((scenario) => scenario.id.startsWith('MCP08-'))?.slice === 'graph-v2-focused-projection-and-statistics'
     && manifest.mcp_scenarios.find((scenario) => scenario.id.startsWith('MCP09-'))?.slice === 'f5-receipt-ingestion-and-asserted-fallback'
     && mcp04Evidence;
   return {
     id: 'mcp-scenario-ledger',
     status: valid ? 'pass' : 'fail',
     evidence: valid
-      ? 'MCP04 receipt-operation parity and MCP09 receipt ingestion/asserted fallback are F5 validation-active; F9 issuer paths and MCP11 stay pending while the non-blocking Codex A/B caps at 24 calls.'
+      ? 'MCP04 receipt-operation parity and MCP09 receipt ingestion/asserted fallback are F5 validation-active, and MCP08 is validation-active for the F8 graph-v2 focused-projection and statistics slice; F9 issuer paths and MCP11 stay pending while the non-blocking Codex A/B caps at 24 calls.'
       : `mcp=${scenarioIds.join(',')}; mcp04_artifacts=${mcp04Evidence}; ab=${taskIds.join(',')}; hosts=${manifest.mcp_reference_hosts.join(',')}; ab_policy=${JSON.stringify(manifest.host_ab)}; invalid_profiles=${invalidProfiles.map((task) => task.id).join(',') || 'none'}`,
   };
 }

@@ -1375,7 +1375,7 @@ features:
 `;
 
 describe('clad_get_impact (F-7794a6bc)', () => {
-  test('clad_get_impact returns the blast-radius slice; a miss is isError', async () => {
+  test('[covers:F-7794a6bc/AC-c463ed55][covers:F-7794a6bc/AC-3f4f7202] clad_get_impact returns the blast-radius slice; a miss is isError', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-serve-impact-'));
     writeFileSync(join(dir, 'spec.yaml'), IMPACT_SPEC);
     mkdirSync(join(dir, '.cladding'), {recursive: true});

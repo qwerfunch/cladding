@@ -28,7 +28,7 @@ function mkSpec(features: Feature[], scenarios: Scenario[] = []): Spec {
 }
 
 describe('reverse-slice / impact (F-7794a6bc)', () => {
-  test('feature query returns focus, transitive dependents, scenarios, test_refs union, impacted modules', () => {
+  test('[covers:F-7794a6bc/AC-9980c9b0] feature query returns focus, transitive dependents, scenarios, test_refs union, impacted modules', () => {
     const spec = mkSpec(
       [
         {
@@ -82,7 +82,7 @@ describe('reverse-slice / impact (F-7794a6bc)', () => {
     ]);
   });
 
-  test('module path query resolves all owners (many-to-many) and computes blast radius', () => {
+  test('[covers:F-7794a6bc/AC-3f4f7202] module path query resolves all owners (many-to-many) and computes blast radius', () => {
     const spec = mkSpec([
       {id: 'F1', title: 'F1', status: 'done', modules: ['src/shared.ts']},
       {id: 'F2', title: 'F2', status: 'done', modules: ['src/shared.ts']},
@@ -112,7 +112,7 @@ describe('reverse-slice / impact (F-7794a6bc)', () => {
     expect(joined).toContain('module path');
   });
 
-  test('depth bounds the dependent walk and output is deterministic', () => {
+  test('[covers:F-7794a6bc/AC-7596b1b6] depth bounds the dependent walk and output is deterministic', () => {
     // The dependent walk now reads the one graph contract, so the chain is declared as
     // spec depends_on edges (B depends on A, C on B, D on C) instead of a private map.
     const chain = structuralView(mkSpec([
