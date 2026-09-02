@@ -374,7 +374,7 @@ function compileSchema02(root: string, master: ParsedYaml, rootValue: Record<str
     expectedFeatureContracts = featureDocuments.length;
     const featureIds = new Set<string>();
     for (const featureDocument of featureDocuments) {
-      compileSchema02Feature(graph, featureDocument, capabilityIds, architectureRules, featureContracts, baseline, featureIds);
+      compileSchema02Feature(graph, root, featureDocument, capabilityIds, architectureRules, featureContracts, baseline, featureIds);
     }
   }
   const scenarioContracts: Schema02ScenarioContract[] = [];
@@ -599,6 +599,7 @@ function compileFeature(graph: GraphBuild, root: string, parsed: ParsedYaml): vo
 /** Validates and materializes one schema 0.2 feature's F2 and F3 contract data. */
 function compileSchema02Feature(
   graph: GraphBuild,
+  root: string,
   parsed: ParsedYaml,
   capabilityIds: ReadonlySet<string>,
   architectureRules: ReadonlyMap<string, Schema02ArchitectureRuleContract>,
@@ -682,7 +683,7 @@ function compileSchema02Feature(
     if (typeof criterion?.id === 'string') criterionIds.add(criterion.id);
     if (duplicate) continue;
     compileSchema02Criterion(
-      graph, parsed, feature.id, featureAddress, shardAddress, criterionIndex,
+      graph, root, parsed, feature.id, featureAddress, shardAddress, criterionIndex,
       criterion,
       typeof criterion?.id === 'string' ? criterionContracts.get(criterion.id) : undefined,
       architectureRules,
@@ -738,6 +739,7 @@ function firstSchema02CriterionContracts(
 
 function compileSchema02Criterion(
   graph: GraphBuild,
+  root: string,
   parsed: ParsedYaml,
   featureId: string,
   featureAddress: string,
@@ -784,6 +786,15 @@ function compileSchema02Criterion(
   });
   addEdge(graph, featureAddress, address, 'contains', 'authored', source);
   addEdge(graph, address, shardAddress, 'defined_in', 'authored', source);
+  // Schema 0.2 declarations remain structural facts until an F5 adapter adds
+  // an independently observed proof. Keep both accepted authored channels
+  // before the constraint-only branch for every valid first occurrence,
+  // without accepting legacy inline test refs.
+  // @see docs/design/spec-0.2/graph.md#d17--knowledge-graph-v2-as-compiler-ir
+  if (contractCriterion) {
+    compileLegacyReferences(graph, root, parsed, prefix, address, 'oracle', criterion.oracle_refs);
+    compileLegacyReferences(graph, root, parsed, prefix, address, 'evidence', criterion.evidence_refs);
+  }
   if (contractCriterion?.kind !== 'constraint') return;
   const refs = stringEntries(criterion.constraint_refs);
   for (const [referenceIndex, reference] of refs.entries()) {

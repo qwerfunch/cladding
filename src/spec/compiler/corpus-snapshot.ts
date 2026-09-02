@@ -229,11 +229,15 @@ function scanFeatures(
       const criterionAddress = `criterion:${featureId}/${criterionId}`;
       const criterionPrefix = [...prefix, 'acceptance_criteria', criterionIndex];
       semanticOwners.push({address: criterionAddress, owner: featureAddress, source: locate(document, [...criterionPrefix, 'id'])});
-      // Schema 0.2 proof is carried by live bindings and receipts. Historic
-      // pre-migration bindings are recorded below from the baseline receipt;
-      // they must not be represented as live authored compiler supports.
+      // Schema 0.2 preserves its authored oracle/evidence declarations as
+      // structural supports. Historic pre-migration bindings remain below in
+      // the receipt-only view, and inline test refs remain forbidden.
+      // @see docs/design/spec-0.2/graph.md#d17--knowledge-graph-v2-as-compiler-ir
       if (schema === '0.1') {
         scanReferences(root, document, criterionPrefix, criterionAddress, 'test', criterion.test_refs, proofs);
+        scanReferences(root, document, criterionPrefix, criterionAddress, 'oracle', criterion.oracle_refs, proofs);
+        scanReferences(root, document, criterionPrefix, criterionAddress, 'evidence', criterion.evidence_refs, proofs);
+      } else {
         scanReferences(root, document, criterionPrefix, criterionAddress, 'oracle', criterion.oracle_refs, proofs);
         scanReferences(root, document, criterionPrefix, criterionAddress, 'evidence', criterion.evidence_refs, proofs);
       }

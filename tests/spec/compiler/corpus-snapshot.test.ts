@@ -32,7 +32,7 @@ function corpusFixture(): string {
   return root;
 }
 
-/** A compact reviewed 0.2 corpus with canonical owners and receipt-held proof history. */
+/** A compact reviewed 0.2 corpus with live declarations and receipt-held proof history. */
 function schema02CorpusFixture(): string {
   const root = mkdtempSync(join(tmpdir(), 'clad-independent-corpus-02-'));
   temporary.push(root);
@@ -151,7 +151,19 @@ describe('Spec 0.2 independent corpus snapshot', () => {
       expect.objectContaining({address: 'feature:F-aaaaaaaa', source: expect.objectContaining({path: 'spec/features/one-aaaaaaaa.yaml', yamlPath: '$.id'})}),
       expect.objectContaining({address: 'criterion:F-aaaaaaaa/AC-11111111', owner: 'feature:F-aaaaaaaa', source: expect.objectContaining({yamlPath: '$.acceptance_criteria[0].id'})}),
     ]));
-    expect(snapshot.records.proofs).toEqual([]);
+    expect(snapshot.records.proofs).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        channel: 'oracle', raw: 'script:verify', normalizedTarget: 'artifact:script:verify',
+        selector: {precision: 'none'}, resolution: 'unresolved',
+        source: expect.objectContaining({path: 'spec/features/one-aaaaaaaa.yaml', yamlPath: '$.acceptance_criteria[0].oracle_refs[0]'}),
+      }),
+      expect.objectContaining({
+        channel: 'evidence', raw: 'tests/one.test.ts', normalizedTarget: 'artifact:tests/one.test.ts',
+        selector: {precision: 'none'}, resolution: 'resolved',
+        source: expect.objectContaining({path: 'spec/features/one-aaaaaaaa.yaml', yamlPath: '$.acceptance_criteria[0].evidence_refs[0]'}),
+      }),
+    ]));
+    expect(snapshot.records.proofs.some((proof) => proof.channel === 'test')).toBe(false);
     expect(`${JSON.stringify(snapshot.migrationProofs, null, 2)}\n`).toBe(committedMigrationProofs);
     expect(compilation.migrationProofs).toEqual(snapshot.migrationProofs);
   });
