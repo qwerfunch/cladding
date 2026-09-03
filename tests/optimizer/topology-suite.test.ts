@@ -502,7 +502,10 @@ describe('Spec 0.2 A–E topology invariance', () => {
     expect(elapsed).toBeLessThan(500);
   }, 60_000);
 
-  test(`[covers:F-2bbecd83/AC-27ee0ea7] ${J11_TITLE}`, () => {
+  // The title below is a plain literal, never a template: the vitest/jest harvester binds
+  // only string-literal carriers, so a computed title runs and passes without ever binding
+  // its criterion. The last assertion keeps that literal from drifting from `J11_TITLE`.
+  test('[covers:F-2bbecd83/AC-27ee0ea7] J11 topology-invariant context is validation-active with a resolvable test reference', () => {
     const manifest = yaml.parse(readFileSync(join(CWD, 'tests/design/spec-0.2/requirements.yaml'), 'utf8')) as {
       integration_journeys: readonly {id: string; status: string; test_ref?: string}[];
     };
@@ -512,8 +515,12 @@ describe('Spec 0.2 A–E topology invariance', () => {
     const [file, title] = reference.split('#');
     expect(file, 'J11 names a test file').toBe('tests/optimizer/topology-suite.test.ts');
     expect(existsSync(join(CWD, file!))).toBe(true);
-    expect(readFileSync(join(CWD, file!), 'utf8')).toContain(title!);
+    const source = readFileSync(join(CWD, file!), 'utf8');
+    expect(source).toContain(title!);
     expect(title).toBe(J11_TITLE);
+    expect(source, 'the literal carrier title matches the resolved reference').toContain(
+      `[covers:F-2bbecd83/AC-27ee0ea7] ${J11_TITLE}`,
+    );
   });
 
   test('[covers:F-2bbecd83/AC-51a9a41e] the suite adds no production module and no default-path runtime cost', () => {
