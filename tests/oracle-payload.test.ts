@@ -109,4 +109,27 @@ describe('oracle/payload — clad oracle blind brief', () => {
     expect(p.signatures).toHaveLength(0);
     expect(p.acs[0]?.text).toContain('When X happens');
   });
+
+  test('[covers:F-c4c5ae/AC-006] a declared DIRECTORY module contributes no signatures instead of failing the brief', () => {
+    writeModule();
+    mkdirSync(join(dir, 'src/adapters'), {recursive: true});
+    writeFileSync(join(dir, 'src/adapters/inner.ts'), 'export function hidden(): void {\n  const SECRET_BODY_LOGIC = 1;\n}\n');
+    const spec = {
+      features: [{...(SPEC.features[0] as object), modules: ['src/m.ts', 'src/adapters', 'src/cli/']}],
+    } as unknown as Spec;
+
+    const p = buildBlindPayload(spec, 'F-001', undefined, dir)!;
+
+    // The file module still yields its declarations; neither directory spelling throws.
+    expect(p.signatures.some((s) => s.startsWith('src/m.ts: export function foo'))).toBe(true);
+    expect(p.signatures.filter((s) => s.startsWith('src/adapters') || s.startsWith('src/cli/'))).toEqual([]);
+    // A directory holds no declaration lines, so nothing inside it can reach the author.
+    expect(JSON.stringify(p)).not.toContain('SECRET_BODY_LOGIC');
+    expect(JSON.stringify(p)).not.toContain('hidden');
+    // The offer is still recorded: the author learns the path was on the table.
+    expect(p.readManifest).toEqual([
+      'signatures-of:src/m.ts', 'signatures-of:src/adapters', 'signatures-of:src/cli/', 'spec:acceptance_criteria',
+    ]);
+    expect(renderBlindBrief(p)).toContain('export function foo(a: number): number');
+  });
 });
