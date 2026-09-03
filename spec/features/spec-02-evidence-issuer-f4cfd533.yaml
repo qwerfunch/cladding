@@ -1,6 +1,6 @@
 id: F-f4cfd533
 title: Spec 0.2 file-key issuer and trust registry (F9d)
-status: in_progress
+status: done
 purpose: Give Cladding its first real registered issuer path so that human audit
   and UAT evidence can be signed offline, verified by every gate, and bound to
   the code it reviewed without trusting any prose claim.
