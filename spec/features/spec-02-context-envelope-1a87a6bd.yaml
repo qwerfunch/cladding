@@ -1,7 +1,7 @@
 id: F-1a87a6bd
 title: Spec 0.2 cycle context envelope — task projections with measured,
   fixed-point budgets
-status: in_progress
+status: done
 purpose: A host agent should receive exactly the facts one operation needs from
   the GraphIR workspace as a packet whose UTF-8 bytes and omissions are measured
   on the final serialization, so context cost is proven rather than assumed and

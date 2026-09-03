@@ -107,7 +107,7 @@ features:
   F-182eaa53: {slug: spec-compiler-registry-bootstrap, status: done, modules: 92}
   F-18e951: {slug: drift-baseline-cleanup, status: done, modules: 7}
   F-195cb59e: {slug: onboarding-handoff-steer, status: done, modules: 2}
-  F-1a87a6bd: {slug: spec-02-context-envelope, status: in_progress, modules: 6}
+  F-1a87a6bd: {slug: spec-02-context-envelope, status: done, modules: 6}
   F-1aab1bba: {slug: stop-outcome-telemetry, status: done, modules: 6}
   F-1c9166: {slug: readme-capability-sync, status: done, modules: 2}
   F-1d23a6: {slug: host-hooks, status: done, modules: 5}
