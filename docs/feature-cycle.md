@@ -38,6 +38,9 @@ say-so alone, never skip a `▣`.
 
 2. **IMPLEMENT — `developer` (code; formerly `specialists`).** One implementer writes the production code for this
    feature in its own worktree. `clad checkpoint <featureId>` first so a failed cycle rolls back.
+   On a schema 0.2 workspace, open the cycle with `clad begin <featureId>`: it marks the start,
+   moving the feature from `planned` to `in_progress` and recording one durable checkpoint. `clad
+   done` accepts only an in-progress feature, so a cycle that never began cannot be completed.
 
 3. **TEST — independent author.** A *separate* `developer` dispatch — handed the feature's
    `acceptance_criteria` **plus the module signatures (types / API surface) only, never the

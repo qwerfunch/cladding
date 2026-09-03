@@ -250,7 +250,7 @@ features:
   F-c3747d7d: {slug: spec-first-window-complete, status: done, modules: 5}
   F-c48eb2: {slug: scan-source-roots, status: done, modules: 5}
   F-c4c5ae: {slug: spec-conformance-oracle-stage, status: done, modules: 11}
-  F-c4df5fb4: {slug: spec-02-native-onboarding, status: planned, modules: 14}
+  F-c4df5fb4: {slug: spec-02-native-onboarding, status: done, modules: 14}
   F-c566f590: {slug: independence-label, status: done, modules: 6}
   F-c58263b8: {slug: code-compact, status: done, modules: 15}
   F-c6a32fff: {slug: graph-honest-fallback, status: done, modules: 7}

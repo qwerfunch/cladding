@@ -1,6 +1,6 @@
 id: F-c4df5fb4
 title: Spec 0.2 native onboarding — clad init scaffolds schema 0.2 by default
-status: planned
+status: done
 purpose: "A new adopter should start on schema 0.2 without running a migration:
   the scaffold, the host onboarding draft, and the completion guidance must
   speak 0.2 so the reference implementation dogfoods the schema it recommends."
