@@ -3,7 +3,7 @@ project: cladding
 component: spec
 language: typescript
 ironclad-tier: T2a (schema + parser + validator)
-spec-schema-version: "0.1"
+spec-schema-version: "0.2"
 ---
 
 # spec
@@ -20,7 +20,7 @@ This directory holds artifacts from two tiers of the [4-tier SSoT model](../docs
 |---|---|---|---|
 | `spec.yaml` (this file + sharded pointer) | **A** Spec SSoT | sealed by Iron Law gates | `clad_create_feature` MCP tool or hand-edit + `clad sync` |
 | `spec/features/<slug>-<hash8>.yaml` | **A** | sealed | `clad_create_feature` |
-| `spec/scenarios/<slug>-<hash8>.yaml` | **A** | sealed (onboarding output, edit-friendly) | `clad init <intent>` onboarding (v0.3.45+) + `clad_create_feature` binding |
+| `spec/scenarios/<slug>-<hash8>.yaml` | **A** | sealed (edit-friendly) | schema 0.1: `clad init <intent>` onboarding (v0.3.45+) + `clad_create_feature` binding. Schema 0.2: a journey names at least one feature, so onboarding stages its draft in `.cladding/scan/` and the journey is created once that feature exists |
 | `spec/architecture.yaml` | **B** Design SSoT | user-decided, cross-validated with A | `clad init` / `clad refine` (LLM-refined or seeded) |
 | `spec/capabilities.yaml` | **B** | user-decided, cross-validated with A | `clad init` / `clad refine` (LLM-refined or seeded) |
 
@@ -38,40 +38,67 @@ Tier A = sealed by detectors (`UNMAPPED_ARTIFACT`, `MISSING_IMPLEMENTATION`, `ST
 
 ## [SHAPE]
 
+Schema 0.2 — what `clad init` scaffolds. `spec.yaml` holds the project; features,
+capabilities, architecture, and scenarios are separate files.
+
 ```yaml
-schema: "0.1"
+# spec.yaml
+schema: "0.2"
 project:
   name: <string>
   language: <string>
-features:
-  - id: F-a11ce001                # new IDs use exactly 8 lowercase hex; legacy F-NNN / six-or-more-hex remain readable
+  purpose: <string>                 # required — why this project exists
+  assurance_level: L1 | L2 | L3 | L4
+  scenario_policy: off | advisory | required
+
+# spec/capabilities.yaml — the single source of capability ids
+capabilities:
+  - id: <kebab-slug>
     title: <string>
-    status: planned | in_progress | done | blocked | archived
-    modules: [<path>, ...]
-    acceptance_criteria:
-      - id: AC-acce5510           # new IDs use exactly 8 lowercase hex; address is criterion:F-a11ce001/AC-acce5510
-        ears: ubiquitous | event | state | optional | unwanted | complex
-        condition: <EARS Trigger>
-        action: <EARS Action>
-        response: <EARS Result>
-        text: <user-facing rendered sentence>
-        test_refs: [<test-id>, ...]
-        notes: <free-form>
-        adr_refs: [ADR-NNN, ...]
-    depends_on: [F-deadbeef, ...] # valid feature IDs; legacy readable IDs are also accepted
-    archived_at: <date-time>
-    archive_reason: <string>
-    superseded_by: F-c0ffee12     # valid feature ID; legacy readable IDs are also accepted
-scenarios:           # optional (T2c sharding)
-  - id: S-c0ff1e01                # new IDs use exactly 8 lowercase hex; legacy S-NNN / six-or-more-hex remain readable
-    title: <string>
-    flow: <string>
-    features: [F-a11ce001, ...]   # valid feature IDs; legacy readable IDs are also accepted
-architecture:        # optional
-  layers: [[<layer>, <layer>, ...], ...]
-  forbidden_imports:
-    - {from: <module>, to: <module>}
+    outcome: <string>               # the outcome a user gets
+
+# spec/architecture.yaml — ordered ranks of peer layers + forbidden-import rules
+layers: [[<layer>, <layer>, ...], ...]
+rules:
+  - id: AR-a5c11e02                 # exactly 8 lowercase hex
+    kind: forbidden_import
+    from: <layer>
+    to: <layer>
+    rationale: <string>             # required — why the import would break the design
+
+# spec/features/<slug>-<hash8>.yaml — one file per feature
+id: F-a11ce001                      # exactly 8 lowercase hex
+title: <string>
+status: planned | in_progress | done | blocked | archived
+purpose: <string>                   # required — what this feature is for
+modules: [<path>, ...]
+depends_on: [F-deadbeef, ...]
+capability_refs: [<kebab-slug>, ...]
+acceptance_criteria:
+  - id: AC-acce5510                 # address is criterion:F-a11ce001/AC-acce5510
+    kind: behavior | quality | constraint
+    statement: <EARS sentence>
+    constraint_refs: [AR-a5c11e02, ...]   # constraint criteria only
+    oracle_refs: [<path>, ...]
+    evidence_refs: [<path>, ...]
+
+# spec/scenarios/<slug>-<hash8>.yaml — one user journey per file
+id: S-c0ff1e01
+title: <string>
+actor: <string>
+goal: <string>
+success: <string>
+steps: [<string>, ...]
+feature_refs: [F-a11ce001, ...]
 ```
+
+Criteria carry no `test_refs`: a test declares what it covers where it lives, in
+its own title — `[covers:F-a11ce001/AC-acce5510]`.
+
+Schema 0.1 files stay readable; `clad init --schema 0.1` still scaffolds one.
+Its shape — inline `features:` with `ears`/`condition`/`action`/`response`/`text`
+criteria, `architecture.forbidden_imports` pairs, and `scenarios[].flow` — is
+described in [`docs/spec-ids-multi-dev.md`](../docs/spec-ids-multi-dev.md).
 
 ## [CLI]
 

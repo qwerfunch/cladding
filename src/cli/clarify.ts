@@ -10,7 +10,8 @@
 //   3. Reads the current artifact bodies on disk.
 //   4. Calls the LLM with the full Q-A history + current bodies and
 //      receives refined artifact bodies + any new questions.
-//   5. Publishes active SSoT bodies through the shared compatibility journal;
+//   5. Publishes active SSoT bodies — schema 0.1 through the shared
+//      compatibility journal, schema 0.2 through the typed edit boundary;
 //      user-authored designs divert to `.cladding/scan/*.proposal`.
 //   6. Appends new questions to the state file (`appendNewQuestions`
 //      de-duplicates) and marks `status: done` when nothing remains.
@@ -39,15 +40,37 @@ import {
 } from './scan/onboarding-state.js';
 import {
   interpretRefinementWithFallback,
+  readLegacyForbiddenImports,
+  readSchema02Capabilities,
+  readSchema02Layers,
+  renderSchema02ArchitectureYaml,
+  renderSchema02CapabilitiesYaml,
+  renderSchema02ScenarioDraftYaml,
+  schema02ScenarioDraftPath,
   type OnboardingObserved,
   type OnboardingResult,
+  type OnboardingScenario,
   type RefinementCurrent,
   type RefinementQa,
 } from './scan/intent-onboarding.js';
 import {pulse} from '../ui/pulse.js';
 import {onboardingCompletionMessage} from '../ui/softShell.js';
 import {isReadableShardFilename} from '../spec/compiler/id-policy.js';
-import {commitSchema01CompatibilityMutation, type Schema01CompatibilityReplacement} from '../spec/edit.js';
+import {
+  commitSchema01CompatibilityMutation,
+  editSpec,
+  readSpecEditRevisions,
+  type Schema01CompatibilityReplacement,
+  type SpecEditOperation,
+} from '../spec/edit.js';
+import {readSchema02AuthoringSnapshot} from '../spec/compiler/authoring-view.js';
+import {
+  commitSpecTransactionFiles,
+  readSpecTransactionBytes,
+  requiredRootSchema,
+  SpecEditError,
+  withSpecWorkspaceLock,
+} from '../spec/transaction.js';
 import type {ScanLlmDispatcher} from './scan/llm.js';
 
 export interface RefineCommandOptions {
@@ -181,9 +204,14 @@ export async function refineOnboarding(
 
   const proposals: string[] = [];
   const created: string[] = [];
+  const schema = workspaceSchema(cwd);
   const applyToActiveDesign = artifactsAreUntouched(cwd, state);
-  const scenarioPaths = refined.scenarios.map((scenario) =>
-    `spec/scenarios/${scenario.slug}-${scenario.id.replace(/^S-/, '')}.yaml`);
+  // Schema 0.2 journeys must bind a feature, so a refinement's scenarios are
+  // never canonical targets there; they are staged beside the other proposals.
+  const scenarioPaths = schema === '0.2'
+    ? []
+    : refined.scenarios.map((scenario) =>
+      `spec/scenarios/${scenario.slug}-${scenario.id.replace(/^S-/, '')}.yaml`);
   // Scenario bodies are outputs rather than LLM prompt inputs, but they are
   // still canonical targets. Capture their absent-vs-empty preimages once at
   // plan preparation, never by rereading just before the transaction.
@@ -194,23 +222,61 @@ export async function refineOnboarding(
   let updated: OnboardingState = appendNewQuestions(stateAfterAnswer, refined.clarifyingQuestions);
   let canonicalCommitted = false;
   try {
+    // A refinement body that carries no readable catalog or layer list is an
+    // unusable response, not an instruction to empty the workspace: the
+    // current canonical body travels forward untouched instead.
+    const refinedCapabilities = schema === '0.2' ? readSchema02Capabilities(refined.capabilitiesYaml) : null;
+    const refinedLayers = schema === '0.2' ? readSchema02Layers(refined.architectureYaml) : null;
     const artifacts = [
       {path: 'docs/project-context.md', body: refined.projectContextMd},
-      {path: 'spec/architecture.yaml', body: refined.architectureYaml},
-      {path: 'spec/capabilities.yaml', body: refined.capabilitiesYaml},
-      ...refined.scenarios.map((scenario, index) => ({path: scenarioPaths[index], body: renderScenarioYaml(scenario)})),
+      {
+        path: 'spec/architecture.yaml',
+        body: schema !== '0.2'
+          ? refined.architectureYaml
+          : refinedLayers
+            ? renderSchema02ArchitectureYaml(
+              observed.language,
+              refinedLayers,
+              readLegacyForbiddenImports(refined.architectureYaml),
+            )
+            : current.architectureYaml,
+      },
+      {
+        path: 'spec/capabilities.yaml',
+        body: schema !== '0.2'
+          ? refined.capabilitiesYaml
+          : refinedCapabilities
+            ? renderSchema02CapabilitiesYaml(projectName, refinedCapabilities)
+            : current.capabilitiesYaml,
+      },
+      ...refined.scenarios.map((scenario, index) => ({path: scenarioPaths[index], body: renderScenarioYaml(scenario)}))
+        .filter((artifact) => artifact.path !== undefined),
     ];
     if (new Set(artifacts.map((artifact) => artifact.path)).size !== artifacts.length) {
       throw new Error('onboarding refinement proposed duplicate managed artifact paths');
     }
+    if (schema === '0.2') {
+      for (const scenario of refined.scenarios) stageSchema02ScenarioDraft(cwd, scenario, proposals);
+    }
     if (applyToActiveDesign) {
-      // Active design artifacts are canonical SSoT. They share the same
-      // version check, byte-before precondition, journal, and replacement
-      // boundary as every other remaining schema-0.1 writer.
+      // Active design artifacts are canonical SSoT. Schema 0.1 publishes them
+      // through the compatibility journal; schema 0.2 publishes the catalog,
+      // the layer ranks, and the refined purpose through the typed edit
+      // boundary, and the untyped project-context document through the same
+      // F4 journal those operations use.
       const replacements = artifactReplacements(artifacts, planBefore);
       opts.testBeforeCanonicalCommit?.();
-      commitSchema01CompatibilityMutation(cwd, replacements);
-      canonicalCommitted = true;
+      if (schema === '0.2') {
+        commitSchema02OnboardingArtifacts(
+          cwd,
+          replacements,
+          refined.source === 'deterministic' ? undefined : projectPurposeFromContext(refined.projectContextMd),
+          () => {canonicalCommitted = true;},
+        );
+      } else {
+        commitSchema01CompatibilityMutation(cwd, replacements);
+        canonicalCommitted = true;
+      }
       created.push(...replacements.map((replacement) => replacement.before === null ? replacement.path : `${replacement.path} (refined)`));
     } else {
       for (const artifact of artifacts) writeOnboardingProposal(cwd, artifact.path, artifact.body, proposals);
@@ -295,14 +361,27 @@ export function resolveOnboardingReview(
   try {
     // Review confirmation changes canonical artifacts. Treat the selected
     // proposal bodies as an optimistic source and atomically publish every
-    // selected SSoT artifact, rejecting a schema-0.2 migration race.
+    // selected SSoT artifact. Schema 0.1 publishes through the compatibility
+    // journal; schema 0.2 publishes through the same typed boundary a
+    // refinement uses, so a reviewed body and a refined body land identically.
     opts.testBeforeCanonicalCommit?.();
-    commitSchema01CompatibilityMutation(cwd, pairs.map(({target, proposal}) => ({
+    const replacements = pairs.map(({target, proposal}) => ({
       path: target,
       before: checked.find((candidate) => candidate.target === target)!.before,
       after: readFileSync(join(cwd, proposal), 'utf8'),
-    })));
-    canonicalCommitted = true;
+    }));
+    if (workspaceSchema(cwd) === '0.2') {
+      const context = replacements.find((replacement) => replacement.path === 'docs/project-context.md');
+      commitSchema02OnboardingArtifacts(
+        cwd,
+        replacements,
+        context && projectPurposeFromContext(context.after),
+        () => {canonicalCommitted = true;},
+      );
+    } else {
+      commitSchema01CompatibilityMutation(cwd, replacements);
+      canonicalCommitted = true;
+    }
     const remaining = state.pendingReview.filter((target) => !requested.includes(target));
     let updated: OnboardingState = {
       ...state,
@@ -330,6 +409,143 @@ export function resolveOnboardingReview(
         : `review apply failed before its specification transaction could commit: ${(error as Error).message}`,
     };
   }
+}
+
+/**
+ * Reads the schema a workspace declares, treating an unreadable root as legacy.
+ *
+ * An onboarding session always follows a `clad init`, so `spec.yaml` exists;
+ * an unreadable root means the workspace is broken in a way the legacy writer
+ * already reports, and defaulting to 0.1 keeps that message.
+ *
+ * @param cwd - Workspace root.
+ * @returns The declared schema.
+ */
+function workspaceSchema(cwd: string): '0.1' | '0.2' {
+  try {
+    return requiredRootSchema(cwd);
+  } catch {
+    return '0.1';
+  }
+}
+
+/**
+ * Publishes one onboarding generation into a schema 0.2 workspace.
+ *
+ * The capability catalog, the architecture layer ranks, and the project
+ * purpose are schema 0.2 contracts, so they travel as typed operations rather
+ * than as replacement bytes — the typed boundary is what validates them.
+ * `docs/project-context.md` has no contract and no typed operation, so it
+ * travels as a byte-bound file through the same F4 journal.
+ *
+ * Architecture rules are never written here: a schema 0.2 rule carries a
+ * rationale, and an onboarding pass observes none.
+ *
+ * The two publications are separate transactions, so the caller is told as soon
+ * as the first one is durable and can report a partial commit honestly.
+ *
+ * @param cwd - Workspace root.
+ * @param replacements - Byte-bound artifact generation the caller planned.
+ * @param purpose - Refined project purpose to fold into the project region, if any.
+ * @param onCommitted - Invoked once the first publication is durable.
+ * @throws SpecEditError when the workspace moved after the generation was planned.
+ * @see spec/features/spec-02-native-onboarding-c4df5fb4.yaml AC-9e0a4c31
+ * @since 0.10.0
+ */
+function commitSchema02OnboardingArtifacts(
+  cwd: string,
+  replacements: readonly Schema01CompatibilityReplacement[],
+  purpose: string | undefined,
+  onCommitted?: () => void,
+): void {
+  // Every planned path must have a schema 0.2 publisher. A scenario shard has
+  // none — a journey binds a feature, and onboarding has no feature to bind —
+  // so a generation planned before a concurrent migration is refused whole
+  // rather than published minus the artifact nobody can write.
+  const publishable = new Set(['docs/project-context.md', 'spec/capabilities.yaml', 'spec/architecture.yaml']);
+  const unpublishable = replacements.filter((replacement) => !publishable.has(replacement.path));
+  if (unpublishable.length > 0) {
+    throw new Error(
+      `the workspace is on schema 0.2, which has no onboarding write for ${unpublishable.map((replacement) => replacement.path).join(', ')}`,
+    );
+  }
+  // The typed boundary rechecks its own regions, but nothing rechecks an
+  // untyped document. Refuse a concurrent author before the first publication
+  // as well as under the lock, so the ordinary race leaves nothing behind.
+  const documents = replacements.filter((replacement) => replacement.path === 'docs/project-context.md');
+  for (const document of documents) assertUnchangedOnboardingDocument(cwd, document);
+  const operations: SpecEditOperation[] = [];
+  const catalog = replacements.find((replacement) => replacement.path === 'spec/capabilities.yaml');
+  const architecture = replacements.find((replacement) => replacement.path === 'spec/architecture.yaml');
+  const entries = catalog ? readSchema02Capabilities(catalog.after) : null;
+  if (entries) {
+    const snapshot = readSchema02AuthoringSnapshot(cwd);
+    const bound = new Set(snapshot.features.flatMap((feature) => feature.capabilityRefs));
+    // A capability a feature already claims is not the refinement's to drop;
+    // removing it would break that feature's contract on the model's say-so.
+    for (const existing of snapshot.capabilities) {
+      if (!entries.some((entry) => entry.id === existing.id) && !bound.has(existing.id)) {
+        operations.push({kind: 'capability.remove', capabilityId: existing.id});
+      }
+    }
+    for (const entry of entries) operations.push({kind: 'capability.upsert', capability: {...entry}});
+  }
+  const layers = architecture ? readSchema02Layers(architecture.after) : null;
+  if (layers) operations.push({kind: 'architecture.set_layers', layers: layers.map((rank) => [...rank])});
+  if (purpose) operations.push({kind: 'project.set_purpose', purpose});
+  if (operations.length > 0) {
+    editSpec({cwd, operations, inputRevisions: readSpecEditRevisions(cwd, operations)});
+    onCommitted?.();
+  }
+  if (documents.length > 0) {
+    withSpecWorkspaceLock(cwd, () => {
+      for (const document of documents) assertUnchangedOnboardingDocument(cwd, document);
+      commitSpecTransactionFiles(cwd, documents.map((document) => ({
+        path: document.path,
+        before: document.before,
+        after: document.after,
+      })));
+    });
+    onCommitted?.();
+  }
+}
+
+/** Rejects an onboarding document whose bytes moved after the generation was planned. */
+function assertUnchangedOnboardingDocument(cwd: string, document: Schema01CompatibilityReplacement): void {
+  if (readSpecTransactionBytes(cwd, document.path) !== document.before) {
+    throw new SpecEditError('STALE_INPUT', `The onboarding source ${document.path} changed while the refinement was being prepared.`);
+  }
+}
+
+/**
+ * Reads the refined project purpose out of an onboarding project-context body.
+ *
+ * Only the "What is its purpose?" section is a purpose statement, and only
+ * when a model actually wrote one: the deterministic fallback leaves an
+ * italic placeholder there, and folding that into `project.purpose` would
+ * replace a real sentence with an instruction to the reader.
+ *
+ * @param projectContextMd - Project-context body about to be published.
+ * @returns A single-paragraph purpose, or `undefined` when none is stated.
+ */
+function projectPurposeFromContext(projectContextMd: string): string | undefined {
+  const lines = projectContextMd.split('\n');
+  const heading = lines.findIndex((line) => /^##\s*3\./.test(line.trim()));
+  if (heading < 0) return undefined;
+  const section: string[] = [];
+  for (let index = heading + 1; index < lines.length; index++) {
+    if (/^##\s/.test(lines[index])) break;
+    section.push(lines[index]);
+  }
+  const paragraph = section.join('\n').trim().split(/\n\s*\n/)[0]?.trim() ?? '';
+  const purpose = paragraph.split('\n').map((line) => line.trim()).join(' ').trim();
+  if (!purpose || purpose.startsWith('_') || purpose.startsWith('<!--') || purpose.length > 400) return undefined;
+  return purpose;
+}
+
+/** Stages one refinement scenario as a schema 0.2 journey draft for review. */
+function stageSchema02ScenarioDraft(cwd: string, scenario: OnboardingScenario, proposals: string[]): void {
+  writeOnboardingProposal(cwd, schema02ScenarioDraftPath(scenario), renderSchema02ScenarioDraftYaml(scenario), proposals);
 }
 
 function isOnboardingReviewTarget(target: string): boolean {

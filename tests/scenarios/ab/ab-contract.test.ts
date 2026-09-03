@@ -250,7 +250,7 @@ describe('A/B evaluation contract proofs', () => {
       const body = readFileSync(join(process.cwd(), scenario.file), 'utf8');
       expect(body).toContain(`const {${scenario.session}, applyFileSet} = await import('./_vanilla-sim.js');`);
       expect(body).toContain(scenario.mockedResponse);
-      expect(body).toContain(`await runInit({cwd: aCwd.path, intent: ${scenario.session}.intent});`);
+      expect(body).toContain(`await runInit({cwd: aCwd.path, intent: ${scenario.session}.intent, schema: '0.1'});`);
       expect(body).toContain(`applyFileSet(bCwd.path, ${scenario.session}.m1Files);`);
       expect(body).toContain(`applyFileSet(bCwd.path, ${scenario.session}.m2Files);`);
       expect(body).toContain("const m1A = captureSnapshot('A', 'M1', aCwd.path);");

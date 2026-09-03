@@ -31,8 +31,16 @@ import {
 } from './scan/greenfield-seeds.js';
 import {
   interpretOnboardingWithFallback,
+  readLegacyForbiddenImports,
+  readSchema02Capabilities,
+  readSchema02Layers,
+  renderSchema02ArchitectureYaml,
+  renderSchema02CapabilitiesYaml,
+  renderSchema02ScenarioDraftYaml,
+  schema02ScenarioDraftPath,
   type OnboardingObserved,
   type OnboardingResult,
+  type OnboardingScenario,
 } from './scan/intent-onboarding.js';
 import type {ScanLlmDispatcher} from './scan/llm.js';
 import {captureArtifactDigests, loadState, saveState, type OnboardingState} from './scan/onboarding-state.js';
@@ -43,6 +51,9 @@ import {CLADDING_IGNORE_BLOCK, hasCladdingIgnoreEntry} from '../init/gitignore-p
 import {getCurrentCladdingVersion, getLastSetupVersion} from '../init/host-setup.js';
 import {installGitHook} from '../init/git-hook.js';
 import {loadIntentFromPathIfApplicable} from './intent-from-path.js';
+
+/** Workspace schema `clad init` writes. Schema 0.2 is the default since 0.10.0. */
+export type InitSchemaVersion = '0.1' | '0.2';
 
 export interface InitOptions {
   readonly cwd?: string;
@@ -73,12 +84,20 @@ export interface InitOptions {
   readonly withCi?: boolean;
   /** Host-produced onboarding response; used by the MCP prepare/apply flow. */
   readonly hostDispatcher?: ScanLlmDispatcher;
+  /**
+   * Workspace schema to scaffold. Defaults to `0.2` (F-c4df5fb4): a new adopter
+   * starts on the current schema without running a migration. `0.1` scaffolds
+   * the legacy seed unchanged for a workspace that must stay on it.
+   */
+  readonly schema?: InitSchemaVersion;
 }
 
 export interface InitResult {
   readonly created: readonly string[];
   readonly skipped: readonly string[];
   readonly language: string;
+  /** Schema the scaffolded workspace declares. */
+  readonly schema: InitSchemaVersion;
   /** Files diverted to `.cladding/scan/*.proposal.*` because an authored copy already existed. */
   readonly proposals?: readonly string[];
   /**
@@ -198,6 +217,7 @@ function specSeed(
   projectName: string,
   language: string,
   metadata?: SpecSeedMetadata,
+  schema: InitSchemaVersion = '0.2',
 ): string {
   const projectLines = [
     `  name: ${projectName}`,
@@ -211,8 +231,18 @@ function specSeed(
   if (metadata?.repository) {
     projectLines.push(`  repository: ${quoted(metadata.repository)}`);
   }
-  if (metadata?.intent_summary) {
+  // `intent_summary` is a schema 0.1 field: schema 0.2 rejects it and reads the
+  // same sentence as `project.purpose` below, so it is written only for 0.1.
+  if (schema === '0.1' && metadata?.intent_summary) {
     projectLines.push(`  intent_summary: ${quoted(metadata.intent_summary)}`);
+  }
+  // Schema 0.2 requires an explicit project purpose plus the two policies the
+  // assurance kernel reads. The seeded purpose is the best sentence init has
+  // (the user's own intent when they gave one); `clad clarify` refines it.
+  if (schema === '0.2') {
+    projectLines.push(`  purpose: ${quoted(seedPurpose(projectName, metadata))}`);
+    projectLines.push('  assurance_level: L2');
+    projectLines.push('  scenario_policy: advisory');
   }
   if (metadata?.ai_hints && hasAnyAiHint(metadata.ai_hints)) {
     projectLines.push('  ai_hints:');
@@ -245,22 +275,58 @@ function specSeed(
     }
   }
 
+  if (schema === '0.1') {
+    return [
+      '# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual',
+      `# ${projectName} — Cladding spec`,
+      '# Features live in spec/features/<slug>-<hash8>.yaml — one file per feature.',
+      '# Edit shards there, run `clad sync` to validate, `clad check` to exercise',
+      '# every Iron Law stage. See https://github.com/qwerfunch/ironclad for the standard.',
+      '',
+      'schema: "0.1"',
+      '',
+      'project:',
+      ...projectLines,
+      '',
+      'features: []',
+      '',
+    ].join('\n');
+  }
+
+  // Schema 0.2 keeps no inline feature list: features, capabilities, and
+  // architecture are separate artifacts, and an inline root list is rejected.
   return [
     '# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual',
-    `# ${projectName} — Cladding spec`,
+    `# ${projectName} — Cladding spec (schema 0.2)`,
     '# Features live in spec/features/<slug>-<hash8>.yaml — one file per feature.',
-    '# Edit shards there, run `clad sync` to validate, `clad check` to exercise',
-    '# every Iron Law stage. See https://github.com/qwerfunch/ironclad for the standard.',
+    '# Capabilities live in spec/capabilities.yaml; architecture rules live in',
+    '# spec/architecture.yaml. Edit those, run `clad sync` to validate, and',
+    '# `clad check` to exercise every Iron Law stage.',
+    '# See https://github.com/qwerfunch/ironclad for the standard.',
     '',
-    'schema: "0.1"',
+    'schema: "0.2"',
     '',
     'project:',
     ...projectLines,
     '',
-    'features: []',
-    '',
   ].join('\n');
 }
+
+/**
+ * Picks the sentence a fresh schema 0.2 workspace declares as its purpose.
+ *
+ * The compiler requires a non-empty purpose, so the seed always carries one;
+ * the user's own intent wins when they gave it, and the placeholder names the
+ * command that replaces it.
+ */
+function seedPurpose(projectName: string, metadata?: SpecSeedMetadata): string {
+  return (
+    metadata?.intent_summary ??
+    metadata?.description ??
+    `${projectName} exists to be refined with clad clarify`
+  );
+}
+
 
 /** Appends a managed block to a user-owned file, never disturbing what is already there. */
 function appendManagedBlock(path: string, block: string): void {
@@ -353,6 +419,9 @@ export function hostWireNotice(lastSetup: string | null, pkgVersion: string | nu
 export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
   const cwd = opts.cwd ?? '.';
   const force = opts.force ?? false;
+  // F-c4df5fb4 — schema 0.2 is what a new workspace gets. `--schema 0.1` is the
+  // explicit opt-out for a project that must stay on the legacy seed.
+  const schema: InitSchemaVersion = opts.schema ?? '0.2';
   const created: string[] = [];
   const skipped: string[] = [];
 
@@ -483,7 +552,7 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
           ai_hints: onboarding?.aiHints,
         }
       : undefined;
-    writeFileSync(specPath, specSeed(projectName, language, seedMetadata));
+    writeFileSync(specPath, specSeed(projectName, language, seedMetadata, schema));
     created.push('spec.yaml');
   }
   // 2. .cladding/ runtime dir
@@ -554,7 +623,17 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     const interp: InterpretedScan = await interpretScanWithFallback(scanResult, dispatcher, cwd);
 
     writeArtifact(cwd, 'docs/conventions.md', interp.conventionsMd, created, proposals);
-    writeArtifact(cwd, 'spec/architecture.yaml', interp.architectureYaml, created, proposals);
+    // Schema 0.2 owns the canonical shapes of these two artifacts. The observed
+    // body is converted rather than diverted: a proposal nobody reviews would
+    // leave the adopter with an empty catalog while the scan's real findings
+    // sat unread in `.cladding/scan/`.
+    writeArtifact(
+      cwd,
+      'spec/architecture.yaml',
+      schema === '0.2' ? schema02Architecture(interp.architectureYaml, language) : interp.architectureYaml,
+      created,
+      proposals,
+    );
 
     // v0.3.38 — README ## headings are mirrored into a first-class spec
     // artifact so downstream detectors can read the capability list
@@ -574,7 +653,13 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     // code-grounded and correct for a real codebase.
     const capabilitiesYaml =
       onboarding?.source === 'llm' ? onboarding.capabilitiesYaml : interp.capabilitiesYaml;
-    writeArtifact(cwd, 'spec/capabilities.yaml', capabilitiesYaml, created, proposals);
+    writeArtifact(
+      cwd,
+      'spec/capabilities.yaml',
+      schema === '0.2' ? schema02Capabilities(capabilitiesYaml, projectName) : capabilitiesYaml,
+      created,
+      proposals,
+    );
 
     // v0.3.30 — scenarios are not auto-extracted from observed code.
     // A user journey is *intent*, not architecture, so cladding leaves
@@ -598,17 +683,24 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     // toolchain-default seeds. `conventions.md` stays seed-based
     // because conventions are language-specific, not domain-specific.
     writeArtifact(cwd, 'docs/conventions.md', renderGreenfieldConventionsMd(language, projectName), created, proposals);
+    // Same rule as the observed branch: schema 0.2 converts whatever the
+    // onboarding pass drafted into the canonical shapes, and falls back to the
+    // 0.2 seed only when there is nothing to convert.
     writeArtifact(
       cwd,
       'spec/architecture.yaml',
-      onboarding?.architectureYaml ?? renderGreenfieldArchitectureYaml(language),
+      schema === '0.2'
+        ? schema02Architecture(onboarding?.architectureYaml, language)
+        : onboarding?.architectureYaml ?? renderGreenfieldArchitectureYaml(language),
       created,
       proposals,
     );
     writeArtifact(
       cwd,
       'spec/capabilities.yaml',
-      onboarding?.capabilitiesYaml ?? renderGreenfieldCapabilitiesYaml(projectName),
+      schema === '0.2'
+        ? schema02Capabilities(onboarding?.capabilitiesYaml, projectName)
+        : onboarding?.capabilitiesYaml ?? renderGreenfieldCapabilitiesYaml(projectName),
       created,
       proposals,
     );
@@ -648,8 +740,11 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     for (const scenario of onboarding.scenarios) {
       const hash = scenario.id.replace(/^S-/, '');
       const filename = `spec/scenarios/${scenario.slug}-${hash}.yaml`;
-      const body = renderScenarioYaml(scenario);
-      writeArtifact(cwd, filename, body, created, proposals);
+      if (schema === '0.2') {
+        stageSchema02ScenarioDraft(cwd, scenario, proposals);
+        continue;
+      }
+      writeArtifact(cwd, filename, renderScenarioYaml(scenario), created, proposals);
     }
   }
 
@@ -734,6 +829,7 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
     created,
     skipped,
     language,
+    schema,
     proposals: proposals.length ? proposals : undefined,
     clarifyingQuestions: onboarding?.clarifyingQuestions.length ? [...onboarding.clarifyingQuestions] : undefined,
     onboardingMode: onboarding?.mode,
@@ -742,11 +838,14 @@ export async function runInit(opts: InitOptions = {}): Promise<InitResult> {
 }
 
 /**
- * Renders one onboarding scenario as a YAML shard ready for
- * `spec/scenarios/<slug>-<hash8>.yaml`. Schema mirrors the existing
- * sharded scenario format (`id`, `slug`, `title`, `flow`, `features`).
- * The header banner identifies the artifact as Tier A SSoT per
+ * Renders one onboarding scenario as a schema 0.1 shard ready for
+ * `spec/scenarios/<slug>-<hash8>.yaml` (`id`, `slug`, `title`, `flow`,
+ * `features`). The header banner identifies the artifact as Tier A SSoT per
  * `docs/ssot-model.md`.
+ *
+ * Schema 0.2 has no equivalent write: a 0.2 journey must bind at least one
+ * feature, and onboarding runs before any feature exists, so its scenarios are
+ * staged as drafts by {@link stageSchema02ScenarioDraft} instead.
  */
 function renderScenarioYaml(scenario: {
   readonly id: string;
@@ -770,12 +869,66 @@ function renderScenarioYaml(scenario: {
 }
 
 /**
+ * Stages one onboarding scenario as a schema 0.2 journey draft for review.
+ *
+ * Schema 0.2 requires a journey to bind at least one feature, and the typed
+ * edit boundary refuses every transaction on a workspace that holds an unbound
+ * one — a scaffold carrying such a shard could not author its first feature.
+ * The draft therefore waits beside the other onboarding proposals.
+ *
+ * @param cwd - Workspace root.
+ * @param scenario - Journey the onboarding pass extracted.
+ * @param proposals - Reporting list the caller surfaces to the user.
+ * @see spec/features/spec-02-native-onboarding-c4df5fb4.yaml AC-9e0a4c31
+ * @since 0.10.0
+ */
+function stageSchema02ScenarioDraft(cwd: string, scenario: OnboardingScenario, proposals: string[]): void {
+  const target = schema02ScenarioDraftPath(scenario);
+  const proposal = join(cwd, '.cladding', 'scan', `${basename(target)}.proposal`);
+  mkdirSync(dirname(proposal), {recursive: true});
+  writeFileSync(proposal, renderSchema02ScenarioDraftYaml(scenario));
+  proposals.push(`${target} → .cladding/scan/${basename(target)}.proposal`);
+}
+
+/**
  * Writes `relPath` under `cwd`. When the target already exists the
  * payload is diverted to `.cladding/scan/<basename>.proposal.<ext>`
  * instead of overwriting authored content. Either way the resulting
  * path lands in `created` or `proposals` so the CLI handler can
  * report it.
  */
+/**
+ * Converts any onboarding capability catalog into the canonical schema 0.2 body.
+ *
+ * A body that carries no readable catalog — an unparsable LLM response, or no
+ * body at all — falls back to the seed rather than to invented entries.
+ *
+ * @param body - Catalog YAML a producer drafted, if any.
+ * @param projectName - Name surfaced in the seed guidance.
+ * @returns A complete schema 0.2 `spec/capabilities.yaml` body.
+ * @see spec/features/spec-02-native-onboarding-c4df5fb4.yaml AC-672da65e
+ */
+function schema02Capabilities(body: string | undefined, projectName: string): string {
+  const entries = body ? readSchema02Capabilities(body) : null;
+  return renderSchema02CapabilitiesYaml(projectName, entries ?? []);
+}
+
+/**
+ * Converts any onboarding architecture body into the canonical schema 0.2 body.
+ *
+ * Forbidden-import pairs the draft proposed travel along as guidance: a schema
+ * 0.2 rule needs a rationale onboarding never observed.
+ *
+ * @param body - Architecture YAML a producer drafted, if any.
+ * @param language - Detected language, named in the empty-workspace comment.
+ * @returns A complete schema 0.2 `spec/architecture.yaml` body.
+ * @see spec/features/spec-02-native-onboarding-c4df5fb4.yaml AC-672da65e
+ */
+function schema02Architecture(body: string | undefined, language: string): string {
+  const layers = body ? readSchema02Layers(body) : null;
+  return renderSchema02ArchitectureYaml(language, layers ?? [], body ? readLegacyForbiddenImports(body) : []);
+}
+
 function writeArtifact(
   cwd: string,
   relPath: string,

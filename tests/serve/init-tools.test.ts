@@ -25,7 +25,7 @@ async function makePair(cwd: string, initialize: typeof runInit = runInit): Prom
     name: 'cladding-init-test',
     version: '0.0.0-test',
     onboarding: {
-      renderDraft: (value) => renderHostDraft(value as Parameters<typeof renderHostDraft>[0]),
+      renderDraft: (value) => renderHostDraft(value as Parameters<typeof renderHostDraft>[0], cwd),
       prepareInit: ({cwd: root, mode, intent}) => prepareHostInit(root, mode, intent),
       initialize,
       prepareClarify: (answer, {cwd: root}) => prepareHostClarify(root, answer),
@@ -436,17 +436,18 @@ describe('serve/server — natural-language init tools', () => {
       // persist the host draft's approved capabilities — not land `capabilities: []`.
       const capabilitiesBody = readFileSync(join(dir, 'spec', 'capabilities.yaml'), 'utf8');
       expect(capabilitiesBody).not.toContain('capabilities: []');
-      const capabilities = (parseYaml(capabilitiesBody) as {capabilities?: Array<{id?: string; title?: string; summary?: string; surface?: string}>}).capabilities ?? [];
+      const capabilities = (parseYaml(capabilitiesBody) as {capabilities?: Array<{id?: string; title?: string; outcome?: string}>}).capabilities ?? [];
       expect(capabilities.length).toBeGreaterThanOrEqual(3);
       const capabilityIds = capabilities.map((capability) => capability.id);
       for (const id of ['payments', 'audit', 'webhooks']) {
         expect(capabilityIds).toContain(id);
       }
-      expect(capabilities.find((capability) => capability.id === 'payments')).toMatchObject({
+      // Schema 0.2 states one `outcome` per capability, so the draft's summary
+      // and surface arrive folded into it rather than as separate legacy keys.
+      expect(capabilities.find((capability) => capability.id === 'payments')).toEqual({
         id: 'payments',
         title: 'Payments',
-        summary: 'Process payments safely.',
-        surface: 'feature',
+        outcome: 'Process payments safely. — surface: feature',
       });
     } finally {
       await cleanup();

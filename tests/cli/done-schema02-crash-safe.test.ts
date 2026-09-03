@@ -8,6 +8,7 @@ import {afterEach, describe, expect, test} from 'vitest';
 
 import {reduceLegacyStageAdapter} from '../../src/assurance/adapters.js';
 import {assuranceProfile} from '../../src/assurance/kernel.js';
+import {doneCompletionGuidance} from '../../src/cli/clad.js';
 import {runDone} from '../../src/cli/done.js';
 import {readEvents} from '../../src/events/log.js';
 import {captureAttestationInputSnapshot, writeAttestation} from '../../src/spec/attestation.js';
@@ -135,6 +136,26 @@ describe('F6 schema-0.2 completion transaction', () => {
     const events = readEvents(root);
     expect(events).toHaveLength(1);
     expect(events[0]).toMatchObject({type: 'done_attempted', payload: {feature: FEATURE, kept: true, worst: 0}});
+  });
+
+  test('[covers:F-c4df5fb4/AC-8057bdd4] a completed schema 0.2 feature is told to re-attest with the push profile before committing', () => {
+    const root = workspace();
+    let snapshot: ReturnType<typeof captureAttestationInputSnapshot> | undefined;
+    const result = runDone(root, FEATURE, {
+      checkStages: () => {
+        snapshot = completionSnapshot(root);
+        return {worst: 0, commitAttestation: (completion) => stamp(root, completion, snapshot)};
+      },
+    });
+
+    expect(result).toMatchObject({ok: true, code: 0, schemaVersion: '0.2'});
+    const guidance = doneCompletionGuidance(result);
+    expect(guidance).toBe(
+      'next: run clad check --tier=pre-push to re-attest sibling features, then commit spec/attestation.yaml',
+    );
+    // A refused completion, and the schema 0.1 route, add nothing.
+    expect(doneCompletionGuidance({...result, ok: false})).toBeUndefined();
+    expect(doneCompletionGuidance({ok: true, schemaVersion: '0.1'})).toBeUndefined();
   });
 
   test('[covers:F-6f0a2106/AC-6f0a2110] RED, thrown, missing-receipt, self-cert refusal, and writer failure leave canonical artifacts and event ledger byte-exact', () => {

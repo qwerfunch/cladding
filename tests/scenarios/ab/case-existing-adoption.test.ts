@@ -110,7 +110,11 @@ describe('A/B · existing-adoption — cladding vs vanilla on a populated TS pro
     // ── M1 ──────────────────────────────────────────────────────
     // A: cladding init with adoption intent — observed-path onboarding.
     dispatchMock.mockResolvedValueOnce(EXISTING_S2_RESPONSE);
-    await runInit({cwd: aCwd.path, intent: VANILLA_EXISTING_ADOPTION_SESSION.intent});
+    // The M2 steps below hand-author schema 0.1 feature shards and canonicalize
+    // a schema 0.1 architecture, so the case initializes the legacy workspace
+    // explicitly rather than the 0.2 default: a 0.2 root fed 0.1-shaped hand
+    // edits measures the mismatch, not the workflow this case records.
+    await runInit({cwd: aCwd.path, intent: VANILLA_EXISTING_ADOPTION_SESSION.intent, schema: '0.1'});
 
     // B: vanilla developer's first move on an unfamiliar codebase —
     // improve the README. (Files in m1Files overwrite the fixture

@@ -57,9 +57,19 @@ describe('runInit', () => {
     // (hash-based filename + id); the legacy `F-NNN` format is reserved for
     // cladding's own historical features.
     const yaml = readFileSync(join(dir, 'spec.yaml'), 'utf8');
-    expect(yaml).toContain('schema: "0.1"');
-    expect(yaml).toContain('features: []');
+    // The default scaffold is schema 0.2, which keeps no inline feature list at
+    // all; the legacy seed still declares the empty one.
+    expect(yaml).toContain('schema: "0.2"');
+    expect(yaml).not.toContain('features:');
     expect(existsSync(join(dir, 'spec/features/F-001-first.yaml'))).toBe(false);
+
+    const legacy = join(dir, 'legacy');
+    mkdirSync(legacy, {recursive: true});
+    await runInit({cwd: legacy, schema: '0.1'});
+    const legacyYaml = readFileSync(join(legacy, 'spec.yaml'), 'utf8');
+    expect(legacyYaml).toContain('schema: "0.1"');
+    expect(legacyYaml).toContain('features: []');
+    expect(existsSync(join(legacy, 'spec/features/F-001-first.yaml'))).toBe(false);
   });
 
   test('idempotent — second call creates nothing', async () => {
@@ -84,7 +94,7 @@ describe('runInit', () => {
 
     const overwritten = await runInit({cwd: forced, force: true});
     expect(overwritten.created).toContain('spec.yaml');
-    expect(readFileSync(join(forced, 'spec.yaml'), 'utf8')).toContain('schema: "0.1"');
+    expect(readFileSync(join(forced, 'spec.yaml'), 'utf8')).toContain('schema: "0.2"');
     expect(readFileSync(join(forced, 'spec.yaml'), 'utf8')).not.toContain('user: content');
   });
 
@@ -220,8 +230,10 @@ describe('runInit', () => {
   // (≥3 source files) is not met, init still writes the three
   // scan-derived artifacts as toolchain-default templates so the
   // spec/docs surface is always complete.
+  // The Tier B seed bodies asserted below are the schema 0.1 shapes; schema 0.2
+  // owns its own catalog/architecture shapes (tests/cli/init-schema02.test.ts).
   test('[covers:F-bd07d7/AC-001][covers:F-bd07d7/AC-005] greenfield: writes the three scan-artifact seeds with SEED headers (TypeScript default)', async () => {
-    const r = await runInit({cwd: dir});
+    const r = await runInit({cwd: dir, schema: '0.1'});
     expect(r.created).toContain('docs/conventions.md');
     expect(r.created).toContain('spec/architecture.yaml');
     expect(r.created).toContain('spec/capabilities.yaml');
@@ -265,7 +277,7 @@ describe('runInit', () => {
     writeFileSync(join(dir, 'src', 'cli', 'command.ts'), 'export const command = true;\n');
     writeFileSync(join(dir, 'src', 'core', 'service.ts'), 'export const service = true;\n');
 
-    const result = await runInit({cwd: dir, scan: true, noLlm: true});
+    const result = await runInit({cwd: dir, scan: true, noLlm: true, schema: '0.1'});
     const architecture = readFileSync(join(dir, 'spec', 'architecture.yaml'), 'utf8');
     const scenariosDir = join(dir, 'spec', 'scenarios');
 
@@ -296,7 +308,8 @@ describe('runInit', () => {
 
   test('greenfield: detected python toolchain switches the conventions seed to PEP-8 defaults', async () => {
     writeFileSync(join(dir, 'pyproject.toml'), '[project]\nname = "demo"\n');
-    await runInit({cwd: dir});
+    // The architecture line below is a schema 0.1 seed body.
+    await runInit({cwd: dir, schema: '0.1'});
     const conv = readFileSync(join(dir, 'docs/conventions.md'), 'utf8');
     expect(conv).toContain('greenfield seed for Python');
     expect(conv).toContain('| indent | four-space |');
@@ -343,9 +356,11 @@ describe('runInit', () => {
     expect(spec).toContain('        over: "classes"');
   });
 
+  // `intent_summary` is a schema 0.1 project field; schema 0.2 carries the same
+  // sentence as `project.purpose` (tests/cli/init-schema02.test.ts).
   test('[covers:F-3a5339/AC-002] intent-aware initialization writes the intent into both project metadata fields', async () => {
     const intent = 'Coordinate payment reconciliation for merchants.';
-    await runInit({cwd: dir, intent, noLlm: true});
+    await runInit({cwd: dir, intent, noLlm: true, schema: '0.1'});
 
     const spec = readFileSync(join(dir, 'spec.yaml'), 'utf8');
     expect(spec).toContain(`  description: "${intent}"`);
@@ -366,8 +381,8 @@ describe('runInit', () => {
     const noDispatch = adopt('no-dispatch');
     const noIntent = adopt('no-intent');
 
-    await runInit({cwd: noDispatch, scan: true, noLlm: true, intent: 'a checkout product'});
-    await runInit({cwd: noIntent, scan: true, noLlm: true});
+    await runInit({cwd: noDispatch, scan: true, noLlm: true, intent: 'a checkout product', schema: '0.1'});
+    await runInit({cwd: noIntent, scan: true, noLlm: true, schema: '0.1'});
 
     for (const cwd of [noDispatch, noIntent]) {
       const capabilities = readFileSync(join(cwd, 'spec', 'capabilities.yaml'), 'utf8');

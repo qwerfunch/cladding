@@ -20,12 +20,12 @@ import {buildBundleHtml, type BundleChanges} from '../report/bundle.js';
 import {runReportCommand} from './report.js';
 import {runDoctorCommand} from './doctor.js';
 import {runDoctorHosts} from './doctor-hosts.js';
-import {runDone} from './done.js';
+import {runDone, type DoneResult} from './done.js';
 import {featureCycleAdvisory} from './enforcement-advisory.js';
 import {runHookCommand} from './hook.js';
 import {runVerdictCommand} from './verdict.js';
 import {runUpdate} from './update.js';
-import {runInit, type InitResult} from './init.js';
+import {runInit, type InitResult, type InitSchemaVersion} from './init.js';
 import {refineOnboarding, resolveOnboardingReview, runClarifyCommand} from './clarify.js';
 import {onboardingCompletionMessage} from '../ui/softShell.js';
 import {prepareHostClarify, prepareHostInit, renderHostDraft} from './host-onboarding.js';
@@ -121,7 +121,7 @@ export async function runServeCommand(opts: {cwd?: string}): Promise<void> {
   const server = buildServer({
     cwd: opts.cwd,
     onboarding: {
-      renderDraft: (draft) => renderHostDraft(draft as Parameters<typeof renderHostDraft>[0]),
+      renderDraft: (draft) => renderHostDraft(draft as Parameters<typeof renderHostDraft>[0], opts.cwd ?? '.'),
       prepareInit: ({cwd, mode, intent}) => prepareHostInit(cwd, mode, intent),
       initialize: runInit,
       prepareClarify: (answer, {cwd}) => prepareHostClarify(cwd, answer),
@@ -170,10 +170,16 @@ export async function runInitCommand(
     roots?: string;
     withHook?: boolean;
     withCi?: boolean;
+    schema?: string;
     json?: boolean;
   },
 ): Promise<void> {
   const intent = intentTokens && intentTokens.length > 0 ? intentTokens.join(' ').trim() : undefined;
+  if (opts.schema !== undefined && opts.schema !== '0.1' && opts.schema !== '0.2') {
+    pulse('fail', 'init', 'Unknown spec schema. Use 0.2 (the current schema) or 0.1 (the legacy one).');
+    process.exit(2);
+    return;
+  }
   const result = await runInit({
     projectName: opts.name,
     force: opts.force,
@@ -183,6 +189,7 @@ export async function runInitCommand(
     intent,
     withHook: opts.withHook,
     withCi: opts.withCi,
+    ...(opts.schema ? {schema: opts.schema as InitSchemaVersion} : {}),
   });
   if (opts.json) {
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
@@ -1008,7 +1015,16 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
         const profile = plan?.profile ?? fallbackProfile;
         // Schema 0.1 keeps its historic stage subjects. B4 static subjects are
         // introduced only through the schema-0.2 compiler-minted scope below.
-        const scopeAddresses = plan?.scopeAddresses ?? fallbackScope;
+        //
+        // A workspace that declares no features yet still runs project-wide
+        // stages, and the reducer binds an observation to a subject: with an
+        // empty scope every executed stage stays unobserved, so a freshly
+        // scaffolded schema 0.2 workspace could never reach a green verdict
+        // (F-c4df5fb4). Schema 0.1 already names that subject `project`; name it
+        // here too. Attestation is unaffected — a scope with no feature address
+        // mints no receipt either way.
+        const resolvedScope = plan?.scopeAddresses ?? fallbackScope;
+        const scopeAddresses = resolvedScope.length > 0 ? resolvedScope : ['project'];
         const oracleRequiredSubjects = plan?.oracleRequiredSubjects;
         const staticReports = compilation.schemaVersion === '0.2'
           ? plan?.snapshot.criterionObservations ?? staticCriterionReportsFromWorkspace('.', compilation, scopeAddresses)
@@ -1588,6 +1604,24 @@ export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tie
 }
 
 /**
+ * Names what a completed feature still leaves the developer to do.
+ *
+ * Sealing one feature on a schema 0.2 workspace moves the state every sibling's
+ * receipt was written against, so those receipts need one more push-profile run
+ * before the attestation is committed. A refused done and the schema 0.1 path
+ * leave nothing extra to say.
+ *
+ * @param result - Outcome of the completion attempt.
+ * @returns One plain sentence, or `undefined` when there is nothing to add.
+ * @see spec/features/spec-02-native-onboarding-c4df5fb4.yaml AC-8057bdd4
+ * @since 0.10.0
+ */
+export function doneCompletionGuidance(result: Pick<DoneResult, 'ok' | 'schemaVersion'>): string | undefined {
+  if (!result.ok || result.schemaVersion !== '0.2') return undefined;
+  return 'next: run clad check --tier=pre-push to re-attest sibling features, then commit spec/attestation.yaml';
+}
+
+/**
  * Handler for `clad done <featureId>`. Gates the `status: done` transition on a
  * GREEN `clad check --tier=pre-push --strict` (flip → gate → keep-or-revert),
  * so `done` cannot claim more than the gate verifies. @see cli/done.ts
@@ -1619,6 +1653,8 @@ export function runDoneCommand(featureId: string): void {
         : 'independence: self-certified — no independent or human review yet';
     pulse('note', `done · ${featureId}`, line);
   }
+  const guidance = doneCompletionGuidance(r);
+  if (guidance) pulse('note', `done · ${featureId}`, guidance);
   process.exit(r.code);
 }
 
@@ -1859,6 +1895,7 @@ export function createProgram(): Command {
     .option('--roots <list>', 'Override scanner source roots, comma-separated (e.g. packages/a/src,packages/b/src). Otherwise inferred from manifests + directory heuristics.')
     .option('--with-hook', 'Install git pre-commit (cheap tier) AND pre-push (strict tier) hooks. Opt-in; cladding never touches .git without it.')
     .option('--with-ci', 'Scaffold .github/workflows/cladding.yml running the strict pre-push gate — the authoritative enforcement layer.')
+    .option('--schema <version>', 'spec schema to scaffold: 0.2 (default, current) or 0.1 (legacy seed)')
     .option('--json', 'emit the raw InitResult for tooling; default is the human-readable surface')
     .action(runInitCommand);
 

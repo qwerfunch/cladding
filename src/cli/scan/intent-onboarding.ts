@@ -919,3 +919,253 @@ function appendFootnoteOnce(body: string, footnote: string): string {
   }
   return body.endsWith('\n') ? `${body}${footnote.slice(1)}` : `${body}${footnote}`;
 }
+
+// ─────────────────────────────────────────────────────────────────────
+// Schema 0.2 canonical shapes (F-c4df5fb4)
+//
+// Every onboarding producer — the deterministic seeds, the observed
+// scanner, the onboarding LLM, and the host draft — speaks the schema
+// 0.1 catalog shapes (`summary` / `surface`, `layers: [{name, …}]`).
+// Schema 0.2 owns different shapes, so a 0.2 workspace converts once at
+// the write boundary instead of each producer learning both. The 0.1
+// path never reaches this code and stays byte-identical.
+// ─────────────────────────────────────────────────────────────────────
+
+/** One capability entry in its canonical schema 0.2 shape. */
+export interface Schema02CapabilityEntry {
+  readonly id: string;
+  readonly title: string;
+  readonly outcome: string;
+}
+
+/**
+ * Reads any onboarding capability catalog as canonical schema 0.2 entries.
+ *
+ * A schema 0.1 catalog carries `summary` + `surface` where 0.2 carries a
+ * single `outcome`, so the summary becomes the outcome and the surface is
+ * appended as a suffix rather than dropped. A catalog already in the 0.2
+ * shape passes through unchanged, which keeps a second refinement pass
+ * idempotent.
+ *
+ * @param body - Catalog YAML from any onboarding producer.
+ * @returns Canonical entries, or `null` when the body carries no readable catalog.
+ * @see spec/features/spec-02-native-onboarding-c4df5fb4.yaml AC-672da65e
+ * @since 0.10.0
+ */
+export function readSchema02Capabilities(body: string): readonly Schema02CapabilityEntry[] | null {
+  const record = parseYamlRecord(body);
+  if (!record || !Array.isArray(record.capabilities)) return null;
+  const entries: Schema02CapabilityEntry[] = [];
+  const seen = new Set<string>();
+  for (const raw of record.capabilities) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue;
+    const source = raw as Record<string, unknown>;
+    const id = trimmedString(source.id);
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    const title = trimmedString(source.title) || id;
+    const summary = trimmedString(source.outcome) || trimmedString(source.summary) || title;
+    const surface = trimmedString(source.surface);
+    entries.push({id, title, outcome: surface ? `${summary} — surface: ${surface}` : summary});
+  }
+  return entries;
+}
+
+/**
+ * Reads any onboarding architecture body as canonical schema 0.2 layer ranks.
+ *
+ * Schema 0.2 layers are ordered ranks of peer names. A legacy body lists
+ * layer objects in no declared dependency order, so every observed name
+ * becomes one rank of peers: ranking them would assert a direction nobody
+ * stated. A body already in the 0.2 shape passes through unchanged.
+ *
+ * @param body - Architecture YAML from any onboarding producer.
+ * @returns Canonical ranks, or `null` when the body carries no readable layers.
+ * @see spec/features/spec-02-native-onboarding-c4df5fb4.yaml AC-672da65e
+ * @since 0.10.0
+ */
+export function readSchema02Layers(body: string): readonly (readonly string[])[] | null {
+  const record = parseYamlRecord(body);
+  if (!record || !Array.isArray(record.layers)) return null;
+  if (record.layers.length === 0) return [];
+  if (record.layers.every((rank) => Array.isArray(rank))) {
+    const ranks = (record.layers as readonly unknown[][])
+      .map((rank) => rank.map((name) => trimmedString(name)).filter((name) => name.length > 0))
+      .filter((rank) => rank.length > 0);
+    return ranks;
+  }
+  const peers: string[] = [];
+  for (const raw of record.layers) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue;
+    const name = trimmedString((raw as Record<string, unknown>).name);
+    if (name && !peers.includes(name)) peers.push(name);
+  }
+  return peers.length > 0 ? [peers] : [];
+}
+
+/**
+ * Reads the forbidden-import pairs a legacy architecture body proposed.
+ *
+ * The pairs are never promoted to schema 0.2 rules: a rule needs an id and a
+ * rationale, and onboarding has neither. They are surfaced as guidance so the
+ * conversion loses nothing the draft actually said.
+ *
+ * @param body - Architecture YAML from any onboarding producer.
+ * @returns `from → to` pairs in source order.
+ */
+export function readLegacyForbiddenImports(body: string): readonly {readonly from: string; readonly to: string}[] {
+  const record = parseYamlRecord(body);
+  if (!record || !Array.isArray(record.layers)) return [];
+  const pairs: {from: string; to: string}[] = [];
+  for (const raw of record.layers) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue;
+    const layer = raw as Record<string, unknown>;
+    const from = trimmedString(layer.name);
+    if (!from || !Array.isArray(layer.forbidden_imports)) continue;
+    for (const candidate of layer.forbidden_imports) {
+      const to = trimmedString(candidate);
+      if (to && !pairs.some((pair) => pair.from === from && pair.to === to)) pairs.push({from, to});
+    }
+  }
+  return pairs;
+}
+
+/**
+ * Renders `spec/capabilities.yaml` in its canonical schema 0.2 shape.
+ *
+ * Schema 0.2 reads this file as the sole capability source, so the body
+ * carries the catalog and its authoring guidance — no legacy `schema` or
+ * `source` wrapper keys.
+ *
+ * @param projectName - Name surfaced in the guidance comment.
+ * @param capabilities - Catalog entries; an empty list renders the seed.
+ * @returns A complete YAML body for `spec/capabilities.yaml`.
+ * @see spec/features/spec-02-native-onboarding-c4df5fb4.yaml AC-672da65e
+ * @since 0.10.0
+ */
+export function renderSchema02CapabilitiesYaml(
+  projectName: string,
+  capabilities: readonly Schema02CapabilityEntry[] = [],
+): string {
+  return [
+    '# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad clarify',
+    '# Schema 0.2 capability catalog — the single source of capability ids.',
+    `# List ${projectName}'s user-facing capabilities here. Each entry:`,
+    '#   - id: <kebab-slug>',
+    '#     title: "<short name a reader recognises>"',
+    '#     outcome: "<one sentence — the outcome a user gets>"',
+    '# Feature files point back with `capability_refs: [<id>, ...]`.',
+    capabilities.length === 0
+      ? 'capabilities: []'
+      : yaml.stringify({capabilities: capabilities.map((entry) => ({...entry}))}, {lineWidth: 0}).trimEnd(),
+    '',
+  ].join('\n');
+}
+
+/**
+ * Renders `spec/architecture.yaml` in its canonical schema 0.2 shape.
+ *
+ * `rules` is always empty here. A schema 0.2 rule carries an id and a
+ * rationale, and onboarding observes neither; any pairs a draft proposed are
+ * written as guidance so the reader can promote them deliberately.
+ *
+ * @param language - Detected language, named in the empty-workspace comment.
+ * @param layers - Ordered ranks of peer layer names.
+ * @param forbiddenCandidates - Legacy pairs surfaced as guidance, never as rules.
+ * @returns A complete YAML body for `spec/architecture.yaml`.
+ * @see spec/features/spec-02-native-onboarding-c4df5fb4.yaml AC-672da65e
+ * @since 0.10.0
+ */
+export function renderSchema02ArchitectureYaml(
+  language: string,
+  layers: readonly (readonly string[])[] = [],
+  forbiddenCandidates: readonly {readonly from: string; readonly to: string}[] = [],
+): string {
+  return [
+    '# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad clarify',
+    '# Schema 0.2 architecture contract.',
+    '# `layers` is an ordered list of ranks; each rank lists peer layer names,',
+    '# with the layers that may depend on everything below them last.',
+    '# `rules` holds the forbidden-import rules a feature can point at:',
+    '#   - id: AR-<8 lowercase hex>',
+    '#     kind: forbidden_import',
+    '#     from: <layer>',
+    '#     to: <layer>',
+    '#     rationale: "<why this import would break the design>"',
+    ...(forbiddenCandidates.length > 0
+      ? [
+        '# Onboarding proposed these forbidden-import pairs. They are candidates, not',
+        '# rules: a rule needs a rationale nobody has written yet. Promote the ones you',
+        '# mean under `rules:` above.',
+        ...forbiddenCandidates.map((pair) => `#   ${pair.from} must not import ${pair.to}`),
+      ]
+      : []),
+    ...(layers.length > 0
+      ? ['layers:', ...layers.map((rank) => `  - [${rank.join(', ')}]`)]
+      : [`# No source layout observed yet in this ${language} workspace — add ranks as it appears.`, 'layers: []']),
+    'rules: []',
+    '',
+  ].join('\n');
+}
+
+/**
+ * Renders one onboarding scenario as a schema 0.2 journey draft.
+ *
+ * Schema 0.2 requires a journey to name an actor, a goal, a success
+ * condition, and at least one feature it binds. Onboarding runs before any
+ * feature exists, so the draft is staged for review rather than written into
+ * `spec/scenarios/`: an unbound journey is a shard the typed edit boundary
+ * refuses, which would leave the workspace unable to author its first feature.
+ *
+ * @param scenario - Journey the onboarding pass extracted.
+ * @returns A complete YAML body for the staged draft.
+ * @see spec/features/spec-02-native-onboarding-c4df5fb4.yaml AC-9e0a4c31
+ * @since 0.10.0
+ */
+export function renderSchema02ScenarioDraftYaml(scenario: OnboardingScenario): string {
+  const steps = scenario.flow
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .map((line) => `  - ${quotedScenarioText(line)}`);
+  return [
+    '# Cladding · schema 0.2 scenario draft — not yet a spec/scenarios/ journey.',
+    '# A schema 0.2 journey names an actor, a goal, and a success condition, and',
+    '# binds at least one feature. Onboarding knows none of those yet, so this',
+    '# draft waits here. Fill the blanks and create the journey once the feature',
+    '# it describes exists.',
+    `id: ${scenario.id}`,
+    `title: ${quotedScenarioText(scenario.title)}`,
+    'actor: ""',
+    'goal: ""',
+    'success: ""',
+    'steps:',
+    ...(steps.length > 0 ? steps : ['  - ""']),
+    'feature_refs: []',
+    '',
+  ].join('\n');
+}
+
+/** Repository-relative path a schema 0.2 scenario draft would eventually occupy. */
+export function schema02ScenarioDraftPath(scenario: OnboardingScenario): string {
+  return `spec/scenarios/${scenario.slug}-${scenario.id.replace(/^S-/, '')}.yaml`;
+}
+
+function quotedScenarioText(value: string): string {
+  return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+}
+
+function parseYamlRecord(body: string): Record<string, unknown> | null {
+  let parsed: unknown;
+  try {
+    parsed = yaml.parse(body);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+  return parsed as Record<string, unknown>;
+}
+
+function trimmedString(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}

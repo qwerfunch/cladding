@@ -68,7 +68,10 @@ say-so alone, never skip a `▣`.
    otherwise. Do not hand-write `status: done`: the verb is what keeps "done" from claiming more than
    the gate verifies. An unresolved structural design impact is refused before the gate runs.
    `clad sync` keeps the inventory honest. Sign-off identity ≠ any implementer
-   (independent agent, or a human at L4 / UAT). **Then start the next feature's cycle.**
+   (independent agent, or a human at L4 / UAT). On a schema 0.2 workspace the verb closes by
+   telling you to run `clad check --tier=pre-push` once more before committing: sealing this
+   feature moves the state every sibling's receipt was written against, so they need re-attesting
+   and `spec/attestation.yaml` is committed after that run. **Then start the next feature's cycle.**
 
 ## Parallelism = N concurrent instances of this same cycle
 

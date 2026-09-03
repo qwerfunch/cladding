@@ -1003,9 +1003,15 @@ function registerTools(server: McpServer, cwd: string, onboarding?: OnboardingOp
         }, true);
       }
       const questions = init.clarifyingQuestions ?? [];
+      // Structured content the declared output schema does not name is rejected
+      // before a host ever sees it, and that schema's size is a measured design
+      // budget. The scaffolded schema therefore stays out of the published
+      // result: a host reads it from the spec.yaml this approval just wrote.
+      const initResult: Record<string, unknown> = {...init};
+      delete initResult.schema;
       const payload = {
         status: questions.length > 0 ? 'needs_answers' : 'initialized', changed: true,
-        ...init,
+        ...initResult,
         onboardingSource: 'host',
         confirmation: args.confirmation,
         nextQuestion: questions[0] ?? null,

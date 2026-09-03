@@ -111,14 +111,50 @@ function readOptional(path: string): string {
   return existsSync(path) ? readFileSync(path, 'utf8') : '';
 }
 
-/** Converts validated host data into the existing sentinel interpreter input. */
-export function renderHostDraft(draft: HostOnboardingDraft): string {
+/**
+ * Reads the schema a workspace declares, without loading or compiling it.
+ *
+ * A directory with no `spec.yaml` is about to be scaffolded, and a fresh
+ * scaffold is schema 0.2 — so an absent root reads as 0.2 rather than legacy.
+ *
+ * @param cwd - Workspace root to inspect.
+ * @returns The declared schema, defaulting to `0.2`.
+ */
+function workspaceSchema(cwd: string): '0.1' | '0.2' {
+  const path = join(cwd, 'spec.yaml');
+  if (!existsSync(path)) return '0.2';
+  try {
+    const root = yaml.parse(readFileSync(path, 'utf8')) as {schema?: unknown} | null;
+    return root && root.schema === '0.1' ? '0.1' : '0.2';
+  } catch {
+    return '0.2';
+  }
+}
+
+/**
+ * Converts validated host data into the existing sentinel interpreter input.
+ *
+ * The capability catalog carries the legacy `schema` and `source` markers only
+ * for a schema 0.1 workspace. Neither belongs in a schema 0.2 catalog, and the
+ * interpreter reads the block with or without them.
+ *
+ * @param draft - Host-validated onboarding data.
+ * @param cwd - Workspace the draft will be applied to.
+ * @returns The sentinel-delimited interpreter input.
+ * @see spec/features/spec-02-native-onboarding-c4df5fb4.yaml AC-44fd1b7d
+ */
+export function renderHostDraft(draft: HostOnboardingDraft, cwd: string = '.'): string {
   const context = [
     '## 1. Why does this project exist?', '', draft.project_context.why,
     '', '## 2. What problem does it solve?', '', draft.project_context.problem,
     '', '## 3. What is its purpose?', '', draft.project_context.purpose,
   ].join('\n');
-  const capabilities = yaml.stringify({schema: '0.1', source: 'intent', capabilities: draft.capabilities}, {lineWidth: 0}).trim();
+  const capabilities = yaml.stringify(
+    workspaceSchema(cwd) === '0.1'
+      ? {schema: '0.1', source: 'intent', capabilities: draft.capabilities}
+      : {capabilities: draft.capabilities},
+    {lineWidth: 0},
+  ).trim();
   const architecture = yaml.stringify({layers: draft.architecture.layers}, {lineWidth: 0}).trim();
   const scenarios = yaml.stringify(draft.scenarios.map((scenario) => ({...scenario, features: []})), {lineWidth: 0}).trim();
   const metadata = draft.ai_hints ? yaml.stringify(draft.ai_hints, {lineWidth: 0}).trim() : '';

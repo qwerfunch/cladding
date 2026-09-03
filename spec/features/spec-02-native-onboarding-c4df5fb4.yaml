@@ -1,0 +1,64 @@
+id: F-c4df5fb4
+title: Spec 0.2 native onboarding — clad init scaffolds schema 0.2 by default
+status: planned
+purpose: "A new adopter should start on schema 0.2 without running a migration:
+  the scaffold, the host onboarding draft, and the completion guidance must
+  speak 0.2 so the reference implementation dogfoods the schema it recommends."
+modules:
+  - src/cli/init.ts
+  - src/cli/clarify.ts
+  - src/cli/scan/intent-onboarding.ts
+  - src/cli/host-onboarding.ts
+  - src/serve/server.ts
+  - src/cli/done.ts
+  - src/cli/clad.ts
+  - spec/README.md
+  - docs/feature-cycle.md
+  - tests/cli/init.test.ts
+  - tests/cli/init-schema02.test.ts
+  - tests/cli/clarify-schema02.test.ts
+  - tests/serve/init-tools.test.ts
+  - tests/cli/done-schema02-crash-safe.test.ts
+depends_on: []
+capability_refs: []
+acceptance_criteria:
+  - id: AC-7e4895e2
+    kind: behavior
+    statement: When clad init scaffolds a workspace without an explicit legacy
+      schema flag, the system shall write a schema 0.2 root that declares
+      project purpose with assurance_level L2 and scenario_policy advisory.
+  - id: AC-672da65e
+    kind: behavior
+    statement: When clad init scaffolds a schema 0.2 workspace, the system shall
+      write spec/capabilities.yaml and spec/architecture.yaml in their schema
+      0.2 shapes without a legacy schema marker.
+  - id: AC-c366483b
+    kind: behavior
+    statement: When clad init is invoked with the schema 0.1 flag, the system shall
+      scaffold the legacy schema 0.1 seed unchanged.
+  - id: AC-44fd1b7d
+    kind: behavior
+    statement: When the host onboarding draft renders capabilities for a schema 0.2
+      workspace, the system shall emit a catalog without the legacy 0.1 schema
+      marker.
+  - id: AC-bd69438e
+    kind: behavior
+    statement: When a fresh schema 0.2 scaffold runs the checkpoint profile, the
+      system shall report a GREEN verdict without a migration baseline.
+  - id: AC-8057bdd4
+    kind: behavior
+    statement: When clad done completes a schema 0.2 feature, the system shall print
+      guidance to re-attest with the push profile before committing the
+      attestation.
+  - id: AC-9e0a4c31
+    kind: behavior
+    statement: When clad clarify refines a schema 0.2 workspace, the system shall
+      commit the refinement through the typed edit boundary, write the
+      capability catalog and architecture contract in their schema 0.2 shapes,
+      and stage each drafted journey for review instead of writing a scenario
+      that binds no feature.
+design_impact:
+  classification: none
+  rationale: Scaffold, onboarding draft, and CLI guidance text change only; no
+    accepted design decision or owner document changes.
+  status: resolved

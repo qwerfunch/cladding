@@ -106,6 +106,11 @@ export interface DoneResult {
    * supplied.
    */
   readonly independence?: IndependenceLabel;
+  /**
+   * Schema of the workspace the transition ran against. Present once the gate
+   * has run, so the CLI can say what a schema 0.2 completion leaves to do.
+   */
+  readonly schemaVersion?: '0.1' | '0.2';
   readonly reason: string;
 }
 
@@ -411,6 +416,7 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
       prevStatus: marked.previousStatus,
       shardPath: marked.path,
       independence,
+      schemaVersion,
       reason: `strict gate GREEN — status: ${marked.previousStatus || 'unset'} → done`,
     };
   }

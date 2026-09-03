@@ -48,7 +48,9 @@ async function runContinuousGreenfieldLifecycle(cwd: string): Promise<Greenfield
   const transitions: string[] = [];
 
   dispatchMock.mockResolvedValueOnce(GREENFIELD_S1_RESPONSE);
-  const initialized = await runInit({cwd, intent: '결제 SaaS for B2B'});
+  // The lifecycle below authors features in the schema 0.1 shape, so it
+  // initializes the legacy workspace explicitly rather than the 0.2 default.
+  const initialized = await runInit({cwd, intent: '결제 SaaS for B2B', schema: '0.1'});
   transitions.push('init');
   expect(initialized.onboardingMode).toBe('greenfield');
   assertArtifactsPresent(cwd, {
@@ -84,7 +86,7 @@ async function runContinuousGreenfieldLifecycle(cwd: string): Promise<Greenfield
   assertCrossTierClean(cwd, ['META_INTEGRITY']);
 
   dispatchMock.mockResolvedValueOnce(GREENFIELD_S5_RESPONSE);
-  await runInit({cwd, scan: true});
+  await runInit({cwd, scan: true, schema: '0.1'});
   transitions.push('rescan');
   assertProposalDivert(cwd, 'docs/conventions.md');
   assertProposalDivert(cwd, 'spec/architecture.yaml');

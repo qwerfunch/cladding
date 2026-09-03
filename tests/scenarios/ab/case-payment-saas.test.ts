@@ -87,7 +87,11 @@ describe('A/B · payment-saas — cladding vs vanilla on greenfield intent', () 
     // ── M1 ──────────────────────────────────────────────────────
     // A: cladding init with intent — produces 4-tier seed.
     dispatchMock.mockResolvedValueOnce(GREENFIELD_S1_RESPONSE);
-    await runInit({cwd: aCwd.path, intent: VANILLA_PAYMENT_SAAS_SESSION.intent});
+    // The M2 steps below hand-author schema 0.1 feature shards and canonicalize
+    // a schema 0.1 architecture, so the case initializes the legacy workspace
+    // explicitly rather than the 0.2 default: a 0.2 root fed 0.1-shaped hand
+    // edits measures the mismatch, not the workflow this case records.
+    await runInit({cwd: aCwd.path, intent: VANILLA_PAYMENT_SAAS_SESSION.intent, schema: '0.1'});
 
     // B: vanilla developer writes the initial skeleton.
     applyFileSet(bCwd.path, VANILLA_PAYMENT_SAAS_SESSION.m1Files);

@@ -51,7 +51,9 @@ async function runContinuousAdoptionLifecycle(cwd: string): Promise<AdoptionLife
   expect(existsSync(join(cwd, 'src/util/log.ts'))).toBe(true);
 
   dispatchMock.mockResolvedValueOnce(EXISTING_S2_RESPONSE);
-  const initialized = await runInit({cwd, intent: '이 프로젝트 분석해서 클래딩 적용'});
+  // The lifecycle below authors features in the schema 0.1 shape, so it
+  // initializes the legacy workspace explicitly rather than the 0.2 default.
+  const initialized = await runInit({cwd, intent: '이 프로젝트 분석해서 클래딩 적용', schema: '0.1'});
   transitions.push('init');
   expect(initialized.onboardingMode).toBe('existing-adoption');
   assertArtifactsPresent(cwd, {
