@@ -5,8 +5,9 @@
 // degrades impact, what a diagnostic looks like after the preamble and line budgets
 // run, and what the blind-oracle packet may never contain. The live self corpus then
 // pins the MEASUREMENTS on real data: the largest graph feature must pack under its
-// implement ceiling by shedding optional fan-out rather than overflowing, and a small
-// feature must project a spec-edit packet with nothing omitted at all.
+// implement ceiling with nothing omitted, and shed only the ownership fan-out when a
+// caller asks for that lazy section by name; and a small feature must project a
+// spec-edit packet with nothing omitted at all.
 //
 // This suite is also the covered successor of the retired preamble/tail helper tests:
 // F-041/AC-065 and F-041/AC-066 now describe packing rules of this envelope, and
@@ -355,9 +356,51 @@ describe('cycle context envelope — task projections', () => {
         {path: 'src/shared.ts', owners: ['F-aaaaaaaa', 'F-cccccccc']},
       ],
     });
-    expect(body(envelope, 'ownership-fan-out')).toEqual({
+    // Lazy means absent by default, not shed: there is budget to spare here and the
+    // fan-out still does not travel, and nothing claims it was omitted either.
+    expect(sectionIds(envelope)).not.toContain('ownership-fan-out');
+    expect(envelope.budget.omitted).toEqual([]);
+
+    const included = buildCycleContextEnvelope(
+      workspace,
+      {task: 'implement', feature: 'F-aaaaaaaa', prior_attempts: PRIOR_ATTEMPTS, include: ['ownership-fan-out']},
+      {cwd: root},
+    );
+
+    expect(body(included, 'ownership-fan-out')).toEqual({
       fan_out: [{feature: 'F-cccccccc', paths: ['src/other.ts', 'src/shared.ts']}],
     });
+    // Below every optional section, so it is the first thing shed under pressure.
+    expect(included.sections.find((section) => section.id === 'ownership-fan-out')?.priority)
+      .toBeGreaterThan(Math.max(...included.sections
+        .filter((section) => TASK_PROFILES.implement.optional.includes(section.id))
+        .map((section) => section.priority)));
+    // Asking for it is what costs; the default packet is the cheaper one.
+    expect(included.budget.payload_utf8_bytes).toBeGreaterThan(envelope.budget.payload_utf8_bytes);
+  });
+
+  test('[covers:F-1a87a6bd/AC-87b85505] refuses an include the profile does not declare lazy', () => {
+    const root = fixtureRoot();
+    const workspace = loadGraphIrV2Workspace(root);
+
+    expect(() => buildCycleContextEnvelope(
+      workspace,
+      {task: 'implement', feature: 'F-aaaaaaaa', include: ['not-a-section']},
+      {cwd: root},
+    )).toThrow(/cannot include "not-a-section" in a implement packet.*ownership-fan-out/s);
+    // An optional section is not lazy: it is packed by default, so naming it is a
+    // caller mistake too, and a silent no-op would read exactly like a shed section.
+    expect(() => buildCycleContextEnvelope(
+      workspace,
+      {task: 'implement', feature: 'F-aaaaaaaa', include: ['prior-attempts']},
+      {cwd: root},
+    )).toThrow(/cannot include "prior-attempts"/);
+    // A profile with no lazy sections says so rather than naming an empty list.
+    expect(() => buildCycleContextEnvelope(
+      workspace,
+      {task: 'verify', feature: 'F-aaaaaaaa', include: ['ownership-fan-out']},
+      {cwd: root},
+    )).toThrow(/lazy sections are none/);
   });
 
   test('[covers:F-1a87a6bd/AC-87b85505] projects observed results and evidence state for the verify profile', () => {
@@ -525,9 +568,9 @@ describe('cycle context envelope — measurement and packing', () => {
     // The named section is the largest required one, so a reader knows what to split.
     const largest = [...envelope.sections]
       .sort((left, right) => Buffer.byteLength(JSON.stringify(right), 'utf8') - Buffer.byteLength(JSON.stringify(left), 'utf8'))[0]!;
+    // Nothing optional or lazy was in this packet to shed, so the only thing the
+    // budget can report is which required section made it oversized.
     expect(envelope.budget.omitted).toEqual([
-      // Optional content leaves first; only then does the packet admit it is oversized.
-      {section: 'ownership-fan-out', reason: 'budget', omitted_bytes: expect.any(Number)},
       {section: largest.id, reason: 'budget', omitted_bytes: envelope.budget.payload_utf8_bytes - 200},
     ]);
     expect(envelope.budget.payload_utf8_bytes).toBe(Buffer.byteLength(JSON.stringify(envelope), 'utf8'));
@@ -536,7 +579,14 @@ describe('cycle context envelope — measurement and packing', () => {
   test('[covers:F-1a87a6bd/AC-fb5c7567] omits optional sections lowest-priority-first and aggregates each one', () => {
     const root = fixtureRoot();
     const workspace = loadGraphIrV2Workspace(root);
-    const request = {task: 'implement' as const, feature: 'F-aaaaaaaa', prior_attempts: PRIOR_ATTEMPTS};
+    // The fan-out is included on purpose: this test is about the order things leave
+    // in, and an included lazy section sits below every optional one.
+    const request = {
+      task: 'implement' as const,
+      feature: 'F-aaaaaaaa',
+      prior_attempts: PRIOR_ATTEMPTS,
+      include: ['ownership-fan-out'],
+    };
     const full = buildCycleContextEnvelope(workspace, request, {cwd: root});
     expect(full.budget.omitted).toEqual([]);
     const fanOutBytes = Buffer.byteLength(
@@ -743,19 +793,32 @@ describe('cycle context envelope — write scope, diagnostics, and blind isolati
 });
 
 describe('cycle context envelope — self corpus and the frozen context wire', () => {
-  test('[covers:F-1a87a6bd/AC-fb5c7567] packs the largest graph feature under its implement ceiling by shedding fan-out', () => {
+  test('[covers:F-1a87a6bd/AC-fb5c7567] packs the largest graph feature under its implement ceiling without the lazy fan-out', () => {
     const envelope = buildCycleContextEnvelope(selfWorkspace(), {task: 'implement', feature: 'F-208eaa79'});
 
     expect(envelope.budget.payload_utf8_bytes).toBeLessThanOrEqual(TASK_PROFILES.implement.ceiling_bytes);
     expect(envelope.budget.required_overflow).toBe(false);
-    expect(envelope.budget.omitted.length).toBeGreaterThan(0);
-    expect(envelope.budget.omitted.map((entry) => entry.section)).toContain('ownership-fan-out');
-    // The hub sheds the co-owner fan-out and still hands over its own 56 paths.
+    // The hub packet is not the fan-out shed under pressure; it never held it.
+    expect(envelope.budget.omitted).toEqual([]);
+    expect(sectionIds(envelope)).not.toContain('ownership-fan-out');
+    // It still hands over its own 56 declared paths, which are a required fact.
     expect((body(envelope, 'candidate-affected-paths').modules as unknown[]).length).toBe(56);
     for (const required of TASK_PROFILES.implement.required) {
       expect(sectionIds(envelope)).toContain(required);
     }
     expect(envelope.budget.payload_utf8_bytes).toBe(Buffer.byteLength(JSON.stringify(envelope), 'utf8'));
+
+    // Asked for explicitly, the hub's fan-out does not fit under the same ceiling, so
+    // it is shed and named — the packing rule the lazy list keeps off the default path.
+    const included = buildCycleContextEnvelope(
+      selfWorkspace(),
+      {task: 'implement', feature: 'F-208eaa79', include: ['ownership-fan-out']},
+    );
+
+    expect(included.budget.payload_utf8_bytes).toBeLessThanOrEqual(TASK_PROFILES.implement.ceiling_bytes);
+    expect(included.budget.required_overflow).toBe(false);
+    expect(included.budget.omitted.map((entry) => entry.section)).toEqual(['ownership-fan-out']);
+    expect(included.budget.omitted[0]!.omitted_bytes).toBeGreaterThan(0);
   });
 
   test('[covers:F-1a87a6bd/AC-87b85505] projects a small feature spec-edit packet with nothing omitted', () => {

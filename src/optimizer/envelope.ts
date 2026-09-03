@@ -2,7 +2,7 @@
 //
 // D19 keys context by the OPERATION, never by a persona name. Five task profiles
 // name the sections one operation actually needs, and the packer proves the
-// physical cost of what it sends instead of assuming it. Three rules make that a
+// physical cost of what it sends instead of assuming it. Four rules make that a
 // measurement contract rather than a slogan:
 //
 //   • Required contract facts are never truncated. When they alone exceed the
@@ -11,6 +11,12 @@
 //     partial contract for a whole one.
 //   • Optional sections are dropped lowest-priority-first and every drop is
 //     aggregated in `budget.omitted` with the exact bytes it saved.
+//   • A profile's LAZY sections are never packed by default, however much budget
+//     is free. D19 calls them available lazily, and that is a cost rule, not a
+//     wording preference: a caller who needs one names it in `include` and pays a
+//     second packet for it, so the default path never carries a summary nobody
+//     asked for. An included lazy section packs below every optional one, which
+//     makes it the first thing shed if the packet still does not fit.
 //   • `payload_utf8_bytes` measures the FINAL serialization, its own budget and
 //     omission metadata included, so the number the envelope prints is the number
 //     it costs. The measure loop repeats until that reaches a byte fixed point.
@@ -189,6 +195,13 @@ export interface CycleContextRequest {
   readonly attestation?: ContextAttestationSnapshot;
   /** Criterion for the blind-oracle projection; the first criterion is used when absent. */
   readonly criterion?: string;
+  /**
+   * Lazy section ids to pack in this build. Only ids the profile declares lazy are
+   * accepted; anything else is a caller mistake the envelope refuses rather than
+   * silently drops, because a quietly ignored request looks exactly like a section
+   * that was packed and then shed.
+   */
+  readonly include?: readonly string[];
 }
 
 /** Packing knobs; the profile owns every default. */
@@ -204,12 +217,17 @@ export interface CycleContextOptions {
   readonly max_measure_rounds?: number;
 }
 
-/** One profile's required set, optional priority order, and payload ceiling. */
+/** One profile's required set, optional priority order, lazy set, and payload ceiling. */
 export interface TaskProfileDefinition {
   /** Section ids that are always projected and never dropped. */
   readonly required: readonly string[];
   /** Optional section ids in priority order: earliest is kept longest. */
   readonly optional: readonly string[];
+  /**
+   * Section ids never packed by default, whatever budget is free. A request names one
+   * in `include` to have it packed, below every optional section.
+   */
+  readonly lazy: readonly string[];
   /** D19 payload ceiling in UTF-8 bytes. */
   readonly ceiling_bytes: number;
 }
@@ -257,6 +275,10 @@ const PREAMBLE_PATTERNS: readonly RegExp[] = Object.freeze([
 /**
  * The D19 task projection table.
  *
+ * `required` and `optional` are what a packet may carry on its own; `lazy` is the
+ * other half of D19's table — content the design calls available lazily, which the
+ * packer reads as "never sent unless the request asks for it by name".
+ *
  * @see spec/features/spec-02-context-envelope-1a87a6bd.yaml AC-87b85505
  * @see spec/features/spec-02-context-envelope-1a87a6bd.yaml AC-d609cdef
  * @since 0.10.0
@@ -266,6 +288,7 @@ export const TASK_PROFILES: Readonly<Record<TaskProfile, TaskProfileDefinition>>
   'spec-edit': Object.freeze({
     required: Object.freeze(['intent', 'target-contract', 'referenced-constraints', 'affected-links']),
     optional: Object.freeze([]),
+    lazy: Object.freeze([]),
     ceiling_bytes: 16_384,
   }),
   implement: Object.freeze({
@@ -276,9 +299,12 @@ export const TASK_PROFILES: Readonly<Record<TaskProfile, TaskProfileDefinition>>
       'purpose', 'criteria', 'constraints', 'prerequisites',
       'predicted-write-scope', 'candidate-affected-paths', 'required-proof',
     ]),
-    // Failure detail outranks history, and the fan-out — the largest and least
-    // decision-bearing block on a shared-module hub — leaves first.
-    optional: Object.freeze(['current-failure', 'prior-attempts', 'ownership-fan-out']),
+    // Failure detail outranks history.
+    optional: Object.freeze(['current-failure', 'prior-attempts']),
+    // The co-owner fan-out is the largest and least decision-bearing block on a
+    // shared-module hub: resident it costs a p95 cycle more than the two-dispatch
+    // path it replaces, and almost no operation reads it. It travels on request.
+    lazy: Object.freeze(['ownership-fan-out']),
     ceiling_bytes: 24_576,
   }),
   verify: Object.freeze({
@@ -287,16 +313,19 @@ export const TASK_PROFILES: Readonly<Record<TaskProfile, TaskProfileDefinition>>
       'observed-results', 'impact-closure', 'evidence-state', 'freshness',
     ]),
     optional: Object.freeze(['diagnostics']),
+    lazy: Object.freeze([]),
     ceiling_bytes: 16_384,
   }),
   observe: Object.freeze({
     required: Object.freeze(['gate-results', 'proof-freshness', 'attestation-digest', 'unresolved-layers']),
     optional: Object.freeze(['diagnostics']),
+    lazy: Object.freeze([]),
     ceiling_bytes: 16_384,
   }),
   'blind-oracle': Object.freeze({
     required: Object.freeze(['criterion', 'public-signatures', 'target-test-path', 'subject-revisions']),
     optional: Object.freeze([]),
+    lazy: Object.freeze([]),
     ceiling_bytes: 24_576,
   }),
 });
@@ -518,6 +547,35 @@ function prerequisiteBody(
   return {prerequisites, complete: prerequisites.every((entry) => entry.state !== 'unresolved')};
 }
 
+/**
+ * Every path a co-owner of the feature's modules also declares.
+ *
+ * This is the largest and least decision-bearing block an implement packet can hold
+ * on a shared-module hub, which is why D19 keeps it lazily available: it is built
+ * here only when a request names `ownership-fan-out` in `include`.
+ *
+ * @param features - Every schema 0.2 feature contract, for the co-owners' own modules.
+ * @param feature - The acting feature, excluded from its own fan-out.
+ * @param moduleOwners - The feature's declared paths with the features owning each.
+ * @returns One co-owner entry per feature that declares at least one path.
+ */
+function ownershipFanOutBody(
+  features: readonly Schema02FeatureContract[],
+  feature: Schema02FeatureContract,
+  moduleOwners: readonly {readonly path: string; readonly owners: readonly string[]}[],
+): Readonly<Record<string, unknown>> {
+  const coOwners = [...new Set(moduleOwners.flatMap((entry) => [...entry.owners]))]
+    .filter((owner) => owner !== feature.id).sort();
+  return {
+    fan_out: coOwners
+      .map((owner) => ({
+        feature: owner,
+        paths: [...(features.find((entry) => entry.id === owner)?.modules ?? [])].sort(),
+      }))
+      .filter((entry) => entry.paths.length > 0),
+  };
+}
+
 /** Impact from the write set outward, honest about the ring it stopped at. */
 function impactBody(
   view: GraphConsumerView,
@@ -658,17 +716,6 @@ function candidatesFor(
     case 'implement': {
       const modules = [...(feature.modules ?? [])].sort();
       const moduleOwners = modules.map((path) => ({path, owners: [...view.owners(path)]}));
-      // Every path a co-owner also declares. This is the largest and least
-      // decision-bearing block on a shared-module hub, which is exactly why D19
-      // keeps ownership fan-out lazily available rather than resident.
-      const coOwners = [...new Set(moduleOwners.flatMap((entry) => entry.owners))]
-        .filter((owner) => owner !== feature.id).sort();
-      const fanOut = coOwners
-        .map((owner) => ({
-          feature: owner,
-          paths: [...(contract?.features.find((entry) => entry.id === owner)?.modules ?? [])].sort(),
-        }))
-        .filter((entry) => entry.paths.length > 0);
       const optional: SectionCandidate[] = [];
       if (request.prior_attempts !== undefined) {
         const prior = request.prior_attempts;
@@ -688,8 +735,24 @@ function candidatesFor(
           },
         });
       }
-      optional.push({
-        id: 'ownership-fan-out', required: false, priority: 3, body: {fan_out: fanOut},
+      // A lazy section is built only when the request named it: the thunk is what
+      // keeps "not packed" from still costing the walk that would have packed it.
+      const builders: Readonly<Record<string, () => unknown>> = {
+        'ownership-fan-out': () => ownershipFanOutBody(contract?.features ?? [], feature, moduleOwners),
+      };
+      const profile = TASK_PROFILES.implement;
+      const requested = new Set(request.include ?? []);
+      // Iterated in the profile's order, not the caller's, so two requests naming the
+      // same sections in different orders serialize to the same bytes.
+      profile.lazy.forEach((id, index) => {
+        if (!requested.has(id)) return;
+        optional.push({
+          id,
+          required: false,
+          // Below every optional section, so an included lazy block is shed first.
+          priority: profile.optional.length + 1 + index,
+          body: builders[id]!(),
+        });
       });
       return {
         candidates: [
@@ -887,13 +950,16 @@ function measureToFixedPoint(
  * Required contract facts survive every packing decision: when they alone exceed
  * the profile ceiling the result reports `required_overflow` and names the oversized
  * section instead of shipping a partial contract. Optional sections leave
- * lowest-priority-first, each one aggregated in `budget.omitted`.
+ * lowest-priority-first, each one aggregated in `budget.omitted`. The profile's lazy
+ * sections are absent unless `request.include` names them, and an included one packs
+ * below every optional section, so asking for it never displaces cheaper content.
  *
  * @param workspace - One coherent presentation, compilation, and GraphIR snapshot.
  * @param request - The operation, its feature, and the runtime facts the host observed.
  * @param options - Ceiling override, workspace root, and fixed-point round budget.
  * @returns One frozen, deterministic envelope whose `payload_utf8_bytes` is its own serialized length.
- * @throws Error when the feature has no schema 0.2 contract or the measurement never converges.
+ * @throws Error when `include` names a section the profile does not declare lazy, when
+ *   the feature has no schema 0.2 contract, or when the measurement never converges.
  * @example
  * ```ts
  * const envelope = buildCycleContextEnvelope(loadGraphIrV2Workspace('.'), {task: 'implement', feature: 'F-001'});
@@ -917,6 +983,13 @@ export function buildCycleContextEnvelope(
   const rounds = options.max_measure_rounds ?? DEFAULT_MEASURE_ROUNDS;
   const profile = TASK_PROFILES[request.task];
   const ceiling = options.ceiling_bytes ?? profile.ceiling_bytes;
+  for (const id of request.include ?? []) {
+    if (profile.lazy.includes(id)) continue;
+    throw new Error(
+      `Cycle context envelope cannot include ${JSON.stringify(id)} in a ${request.task} packet; `
+      + `that profile's lazy sections are ${profile.lazy.length === 0 ? 'none' : profile.lazy.join(', ')}.`,
+    );
+  }
   const view = graphIrConsumerView(workspace, workspace.spec);
   const feature = resolveFeature(workspace, view, request.feature);
   // An absent write scope is explicitly unknown. Downstream impact treats that as
