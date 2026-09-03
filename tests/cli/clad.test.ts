@@ -745,6 +745,7 @@ describe('cli/clad — createProgram', () => {
       'migrate',
       'begin',
       'signoff',
+      'key',
       'ingest-receipt',
       'setup',
       'update',
@@ -836,6 +837,13 @@ describe('cli/clad — runServeCommand', () => {
     await clad.runServeCommand({cwd: '/tmp/probe'});
     expect(buildMock).toHaveBeenCalledWith({
       cwd: '/tmp/probe',
+      // F9d: trust and expected-digest material is an installation fact the
+      // composition root injects, never an MCP tool argument. `serve` must
+      // therefore hand the server the workspace's own evidence operations.
+      evidence: expect.objectContaining({
+        trustSnapshot: expect.objectContaining({digest: expect.any(String), keys: expect.any(Array)}),
+        expectedDigestContext: expect.any(Function),
+      }),
       onboarding: {
         renderDraft: expect.any(Function),
         prepareInit: expect.any(Function),

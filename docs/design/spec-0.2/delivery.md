@@ -24,7 +24,7 @@ F1 uses an independent sorted source-YAML snapshot oracle, without production lo
 6. **F6:** shared closures, the [D21–D23](assurance.md#d21--iron-law-assurance-kernel) DAG/reducer, legacy 15-stage projection, profile-aware `clad done`, and v3.
 7. **F7:** scenario v2 and `off | advisory | required`, then accept/reject the narrow L2 baseline before atomic self-migration; complete F7 on 0.2 and write pure-0.2 v3.
 8. **F8:** atomically cut graph CLI/JSON, exporters/viewer, and `clad_get_graph` to GraphIR v2; retain no v1 adapter.
-9. **F9:** ship `CycleContextEnvelope`, task projections, scheduler, registered human/blind issuers, and A–E; retain headless-loop compatibility.
+9. **F9:** ship `CycleContextEnvelope`, task projections, scheduler, a registered file-key human issuer, and A–E; retain headless-loop compatibility.
 10. **F10:** after F9 green, replace developer→reviewer choreography with task-state dispatch. Viewer polish/broader retrieval remain tail work.
 11. **F11:** add aliases/`clad relocate-generated [--apply]`, transition self before final enforcement, and prove D14 state/recovery.
 
@@ -84,7 +84,7 @@ Corpus gates compare sorted semantic records, not hand-maintained totals. The in
 - A generic MCP `blind: true`, a free-form human claim, same-author review, and receipt-free legacy evidence do not gain verified 0.2 status.
 - With project scenario policy `required`, every scenario referencing the parent feature contributes its ID and intent fields to every criterion subject in that feature. Changing that set or intent stales those receipts; `off | advisory`, unrelated scenarios, and sibling criteria do not. No receipt transfers to another address or hash.
 - Receipt fixtures verify RFC 8785 serialization, the `cladding.receipt/1` length-prefixed domain frame, detached Ed25519 signatures offline with a pinned out-of-workspace key, full-digest filenames, subject-derived feature directories, create-only writes, and exact revocation. Missing trust or a network-only verifier is unresolved/asserted and never GREEN proof.
-- Bare TTY and pseudo-TTY signoff, hand-written receipt YAML, caller strings, and OS/git identity remain asserted. Registered host elicitation/external signing produces a portable verified human receipt; absent that adapter, verified signoff returns `HUMAN_REQUIRED`.
+- Bare TTY and pseudo-TTY signoff, hand-written receipt YAML, caller strings, and OS/git identity remain asserted. A terminal prompt or host elicitation form in which a human re-enters the feature id produces a portable verified human receipt; absent that confirmation, a registered issuer, or a local signing key, verified signoff returns `HUMAN_REQUIRED`.
 - A human receipt becomes stale when its subject, reviewed inputs, complete runtime-dependency byte/sentinel closure, implementation-author set, trust snapshot, or signature changes. A direct feature-module edit is only one member of that closure. Two branches adding different content-addressed receipts merge with both files preserved; deleting one is possible only through explicit revocation.
 - A blind receipt contributes independence only with a current matching testcase pass and never clears UAT. A past pass, skipped-only observation, or unexecuted generated test is insufficient.
 
@@ -140,7 +140,7 @@ These are new test obligations, not evidence that an earlier session ran “37/3
 - **T01–T04 transaction:** different shards, same-shard stale, BUSY no-write, crash recovery.
 - **U01–U04 upgrade:** unresolved no-write, `L = N`, atomic apply/zero-diff, interrupted restore-or-finish.
 
-At the F6 boundary, the active fixture ledger names P01–P10, L01–L04, B01–B06, C01–C06, T01–T04, U01–U04, and A01–A03. These are executable obligations, not a runtime pass count; F7 scenarios, F8 public GraphIR cutover, F9 scheduler/cache/issuer paths, relocation, and reference-host cycles remain pending.
+At the F6 boundary, the active fixture ledger names P01–P10, L01–L04, B01–B06, C01–C06, T01–T04, U01–U04, and A01–A03. These are executable obligations, not a runtime pass count; F7 scenarios, F8 public GraphIR cutover, F9 scheduler/cache paths, relocation, and reference-host cycles remain pending; the F9d issuer path is validation-active.
 - **A01–A03 attestation:** selective contract stale, proof-input stale, target-versus-sibling receipt freshness.
 
 ### Repository gates
@@ -154,7 +154,7 @@ At the F6 boundary, the active fixture ledger names P01–P10, L01–L04, B01–
 - Use `clad done` as the one authoritative feature-completion strict gate and attestation refresh; do not duplicate the same full gate on an unchanged tree.
 - Cover legacy profile aliases with fixtures. Run the final release gate exactly once: `node bin/clad check --profile release --strict`; do not repeat the full gate through an alias.
 - Register newly shipped public terms in the glossary and keep detector-count/self-consistency checks green.
-- Run the D19 A–E topology/context suite as F9 acceptance and prove that removing general persona prompts changes neither contract, deterministic gate, verdict, nor stale scope. F5 fixtures must accept valid portable receipts and reject bad signatures/trust; F9 must add real signed human/blind production paths while preserving the asserted fallback.
+- Run the D19 A–E topology/context suite as F9 acceptance and prove that removing general persona prompts changes neither contract, deterministic gate, verdict, nor stale scope. F5 fixtures must accept valid portable receipts and reject bad signatures/trust; F9 adds the real signed human production path while preserving the asserted fallback; the blind capability adapter is deferred.
 - F9–F11 minimally fixture the issuer, L4 closure, and relocation mechanisms. Live human evidence is only a real human-signed receipt in each Codex and Claude Code MCP11 cycle; deterministic trust snapshots are protocol/mechanism evidence.
 - Release notes make the public README decision explicit: Cladding is self profile-complete at persisted L2; L4 product mechanism and host evidence is reported separately. This design does not change current README assurance claims.
 

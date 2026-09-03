@@ -104,6 +104,8 @@ These are intentionally outside the 0.10.0 core and may evolve independently.
 | Advisory semantic comparison | Deterministic compiler is complete; LLM comparison remains labelled advisory and never defines GREEN. |
 | Cost and false-block benchmark | F1–F6 land and the preregistered new benchmark can compare 0.1 and 0.2 maintenance. |
 | Broader LLM GraphIR retrieval study (40 tasks is the current scale candidate) | AB01–AB12 has first established task-scoped efficiency-when-used; a separately preregistered expansion may test generalization without altering adoption telemetry. Target: optional 0.10.x. |
+| OS secure-store issuer keys (Keychain, Credential Manager, Secret Service) | F9d's file-key issuer is in real use and a live adapter round trip exists on all three platforms. Until then a private key is an owner-only file and D20 states that threat model plainly. Target: 0.10.x. |
+| Blind capability issuer adapter | A host can emit a portable proof that a capability manifest was enforced. Without one a signed blind receipt adds no epistemic independence over the asserted `clad_author_oracle` record, so `blind: true` stays asserted-only. |
 | Viewer proof-detail polish and public graph cursor/`not_modified` support | The minimum v2 viewer/export cutover is stable; add only against a measured payload or navigation need. F9's session-bound diagnostic continuation is not this public surface. Target: 0.10.x. |
 | ~~F10 task-state headless loop (0.10.x)~~ — superseded 2026-08-29 | F10 ships in 0.10.0 after its stated F9 prerequisites. |
 | ~~Generated-file physical migration~~ — superseded 2026-08-29 | Original condition: do not combine it with schema migration. F11 satisfies this as the separate 0.10.0 relocation feature. |

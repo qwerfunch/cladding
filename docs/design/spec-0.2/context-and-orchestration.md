@@ -172,7 +172,7 @@ Receipts live at `spec/evidence/<F-id>/<full-sha256>.yaml`: the feature director
 
 Receipt schema 1 uses a detached Ed25519 signature over a newly defined canonical frame. Parse the YAML into a JSON-compatible value, rejecting aliases, tags, non-string map keys, non-finite numbers, and other non-JSON values. Remove `issuer_proof`, serialize the remaining value with RFC 8785 JSON Canonicalization Scheme, and encode it as UTF-8 `payload`. Let `domain` be the ASCII bytes of `cladding.receipt/1`; the signed bytes are `u32be(domain.length) || domain || u64be(payload.length) || payload`. Store the signature as unpadded base64url. After inserting `issuer_proof`, compute the lowercase hexadecimal filename SHA-256 over the RFC 8785 UTF-8 bytes of the complete receipt. `verified` and the receipt verdict are derived, never stored.
 
-The strict gate is synchronous and offline. `issuer_key_id` selects an Ed25519 SPKI key from an immutable trust snapshot supplied by the Cladding installation or registered host adapter outside the writable workspace; the gate and attestation record that snapshot's digest using UTF-16 code-unit canonical ordering. Supplied deterministic digest mismatches fail before trust lookup, including for an unknown key; missing context plus unknown trust remains unresolved/asserted. The verifier checks the signature and recomputes the subject, runtime-dependency, implementation-author, reviewed-input, evidence, and capability-manifest hashes without a network lookup. A missing verifier, unknown key, or online-only identity leaves the evidence unresolved/asserted and cannot satisfy UAT or required independence. A networked host channel may verify identity at ingestion time only if it emits this portable signed proof; later gates recheck bytes and signatures locally.
+The strict gate is synchronous and offline. `issuer_key_id` selects an Ed25519 SPKI key from an immutable trust snapshot built from the committed public registry `spec/trust/issuers.yaml`, while private signing keys live outside the writable workspace in `~/.cladding/keys/<issuer_key_id>.ed25519` (owner-only, `CLADDING_KEYS_DIR` to relocate); an absent registry is the empty snapshot. The gate and attestation record that snapshot's digest using UTF-16 code-unit canonical ordering. The threat model is explicit: any process running as this user, an AI agent included, can read the private key and therefore mint a `verified` receipt, so the terminal confirmation and the MCP elicitation form are consent friction rather than cryptographic proof of a human, and a host running with blanket auto-approval (Codex `danger-full-access`) will answer the form itself and produce agent-approved receipts. What the committed registry does buy is visibility: a key addition moves `trust_snapshot_sha256` and re-mints every attestation row, so it cannot enter the project quietly. Supplied deterministic digest mismatches fail before trust lookup, including for an unknown key; missing context plus unknown trust remains unresolved/asserted. The verifier checks the signature and recomputes the subject, runtime-dependency, implementation-author, reviewed-input, evidence, and capability-manifest hashes without a network lookup. A missing verifier, unknown key, or online-only identity leaves the evidence unresolved/asserted and cannot satisfy UAT or required independence. A networked host channel may verify identity at ingestion time only if it emits this portable signed proof; later gates recheck bytes and signatures locally.
 
 `subject_sha256` is canonical and address-sensitive:
 
@@ -190,7 +190,7 @@ changing an unrelated scenario or sibling criterion does not stale the target
 criterion receipt. A future narrower rule requires an explicit schema edge and
 must not infer criterion coverage from step prose.
 
-A human receipt additionally binds the sorted runtime dependency closure, including the feature's complete module paths and bytes and explicit missing-file sentinels. `implementation_authors_sha256` hashes the sorted unique normalized `{root, assurance, author, name}` mutation-provenance records for every implementation root in that closure; an unattributed root receives `{root, assurance: 'asserted', author: 'unknown', name: ''}`. Hashing binds the declared mapping; it does not upgrade asserted identity into verified identity. An incomplete author mapping leaves an independence requirement unobserved, and a matching verified issuer remains self-certified.
+A human receipt additionally binds the sorted runtime dependency closure, including the feature's complete module paths and bytes and explicit missing-file sentinels. `reviewed_inputs_sha256` is the verification closure aggregate of the receipt subject — one criterion's closure for an Audit receipt, the feature-wide aggregate for a UAT receipt — computed from the RECEIPT-FREE closure, so a receipt never stales itself or a sibling. `implementation_authors_sha256` hashes the sorted unique normalized `{root, assurance, author, name}` mutation-provenance records for every implementation root in that closure, sourced in strict order: audit-log mutation identity for a root an evidence entry names, else the root's git author as `{assurance: 'asserted', author: 'git'}`, else the sentinel `{root, assurance: 'asserted', author: 'unknown', name: ''}` for an unattributed root. Hashing binds the declared mapping; it does not upgrade asserted identity into verified identity. An incomplete author mapping leaves an independence requirement unobserved, and a matching verified issuer remains self-certified.
 
 An Audit receipt is criterion-scoped and records the three named checks above. A UAT receipt is signed once per feature but its `criterion_verdicts` addresses every current composite criterion: each value is that criterion's intent-alignment decision, while the two named feature checks cover negative space and accepted trade-offs. A UAT pass requires the exact current criterion set and every criterion/check to pass. Any explicit fail is an applicable failure even if the rest of the matrix is incomplete; an unknown address invalidates the receipt, and a missing address remains unobserved rather than passing. The reducer derives the receipt verdict, so no persisted summary can disagree with its checks. Editing a shared or prerequisite module, reviewed input, author set, trust snapshot, or signature therefore stales every receipt whose closure includes it. [D21–D23](assurance.md#d21--iron-law-assurance-kernel) own reduction and escalation.
 
@@ -208,20 +208,25 @@ reducer wiring. Its deterministic fixtures may supply signed receipts, but F5
 ships no product issuer that can manufacture verified human or blind evidence.
 It introduces `clad signoff`; bare TTY or pseudo-TTY input records asserted audit
 history only. Without a registered issuer, verified signoff returns
-`HUMAN_REQUIRED`. There is no `--verified` bypass. OS/git identity, caller text,
-generic `blind: true`, and hand-written YAML are asserted only.
+`HUMAN_REQUIRED`. F9's `--verified` REQUESTS the registered-issuer path and can
+never bypass it: no confirmation, no registered issuer, or no local signing key
+each return `HUMAN_REQUIRED` with asserted history recorded. OS/git identity,
+caller text, generic `blind: true`, and hand-written YAML are asserted only.
 
 Keep `clad_author_oracle` readable for 0.1. Under 0.2, a registered adapter must supply a fresh-context/capability receipt before the result is verified blind. The generic MCP `blind: true` flag remains readable but records only asserted/attested provenance and cannot satisfy `independence_policy: require`.
 
 ### Runtime rollout
 
 F9 ships the envelope, task projections, A–E invariance suite, and the first real
-registered issuer paths: a human signing adapter and a fresh-context/capability
-blind adapter. Human private keys remain in the OS secure store; CI mechanism
-evidence is a live adapter round trip on macOS Keychain, Windows Credential
-Manager, and Linux Secret Service/dbus. Fixture trust snapshots prove protocol or
-mechanism only, never live human evidence. Both adapters call F5 ingestion and
-emit portable receipts for offline verification. Only real human-signed MCP11
+registered issuer path: a file-key human signing issuer, whose private key is a
+plain owner-only file outside the workspace. The fresh-context/capability blind
+adapter and OS secure-store issuers (macOS Keychain, Windows Credential Manager,
+Linux Secret Service/dbus) are deferred to a later release, and
+`clad_author_oracle`'s `blind: true` remains asserted-only until a portable
+proof channel exists. Fixture trust snapshots prove protocol or mechanism only,
+never live human evidence; F9 evidence for this path is L4 mechanism evidence
+until real signing runs through MCP11. The issuer calls F5 ingestion and emits
+portable receipts for offline verification. Only real human-signed MCP11
 receipts count as live human evidence. F9 preserves the experimental
 developer→reviewer loop. F10 introduces its 0.10.0 task-state loop only after:
 

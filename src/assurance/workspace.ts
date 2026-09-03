@@ -20,6 +20,7 @@ import {
   type AssuranceFeatureInput,
   type ClosureProofInput,
 } from './closures.js';
+import type {FeatureIndependenceInput} from './adapters.js';
 import type {AssuranceProfile, AssuranceVerdict, MigrationBaselineCandidate} from './kernel.js';
 import {canonicalClosureJson} from './closures.js';
 import {criterionObservationRule, staticCriterionReportsFromWorkspace, staticCriterionScopeFromWorkspace, type CriterionObservationReport, type StaticCriterionScope} from './criterion-observations.js';
@@ -40,10 +41,12 @@ import {
 import {scanLegacyStatement} from '../spec/legacy-statement-scanner.js';
 import {loadSpec} from '../spec/load.js';
 import type {Spec} from '../spec/types.js';
+import {implementationAuthorMapping, isIndependentIssuer, type ImplementationAuthorMapping} from '../proof/authors.js';
 import {currentSafeBindingCensus, currentSafeBindings} from '../proof/current-bindings.js';
+import {parsePortableReceiptYaml, receiptFeatureId, type PortableReceipt, type ReceiptExpectedDigestContext} from '../proof/receipt.js';
 import {selectCriterionTestBindings, type CriterionBindingSelection} from '../proof/legacy-bindings.js';
 import type {TestBinding} from '../proof/types.js';
-import {buildProofView, type CriterionProofView} from '../proof/view.js';
+import {buildProofView, createVerifiedReceiptInput, type CriterionProofView} from '../proof/view.js';
 import {criterionBaselineMatchShape} from '../spec/compiler/consumer-view.js';
 import {parseJUnitReport, parseVitestJsonReport, type JUnitReport} from '../stages/junit-report.js';
 import {isCurrentRunProofEvidence, type CurrentRunProofEvidence} from '../stages/test-run-cache.js';
@@ -258,6 +261,18 @@ export interface WorkspaceProfileSnapshotRequest {
    * still deriving profile-specific target records below.
    */
   readonly controlResolver?: RunnerConfigurationResolver;
+  /**
+   * Host-supplied receipt/trust context used when this call has to assemble
+   * its own closure input. It is ignored when `closureInput` is supplied,
+   * which is already bound to one receipt view.
+   */
+  readonly receiptContext?: WorkspaceReceiptContext;
+  /**
+   * False when the safe `spec/evidence` census could not be enumerated. The
+   * snapshot then addresses the receipt closure as incomplete rather than
+   * letting an empty receipt set stand in for an unknown one.
+   */
+  readonly receiptCensusComplete?: boolean;
 }
 
 /**
@@ -636,7 +651,7 @@ export function workspaceProfileSnapshot(
   // control edit bind those two halves to different runner selections.
   const controlResolver = request.controlResolver ?? runnerConfigurationResolver(cwd);
   const closureInput = request.closureInput
-    ?? assuranceClosureInputFromWorkspace(cwd, compilation, undefined, undefined, controlResolver);
+    ?? assuranceClosureInputFromWorkspace(cwd, compilation, request.receiptContext, undefined, controlResolver);
   const scoped = request.scopeAddresses.flatMap((address) => {
     if (address.startsWith('feature:')) return [address.slice('feature:'.length)];
     const criterion = /^criterion:(F-[^/]+)\//.exec(address);
@@ -720,6 +735,10 @@ export function workspaceProfileSnapshot(
   }))});
   if (request.scopeComplete === false) incompleteAddresses.push('scope-closure');
   if (controls.complete !== true) incompleteAddresses.push('runner-controls');
+  // An unsafe evidence walk is an UNKNOWN receipt set, not an empty one. Name
+  // it so `profile_complete: false` points a reader at spec/evidence instead
+  // of at a receipt-free closure that looks deceptively settled.
+  if (request.receiptCensusComplete === false) incompleteAddresses.push('receipt-census:spec/evidence');
   return Object.freeze({
     inputSha256: createHash('sha256').update(canonicalClosureJson({policy, records, controls}), 'utf8').digest('hex'),
     complete: incompleteAddresses.length === 0,
@@ -762,6 +781,7 @@ export function currentProofViewsFromWorkspace(
   currentRun?: CurrentRunProofEvidence,
   expectedInputSha256?: string,
   boundCriteria?: BoundCriteriaCollector,
+  receiptContext?: WorkspaceReceiptContext,
 ): readonly CriterionProofView[] {
   if (compilation.schemaVersion !== '0.2') return [];
   const selected = new Set(scopeSubjects.flatMap((subject) => {
@@ -797,7 +817,29 @@ export function currentProofViewsFromWorkspace(
       .map((selection) => selection.criterion));
   }
   const bindings = observableBindings(selections);
-  return buildProofView({schemaVersion: '0.2', criteria, bindings, ...(report ? {report} : {})});
+  // Persisted receipts reach F5 ONLY through the verifier-owned factory, which
+  // reparses the bytes and re-verifies them against the injected trust
+  // snapshot and current expected digests on every gate. Without this the
+  // Audit/UAT obligations could never observe a receipt at all.
+  const receipts = receiptContext === undefined ? [] : receiptContext.candidates.flatMap((candidate) => {
+    const owned = createVerifiedReceiptInput({
+      receipt: safePortableReceipt(candidate.bytes), trustSnapshot: receiptContext.trustSnapshot, expected: candidate.expected,
+    });
+    return owned ? [owned] : [];
+  });
+  const criteriaByFeature = new Map<string, ReadonlySet<string>>();
+  for (const feature of compilation.contract?.features ?? []) {
+    criteriaByFeature.set(feature.id, new Set(feature.acceptanceCriteria.map((criterion) => `criterion:${feature.id}/${criterion.id}`)));
+  }
+  return buildProofView({
+    schemaVersion: '0.2', criteria, bindings, ...(report ? {report} : {}),
+    criteriaByFeature, ...(receipts.length > 0 ? {receipts} : {}),
+  });
+}
+
+/** Parses census bytes without letting a malformed file abort the whole view. */
+function safePortableReceipt(bytes: string | Uint8Array): unknown {
+  try { return parsePortableReceiptYaml(bytes); } catch { return undefined; }
 }
 
 /**
@@ -893,6 +935,130 @@ export function featureClosureSeals(
     complete: contract.complete && runtime.complete && subjects.every((closure) => closure.complete)
       && verification.every((closure) => closure.complete),
   });
+}
+
+/**
+ * Lists the authored implementation roots inside one feature's runtime closure.
+ *
+ * The roots come from the closure itself rather than a second module walk, so
+ * a receipt's author mapping always covers exactly the paths its
+ * `runtime_dependency_sha256` already binds — prerequisites included.
+ *
+ * @param closures - Assembled closure input.
+ * @param feature - Feature id whose runtime closure supplies the roots.
+ * @returns Sorted unique authored module paths.
+ */
+export function runtimeImplementationRoots(closures: AssuranceClosureInput, feature: string): readonly string[] {
+  const roots = new Set<string>();
+  for (const record of runtimeDependencyClosure(closures, feature).records) {
+    const match = /^runtime:F-[^:]+:(.+)$/.exec(record.address);
+    if (match) roots.add(match[1]!);
+  }
+  return Object.freeze([...roots].sort(comparePath));
+}
+
+/**
+ * Builds the expected-digest producer a receipt is verified against.
+ *
+ * The closure input MUST be the receipt-free one. `verificationClosure`
+ * includes receipt identities, so deriving `reviewed_inputs_sha256` from a
+ * receipt-carrying closure would make every receipt depend on itself and on
+ * its siblings. Reading the receipt-free aggregate keeps the digest a fixed
+ * point: a receipt stales when the code, tests, contract, or author mapping it
+ * reviewed change, and never merely because another receipt was filed.
+ *
+ * @param cwd - Workspace root used for the author mapping only.
+ * @param closures - Receipt-free closure input for this compiler snapshot.
+ * @returns A producer returning the expected digests, or undefined when unresolved.
+ * @example
+ * ```ts
+ * const expected = workspaceExpectedDigestProducer(cwd, closures)(receipt);
+ * ```
+ * @since 0.10.0
+ * @internal
+ */
+export function workspaceExpectedDigestProducer(
+  cwd: string,
+  closures: AssuranceClosureInput,
+): (receipt: PortableReceipt) => ReceiptExpectedDigestContext | undefined {
+  const mappings = new Map<string, ImplementationAuthorMapping>();
+  const authors = (feature: string): ImplementationAuthorMapping => {
+    const cached = mappings.get(feature);
+    if (cached) return cached;
+    const mapping = implementationAuthorMapping(cwd, runtimeImplementationRoots(closures, feature));
+    mappings.set(feature, mapping);
+    return mapping;
+  };
+  return (receipt) => {
+    // F9d ships the human issuer only. A blind capability receipt still has no
+    // product path that can produce its evidence and manifest digests, so its
+    // expected context stays explicitly unresolved.
+    if (receipt.method !== 'human_channel') return undefined;
+    let feature: string;
+    try { feature = receiptFeatureId(receipt); } catch { return undefined; }
+    if (!closures.features.some((candidate) => candidate.id === feature)) return undefined;
+    const runtime = runtimeDependencyClosure(closures, feature);
+    if (receipt.claim === 'audit') {
+      const address = receipt.subject.slice('criterion:'.length);
+      const subject = subjectClosure(closures, address);
+      if (!subject.complete) return undefined;
+      return {
+        subjectSha256: subject.sha256,
+        reviewedInputsSha256: verificationClosure(closures, address).sha256,
+        runtimeDependencySha256: runtime.sha256,
+        implementationAuthorsSha256: authors(feature).sha256,
+      };
+    }
+    // D20 defines a feature subject as the full feature contract closure, not
+    // an aggregate of its criterion subjects.
+    const seals = featureClosureSeals(closures, feature);
+    return {
+      subjectSha256: seals.contractSha256,
+      reviewedInputsSha256: seals.verificationSha256,
+      runtimeDependencySha256: seals.runtimeDependencySha256,
+      implementationAuthorsSha256: authors(feature).sha256,
+    };
+  };
+}
+
+/**
+ * Assembles the per-feature independence facts the reducer labels from.
+ *
+ * Only AUDIT receipts can carry independence: `checks.independence` exists
+ * solely on that claim, so a UAT receipt cannot evidence the property the
+ * label names.
+ *
+ * @param input - Workspace root, receipt-free closures, scope, and receipt context.
+ * @returns One fact record per scoped feature.
+ * @since 0.10.0
+ * @internal
+ */
+export function workspaceIndependenceInputs(input: {
+  readonly cwd: string;
+  readonly closures: AssuranceClosureInput;
+  readonly featureIds: readonly string[];
+  readonly receiptContext: WorkspaceReceiptContext;
+}): readonly FeatureIndependenceInput[] {
+  const verified = input.receiptContext.candidates.flatMap((candidate) => {
+    let parsed: PortableReceipt;
+    try { parsed = parsePortableReceiptYaml(candidate.bytes); } catch { return []; }
+    const owned = createVerifiedReceiptInput({
+      receipt: parsed, trustSnapshot: input.receiptContext.trustSnapshot, expected: candidate.expected,
+    });
+    return owned ? [owned.receipt] : [];
+  });
+  return Object.freeze([...input.featureIds].sort(comparePath).map((feature) => {
+    const mapping = implementationAuthorMapping(input.cwd, runtimeImplementationRoots(input.closures, feature));
+    const audits = verified.flatMap((receipt) => receipt.method === 'human_channel' && receipt.claim === 'audit'
+      && receipt.subject.startsWith(`criterion:${feature}/`)
+      ? [{issuer: receipt.issuer, independence: receipt.checks.independence, independentIssuer: isIndependentIssuer(mapping, receipt.issuer)}]
+      : []);
+    return Object.freeze({
+      feature,
+      authorMappingComplete: mapping.complete,
+      verifiedAudits: Object.freeze(audits),
+    });
+  }));
 }
 
 /** Produces one v3 entry per scoped feature after the profile snapshot proved its required closure set complete. */

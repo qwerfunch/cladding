@@ -58,7 +58,7 @@ import {loadGraphIrV2Workspace} from '../graph/query.js';
 import {focusedProjectionV2, statisticsV2, type WireEnvelopeV2} from '../graph/wire-v2.js';
 import {runDrift} from '../stages/drift.js';
 import {ingestPortableReceipt} from '../proof/ingest.js';
-import {recordAssertedSignoff} from '../proof/signoff.js';
+import {recordAssertedSignoff, recordVerifiedSignoff, type SignoffConfirmation} from '../proof/signoff.js';
 import {emptyTrustSnapshot, parsePortableReceiptYaml, type PortableReceipt, type ReceiptExpectedDigestContext, type TrustSnapshot} from '../proof/receipt.js';
 
 /** Persona ids registered as MCP prompts (mirrors src/agents/). */
@@ -2259,13 +2259,19 @@ function registerInitializedTools(
   server.registerTool(
     'clad_signoff',
     {
-      title: 'Record an asserted local signoff',
-      description: 'Records asserted audit or UAT history only. It cannot select or bypass verified evidence.',
+      title: 'Record a local signoff',
+      description: 'Records asserted audit or UAT history, and with verified: true and a registered issuer asks the human to confirm through an elicitation form before signing a portable receipt; without confirmation it returns HUMAN_REQUIRED.',
       inputSchema: z.object({
         feature: z.string(), claim: z.enum(['audit', 'uat']), criterion: z.string().optional(),
         result: z.enum(['pass', 'fail']).optional(), note: z.string().max(4096).optional(),
+        verified: z.boolean().optional().describe('Request a signed receipt; a human must confirm in a host elicitation form.'),
+        issuer: z.string().optional().describe('Registered issuer name from spec/trust/issuers.yaml; required with verified.'),
       }).strict(),
-      outputSchema: {...mutationOutputSchema, evidence: z.record(z.string(), z.unknown()).optional()},
+      outputSchema: {
+        ...mutationOutputSchema, evidence: z.record(z.string(), z.unknown()).optional(),
+        path: z.string().optional(), digest: z.string().optional(), issuerKeyId: z.string().optional(),
+        verification: z.object({assurance: z.enum(['verified', 'asserted', 'invalid']), currentness: z.enum(['current', 'stale', 'unresolved']), reason: z.string(), trustSnapshotDigest: z.string()}).optional(),
+      },
       annotations: {readOnlyHint: false, destructiveHint: false, idempotentHint: false},
     },
     async (args) => {
@@ -2273,15 +2279,62 @@ function registerInitializedTools(
       if (oversized) return oversized;
       const boundary = initializedMutationBoundary(cwd);
       if (boundary) return boundary;
-      const result = recordAssertedSignoff({
+      const request = {
         cwd, featureId: args.feature, claim: args.claim,
         ...(args.criterion ? {criterion: args.criterion} : {}),
         ...(args.result ? {result: args.result} : {}),
         ...(args.note ? {note: args.note} : {}),
+      };
+      if (!args.verified) {
+        const result = recordAssertedSignoff(request);
+        return mutationPayload({...result, ...(result.evidence ? {evidence: result.evidence as unknown as Record<string, unknown>} : {})}, !result.ok);
+      }
+      if (!args.issuer || args.issuer.trim().length === 0) {
+        return mutationPayload({code: 'INVALID_OPERATION', message: 'A verified signoff requires the registered issuer name.'}, true);
+      }
+      const verified = await recordVerifiedSignoff({
+        ...request, issuer: args.issuer.trim(),
+        confirm: elicitFeatureIdConfirmation(server, args.claim),
       });
-      return mutationPayload({...result, ...(result.evidence ? {evidence: result.evidence as unknown as Record<string, unknown>} : {})}, !result.ok);
+      return mutationPayload({
+        ...verified,
+        ...(verified.evidence ? {evidence: verified.evidence as unknown as Record<string, unknown>} : {}),
+      }, !verified.ok);
     },
   );
+}
+
+/**
+ * Asks the host to have a person re-enter the feature id before a receipt is signed.
+ *
+ * A host with no elicitation capability cannot ask anybody anything, so the
+ * confirmation is absent rather than assumed — the signoff then records
+ * asserted history and returns HUMAN_REQUIRED.
+ *
+ * This is consent friction, not proof of humanity: a host running with blanket
+ * auto-approval will answer the form itself, and D20 records that limit.
+ */
+function elicitFeatureIdConfirmation(server: McpServer, claim: 'audit' | 'uat'): SignoffConfirmation {
+  return async () => {
+    if (!server.server.getClientCapabilities()?.elicitation) return undefined;
+    try {
+      const response = await server.server.elicitInput({
+        mode: 'form',
+        message: `Type the feature id to sign a verified ${claim} receipt`,
+        requestedSchema: {
+          type: 'object',
+          // No default: the point of the field is that a person types the id.
+          properties: {feature_id: {type: 'string', title: 'Feature id', description: 'Re-enter the exact feature id to confirm this signature.'}},
+          required: ['feature_id'],
+        },
+      });
+      if (response.action !== 'accept') return undefined;
+      const value = response.content?.feature_id;
+      return typeof value === 'string' ? value : undefined;
+    } catch {
+      return undefined;
+    }
+  };
 }
 
 /**

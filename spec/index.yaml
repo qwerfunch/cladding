@@ -290,6 +290,7 @@ features:
   F-f334fa: {slug: ab-ext-scenarios-emit, status: done, modules: 3}
   F-f44d1b: {slug: hollow-governance-detector, status: done, modules: 2}
   F-f46d5c61: {slug: human-first-cards, status: done, modules: 3}
+  F-f4cfd533: {slug: spec-02-evidence-issuer, status: in_progress, modules: 19}
   F-f4e184f7: {slug: enforcement-advisory, status: done, modules: 3}
   F-f6cc5e5a: {slug: pr-review-packet, status: done, modules: 4}
   F-f6d13e: {slug: capabilities-in-spec, status: done, modules: 3}

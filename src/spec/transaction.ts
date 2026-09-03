@@ -774,6 +774,7 @@ function isManagedTransactionPath(path: string): boolean {
     || path === 'spec/index.yaml'
     || path === 'spec/_doc-links.yaml'
     || path === 'spec/attestation.yaml'
+    || path === 'spec/trust/issuers.yaml'
     || path === 'docs/project-context.md'
     || path === 'spec/generated/migration-baseline-0.1-to-0.2.yaml'
     || path === '.cladding/events.log.jsonl'
@@ -784,7 +785,7 @@ function isManagedTransactionPath(path: string): boolean {
 
 function isManagedTransactionDirectory(path: string): boolean {
   return path === '.cladding' || path === 'docs' || path === 'spec' || path === 'spec/features' || path === 'spec/scenarios'
-    || path === 'spec/evidence' || path === 'spec/generated' || /^spec\/evidence\/F-[^/]+$/.test(path);
+    || path === 'spec/evidence' || path === 'spec/generated' || path === 'spec/trust' || /^spec\/evidence\/F-[^/]+$/.test(path);
 }
 
 function isManagedEvidencePath(path: string): boolean {

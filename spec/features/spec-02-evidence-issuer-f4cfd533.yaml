@@ -1,0 +1,111 @@
+id: F-f4cfd533
+title: Spec 0.2 file-key issuer and trust registry (F9d)
+status: in_progress
+purpose: Give Cladding its first real registered issuer path so that human audit
+  and UAT evidence can be signed offline, verified by every gate, and bound to
+  the code it reviewed without trusting any prose claim.
+modules:
+  - src/proof/trust.ts
+  - src/proof/issuer.ts
+  - src/proof/authors.ts
+  - src/proof/signoff.ts
+  - src/cli/key.ts
+  - src/cli/signoff.ts
+  - src/cli/clad.ts
+  - src/serve/server.ts
+  - src/assurance/adapters.ts
+  - src/assurance/workspace.ts
+  - src/spec/compiler/artifact-registry.ts
+  - src/spec/transaction.ts
+  - tests/proof/trust.test.ts
+  - tests/proof/issuer.test.ts
+  - tests/proof/authors.test.ts
+  - tests/proof/signoff.test.ts
+  - tests/cli/key.test.ts
+  - tests/serve/proof-evidence.test.ts
+  - tests/assurance/independence.test.ts
+depends_on: []
+capability_refs: []
+acceptance_criteria:
+  - id: AC-706195b8
+    kind: behavior
+    statement: When a workspace has no trust registry, the assurance gate shall
+      record the empty trust snapshot digest so that attestation rows stay
+      unchanged from the current ledger.
+  - id: AC-18fdca35
+    kind: behavior
+    statement: When spec/trust/issuers.yaml lists an Ed25519 public key, the gate
+      and the MCP receipt ingest shall verify receipts against a trust snapshot
+      built from that registry and record its digest in every attestation row.
+  - id: AC-74458baa
+    kind: behavior
+    statement: When clad key create runs with an issuer name, the issuer shall write
+      a private key file outside the workspace with owner-only permissions and
+      register the public key in the trust registry through the spec
+      transaction.
+  - id: AC-17ec9e88
+    kind: behavior
+    statement: When a verified signoff is requested without a human confirmation
+      from a terminal prompt or a host elicitation form, the signoff shall
+      return HUMAN_REQUIRED and record only asserted history.
+  - id: AC-1d5f62de
+    kind: behavior
+    statement: When a human confirms a verified signoff by re-entering the feature
+      id in a terminal prompt or a host elicitation form, the signoff shall sign
+      a portable receipt carrying the expected subject and reviewed-inputs and
+      runtime-dependency and implementation-author digests and ingest it under
+      spec/evidence.
+  - id: AC-9966cedf
+    kind: behavior
+    statement: When the assurance gate evaluates a workspace, the receipt census
+      shall supply every persisted receipt with its trust verification to the
+      kernel so that a verified current receipt clears its audit or UAT
+      obligation.
+  - id: AC-853c287e
+    kind: behavior
+    statement: When the receipt census cannot enumerate spec/evidence safely, the
+      gate shall report the receipt closure as unresolved instead of an empty
+      receipt set.
+  - id: AC-e5be2b73
+    kind: behavior
+    statement: When every implementation root of a feature has a complete author
+      mapping and a verified human receipt names an issuer outside that author
+      set with a passing independence check, the assurance kernel shall label
+      the feature independent.
+  - id: AC-de5fe055
+    kind: behavior
+    statement: When any implementation root of a feature lacks an author mapping,
+      the assurance kernel shall leave the feature independence unobserved.
+  - id: AC-6506c157
+    kind: behavior
+    statement: When a module inside a receipt runtime dependency closure changes,
+      the gate shall report that receipt stale.
+  - id: AC-af5978d3
+    kind: behavior
+    statement: The implementation author mapping shall derive from audit-log
+      mutation identity when present and otherwise from the git author of the
+      root as an asserted record.
+  - id: AC-c860be50
+    kind: behavior
+    statement: The reviewed-inputs digest shall equal the verification closure
+      aggregate of the receipt subject.
+  - id: AC-58f972a6
+    kind: constraint
+    statement: The clad_author_oracle blind flag shall record asserted provenance only.
+    rationale: No host offers a portable proof that a capability manifest was
+      enforced, so a signed blind receipt would add no epistemic independence;
+      the blind capability adapter is deferred until such a channel exists.
+design_impact:
+  classification: structural
+  rationale: D20 must be relaxed from an installation-supplied trust snapshot
+    outside the workspace to a committed public registry with private keys
+    outside the workspace, must define reviewed_inputs_sha256 and the
+    implementation_authors source, must state the file-key threat model, and
+    must record the blind capability adapter deferral in the runtime rollout.
+  status: resolved
+  artifacts:
+    - docs/design/spec-0.2/context-and-orchestration.md
+    - docs/design/spec-0.2/delivery.md
+  baseline_digests:
+    docs/design/spec-0.2/context-and-orchestration.md: 796521f9dc6fa929a2f9de8e74ef86ae77861dd433f0b74781709ba381c9d7bd
+    docs/design/spec-0.2/delivery.md: 3f3a3bf943dfedb7ba6ed8b8ecec6c9802c1c461c5d24987d3ff60f36581365e

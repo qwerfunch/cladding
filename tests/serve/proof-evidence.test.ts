@@ -1,15 +1,18 @@
 // Cladding · MCP proof-evidence tests.
 
 import {generateKeyPairSync, sign} from 'node:crypto';
-import {existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
+import {ElicitRequestSchema} from '@modelcontextprotocol/sdk/types.js';
 import {afterEach, describe, expect, test} from 'vitest';
 
-import {createTrustSnapshot, issuerKeyIdForSpki, receiptSigningPayload, serializePortableReceipt, type BlindReceipt} from '../../src/proof/receipt.js';
+import {createIssuerKey} from '../../src/proof/issuer.js';
+import {createTrustSnapshot, emptyTrustSnapshot, issuerKeyIdForSpki, receiptSigningPayload, serializePortableReceipt, type BlindReceipt} from '../../src/proof/receipt.js';
+import {TRUST_REGISTRY_PATH, evidenceOperations, loadTrustSnapshot, trustRegistryAddition} from '../../src/proof/trust.js';
 import {buildServer, type EvidenceOperations} from '../../src/serve/server.js';
 
 const temporary: string[] = [];
@@ -42,6 +45,51 @@ async function connectedServer(cwd: string, evidence?: EvidenceOperations): Prom
   const client = new Client({name: 'f5-test', version: '0.0.0'});
   await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
   return {client, close: async () => { await client.close(); await server.close(); }};
+}
+
+/** Connects a client that answers the elicitation form the way a host would. */
+async function elicitingClient(
+  cwd: string,
+  answer: (() => {action: 'accept' | 'decline' | 'cancel'; content?: Record<string, string>}) | undefined,
+  evidence?: EvidenceOperations,
+): Promise<{client: Client; close: () => Promise<void>}> {
+  const server = buildServer({cwd, evidence});
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  const client = new Client(
+    {name: 'f9d-test', version: '0.0.0'},
+    answer === undefined ? undefined : {capabilities: {elicitation: {}}},
+  );
+  if (answer !== undefined) client.setRequestHandler(ElicitRequestSchema, async () => answer());
+  await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+  return {client, close: async () => { await client.close(); await server.close(); }};
+}
+
+/** A schema 0.2 workspace with one registered issuer and one real module root. */
+function signableWorkspace(): {root: string; issuer: string; restoreKeys: () => void} {
+  const root = mkdtempSync(join(tmpdir(), 'clad-f9d-mcp-'));
+  temporary.push(root);
+  const store = mkdtempSync(join(tmpdir(), 'clad-f9d-mcp-keys-'));
+  temporary.push(store);
+  mkdirSync(join(root, 'spec', 'features'), {recursive: true});
+  mkdirSync(join(root, 'src'), {recursive: true});
+  writeFileSync(join(root, 'src', 'alpha.ts'), 'export const alpha = 1;\n');
+  writeFileSync(join(root, 'spec.yaml'), 'schema: "0.2"\nproject:\n  name: mcp\n  language: typescript\n  purpose: Keep evidence transport bounded.\n  assurance_level: L2\n  scenario_policy: advisory\nfeatures: []\nscenarios: []\n');
+  writeFileSync(join(root, 'spec', 'capabilities.yaml'), 'capabilities: []\n');
+  writeFileSync(join(root, 'spec', 'architecture.yaml'), 'layers: []\nrules: []\n');
+  writeFileSync(join(root, 'spec', 'features', 'mcp-aaaaaaaa.yaml'), 'id: F-aaaaaaaa\ntitle: MCP\nstatus: in_progress\npurpose: Keep evidence transport bounded.\nmodules:\n  - src/alpha.ts\ndepends_on: []\ncapability_refs: []\nacceptance_criteria:\n  - id: AC-bbbbbbbb\n    kind: behavior\n    statement: The system shall keep receipt transport bounded.\n');
+  const previous = process.env.CLADDING_KEYS_DIR;
+  process.env.CLADDING_KEYS_DIR = join(store, 'keys');
+  const created = createIssuerKey();
+  mkdirSync(join(root, 'spec', 'trust'), {recursive: true});
+  writeFileSync(join(root, TRUST_REGISTRY_PATH), trustRegistryAddition(root, {issuer: 'independent reviewer', spkiDer: created.spkiDer}).after);
+  return {
+    root,
+    issuer: 'independent reviewer',
+    restoreKeys: () => {
+      if (previous === undefined) delete process.env.CLADDING_KEYS_DIR;
+      else process.env.CLADDING_KEYS_DIR = previous;
+    },
+  };
 }
 
 function payload(result: unknown): Record<string, unknown> {
@@ -114,6 +162,93 @@ describe('MCP F5 evidence operations', () => {
       expect(existsSync(join(knownTrustRoot, 'spec', 'evidence'))).toBe(false);
     } finally {
       await known.close();
+    }
+  });
+});
+
+describe('MCP F9d verified signoff', () => {
+  test('[covers:F-f4cfd533/AC-1d5f62de] signs and ingests a receipt when a host elicitation form returns the exact feature id', async () => {
+    const fixture = signableWorkspace();
+    const {client, close} = await elicitingClient(
+      fixture.root,
+      () => ({action: 'accept', content: {feature_id: 'F-aaaaaaaa'}}),
+      evidenceOperations(fixture.root),
+    );
+    try {
+      const result = payload(await client.callTool({
+        name: 'clad_signoff',
+        arguments: {feature: 'F-aaaaaaaa', claim: 'audit', criterion: 'AC-bbbbbbbb', result: 'pass', verified: true, issuer: fixture.issuer},
+      }));
+      expect(result).toMatchObject({ok: true, code: 'OK', verification: {assurance: 'verified', currentness: 'current'}});
+      expect(result.path).toMatch(/^spec\/evidence\/F-aaaaaaaa\/[a-f0-9]{64}\.yaml$/);
+      expect(readdirSync(join(fixture.root, 'spec', 'evidence', 'F-aaaaaaaa'))).toHaveLength(1);
+    } finally {
+      await close();
+      fixture.restoreKeys();
+    }
+  });
+
+  test('[covers:F-f4cfd533/AC-17ec9e88] returns HUMAN_REQUIRED when the form is declined, answered wrongly, or unsupported', async () => {
+    for (const answer of [
+      () => ({action: 'decline' as const}),
+      () => ({action: 'cancel' as const}),
+      () => ({action: 'accept' as const, content: {feature_id: 'F-99999999'}}),
+      undefined,
+    ]) {
+      const fixture = signableWorkspace();
+      const {client, close} = await elicitingClient(fixture.root, answer, evidenceOperations(fixture.root));
+      try {
+        const result = payload(await client.callTool({
+          name: 'clad_signoff',
+          arguments: {feature: 'F-aaaaaaaa', claim: 'audit', criterion: 'AC-bbbbbbbb', result: 'pass', verified: true, issuer: fixture.issuer},
+        }));
+        expect(result).toMatchObject({ok: false, code: 'HUMAN_REQUIRED', evidence: {assurance: 'asserted'}});
+        expect(existsSync(join(fixture.root, 'spec', 'evidence'))).toBe(false);
+      } finally {
+        await close();
+        fixture.restoreKeys();
+      }
+    }
+  });
+
+  test('[covers:F-f4cfd533/AC-18fdca35] verifies ingested receipts against the workspace trust registry snapshot', async () => {
+    const fixture = signableWorkspace();
+    const signer = await elicitingClient(
+      fixture.root,
+      () => ({action: 'accept', content: {feature_id: 'F-aaaaaaaa'}}),
+      evidenceOperations(fixture.root),
+    );
+    let receiptYaml: string;
+    try {
+      const signed = payload(await signer.client.callTool({
+        name: 'clad_signoff',
+        arguments: {feature: 'F-aaaaaaaa', claim: 'audit', criterion: 'AC-bbbbbbbb', result: 'pass', verified: true, issuer: fixture.issuer},
+      }));
+      receiptYaml = readFileSync(join(fixture.root, signed.path as string), 'utf8');
+      const digest = (signed.verification as {trustSnapshotDigest: string}).trustSnapshotDigest;
+      expect(digest).toBe(loadTrustSnapshot(fixture.root).digest);
+      expect(digest).not.toBe(emptyTrustSnapshot().digest);
+    } finally {
+      await signer.close();
+      fixture.restoreKeys();
+    }
+
+    // The identical bytes ingested into an identical workspace WITHOUT the
+    // registry stay asserted: the signature and every closure digest are the
+    // same, and only the trust snapshot changed.
+    const twin = signableWorkspace();
+    twin.restoreKeys();
+    rmSync(join(twin.root, TRUST_REGISTRY_PATH), {force: true});
+    const untrusted = twin.root;
+    const plain = await connectedServer(untrusted, evidenceOperations(untrusted));
+    try {
+      const result = payload(await plain.client.callTool({name: 'clad_ingest_receipt', arguments: {receipt_yaml: receiptYaml}}));
+      expect(result).toMatchObject({
+        ok: true,
+        verification: {assurance: 'asserted', reason: 'unknown_issuer_key', trustSnapshotDigest: emptyTrustSnapshot().digest},
+      });
+    } finally {
+      await plain.close();
     }
   });
 });

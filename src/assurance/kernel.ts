@@ -172,7 +172,12 @@ export interface AssuranceVerdict {
   readonly state: 'green' | 'red' | 'unresolved';
   readonly profile_complete: boolean;
   readonly results: readonly ObligationResult[];
-  readonly independence: 'independent' | 'self-certified' | 'not-applicable';
+  /**
+   * `unobserved` is the F9d honesty value: the reducer could not enumerate who
+   * mutated every implementation root, so it may claim neither independence
+   * nor self-certification. It is never a downgrade of a known label.
+   */
+  readonly independence: 'independent' | 'self-certified' | 'not-applicable' | 'unobserved';
   readonly obligation_sha256: string;
 }
 

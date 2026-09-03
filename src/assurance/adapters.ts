@@ -52,8 +52,58 @@ export interface AssuranceAdapterInput {
   readonly boundProofCriteria?: ReadonlySet<string>;
   /** Compiler-classified accepted migration receipt candidates, never stage input. */
   readonly migrationBaselineCandidates?: readonly MigrationBaselineCandidate[];
+  /**
+   * Per-feature independence facts assembled by the composition root. Absent
+   * means the caller could not decide, and the legacy blind-only rule applies
+   * unchanged; it is never read as evidence that authorship is known.
+   */
+  readonly independenceInputs?: readonly FeatureIndependenceInput[];
   readonly stages: readonly LegacyStageObservation[];
   readonly environmentClass: string;
+}
+
+/** One feature's mutation-provenance and verified-audit facts for the label. */
+export interface FeatureIndependenceInput {
+  readonly feature: string;
+  /** True when every implementation root of the feature has an author record. */
+  readonly authorMappingComplete: boolean;
+  /** Current verified audit receipts naming this feature's criteria. */
+  readonly verifiedAudits: readonly {
+    readonly issuer: string;
+    readonly independence: 'pass' | 'fail';
+    /** True when the issuer handle is outside this feature's author set. */
+    readonly independentIssuer: boolean;
+  }[];
+}
+
+/**
+ * Labels a scope's independence from author mapping and verified audit receipts.
+ *
+ * The three values answer three different questions and must not collapse:
+ * `unobserved` means the reducer could not enumerate who wrote the code,
+ * `independent` means a verified issuer outside that author set reviewed every
+ * scoped feature and said so, and `self-certified` means authorship is known
+ * and no such receipt exists.
+ *
+ * Only AUDIT receipts participate: `checks.independence` exists on no other
+ * claim, so a UAT signature cannot evidence the property this label names.
+ *
+ * @param inputs - Per-feature facts for the whole reduced scope.
+ * @returns The scope label, or undefined when the facts decide nothing.
+ * @since 0.10.0
+ * @internal
+ */
+export function scopeIndependenceLabel(
+  inputs: readonly FeatureIndependenceInput[],
+): 'independent' | 'unobserved' | undefined {
+  if (inputs.length === 0) return undefined;
+  // A single unattributable root is enough: the scope claim would otherwise
+  // rest on an author set the reducer knows to be partial.
+  if (inputs.some((entry) => !entry.authorMappingComplete)) return 'unobserved';
+  return inputs.every((entry) => entry.verifiedAudits.some((audit) =>
+    audit.independence === 'pass' && audit.independentIssuer))
+    ? 'independent'
+    : undefined;
 }
 
 /** Compiles legacy stage results into one machine reducer invocation without executing anything. */
@@ -192,12 +242,24 @@ export function reduceLegacyStageAdapter(input: AssuranceAdapterInput): Assuranc
       requiresQuality: input.requiresQuality,
       requiresHuman: input.requiresHuman,
     },
-    independence: input.requiresHuman
-      ? (input.proofViews?.length && input.proofViews.every((view) => view.blind === 'verified')
-        ? 'independent'
-        : 'self-certified')
-      : 'not-applicable',
+    independence: independenceLabel(input),
   }));
+}
+
+/**
+ * Reduces the scope independence label without inventing an unavailable fact.
+ *
+ * The blind-receipt branch is retained exactly as shipped: a verified blind
+ * oracle on every proof view still labels the scope independent. F9d adds the
+ * human channel above it and the honest `unobserved` value below it.
+ */
+function independenceLabel(input: AssuranceAdapterInput): AssuranceVerdict['independence'] {
+  if (!input.requiresHuman) return 'not-applicable';
+  const human = input.independenceInputs === undefined ? undefined : scopeIndependenceLabel(input.independenceInputs);
+  if (human !== undefined) return human;
+  return input.proofViews?.length && input.proofViews.every((view) => view.blind === 'verified')
+    ? 'independent'
+    : 'self-certified';
 }
 
 /**

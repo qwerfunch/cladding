@@ -119,6 +119,11 @@ export const ARTIFACT_DESCRIPTORS: readonly ArtifactDescriptor[] = [
     producer: 'package authoring transaction', consumers: ['spec compiler', 'script runners'], inputs: ['package scripts'], refresh: 'on package-script edit', ownership: {kind: 'region', region: 'scripts'},
   },
   {
+    id: 'trust-registry', currentPath: 'spec/trust/issuers.yaml', compatibilityAliases: [], matcher: exact('spec/trust/issuers.yaml'),
+    supportedSchemaVersions: ['0.2'], domain: 'trust', authority: 'canonical', mutability: 'mutable', persistence: 'committed',
+    producer: 'issuer registration transaction', consumers: ['assurance gate', 'receipt verifier', 'MCP receipt ingest'], inputs: ['registered issuer public keys'], refresh: 'on reviewed issuer registration', ownership: {kind: 'file'},
+  },
+  {
     id: 'evidence-receipt', currentPath: 'spec/evidence/<F-id>/<sha256>.yaml', compatibilityAliases: [], matcher: pattern(/^spec\/evidence\/F-[^/]+\/[a-f0-9]{64}\.yaml$/),
     supportedSchemaVersions: ['0.2'], domain: 'evidence', authority: 'evidence', mutability: 'create-only', persistence: 'committed',
     producer: 'registered evidence channel', consumers: ['proof compiler', 'attestation'], inputs: ['signed receipt digest and subject'], refresh: 'create once; revoke through an explicit future operation', revocable: true, ownership: {kind: 'file'},

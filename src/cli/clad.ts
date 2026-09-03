@@ -43,7 +43,8 @@ import {runGraphExportCommand, runGraphStatsCommand} from './graph.js';
 import {runGraphServeCommand} from './graph-serve.js';
 import {runMigrateCommand} from './migrate.js';
 import {runBeginCommand} from './begin.js';
-import {runSignoffCommand} from './signoff.js';
+import {runKeyCreateCommand, runKeyListCommand} from './key.js';
+import {runSignoffCommand, runVerifiedSignoffCommand} from './signoff.js';
 import {runIngestReceiptCommand} from './ingest-receipt.js';
 import {strictSkipViolations} from '../stages/skip-policy.js';
 import {runArch} from '../stages/arch.js';
@@ -83,7 +84,7 @@ import {
 import {requiredRootSchema} from '../spec/transaction.js';
 import {writeSpecDrivenAgentsMd} from '../init/agents-md.js';
 import {repairTestRefs} from '../spec/test-ref-repair.js';
-import {captureAttestationInputSnapshot, detectorCatalogSha256, featureAttestationV3, readAttestation, writeAttestation} from '../spec/attestation.js';
+import {captureAttestationInputSnapshot, detectorCatalogSha256, featureAttestationV3, readAttestation, receiptFileCensus, writeAttestation} from '../spec/attestation.js';
 import {compileSpecWorkspace, compileSpecWorkspaceWithLockHeld} from '../spec/compiler/compile.js';
 import type {SpecCompilation} from '../spec/compiler/types.js';
 import {
@@ -94,11 +95,13 @@ import {
 } from '../spec/prospective.js';
 import {reduceLegacyStageAdapter} from '../assurance/adapters.js';
 import {createAttestationV3RetentionContext} from '../assurance/attestation.js';
-import {canonicalClosureJson} from '../assurance/closures.js';
+import {canonicalClosureJson, type AssuranceClosureInput} from '../assurance/closures.js';
+import {currentReceiptIdentities} from '../assurance/receipt-adapter.js';
 import {mintRunCheckStagesAuthority} from '../assurance/run-authority.js';
-import {assuranceClosureInputFromWorkspace, createWorkspaceAttestations, currentProofViewsFromWorkspace, effectiveFeatureScope, featureClosureSeals, hasApplicableSchema02TestCriteria, workspaceClosureSeals, workspaceProfileSnapshot, type BoundCriteriaCollector, type WorkspaceProfileSnapshot} from '../assurance/workspace.js';
+import {assuranceClosureInputFromWorkspace, createWorkspaceAttestations, currentProofViewsFromWorkspace, effectiveFeatureScope, featureClosureSeals, hasApplicableSchema02TestCriteria, runnerConfigurationResolver, workspaceClosureSeals, workspaceExpectedDigestProducer, workspaceIndependenceInputs, workspaceProfileSnapshot, type BoundCriteriaCollector, type WorkspaceProfileSnapshot, type WorkspaceReceiptContext} from '../assurance/workspace.js';
 import {liveCriterionReportsFromCurrentRun, staticCriterionReportsFromWorkspace, staticCriterionScopeFromWorkspace} from '../assurance/criterion-observations.js';
-import {emptyTrustSnapshot} from '../proof/receipt.js';
+import {emptyTrustSnapshot, parsePortableReceiptYaml, type PortableReceipt, type ReceiptExpectedDigestContext, type TrustSnapshot} from '../proof/receipt.js';
+import {evidenceOperations, loadTrustSnapshot} from '../proof/trust.js';
 import {assuranceProfile, invalidateAssuranceVerdict, resolveRequestedAssuranceLevel, type AssuranceProfile, type AssuranceVerdict} from '../assurance/kernel.js';
 import {normalizeProfile, OBLIGATION_DESCRIPTORS, profileBlocksWarnClass, type AssuranceLevel, type AssuranceProfileId} from '../assurance/registry.js';
 import {buildBlindPayload, renderBlindBrief} from '../oracle/payload.js';
@@ -120,6 +123,10 @@ export async function runServeCommand(opts: {cwd?: string}): Promise<void> {
   ]);
   const server = buildServer({
     cwd: opts.cwd,
+    // F9d — trust and expected digests are host/installation facts, never MCP
+    // tool arguments. Injecting them here is the only way a receipt ingested
+    // through the server can verify against the workspace's own registry.
+    evidence: evidenceOperations(opts.cwd ?? '.'),
     onboarding: {
       renderDraft: (draft) => renderHostDraft(draft as Parameters<typeof renderHostDraft>[0], opts.cwd ?? '.'),
       prepareInit: ({cwd, mode, intent}) => prepareHostInit(cwd, mode, intent),
@@ -1046,7 +1053,7 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
         // collector, and it stays absent whenever no report joined.
         const boundProofCriteria: BoundCriteriaCollector = {};
         const currentProofViews = compilation.schemaVersion === '0.2'
-          ? currentProofViewsFromWorkspace('.', compilation, scopeAddresses, currentRunProof, plan?.snapshot.inputSha256, boundProofCriteria)
+          ? currentProofViewsFromWorkspace('.', compilation, scopeAddresses, currentRunProof, plan?.snapshot.inputSha256, boundProofCriteria, plan?.receiptContext)
           : [];
         assurance = reduceLegacyStageAdapter({
           profile,
@@ -1070,6 +1077,15 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
           ...(plan?.snapshot.migrationBaselineCandidates !== undefined
             ? {migrationBaselineCandidates: plan.snapshot.migrationBaselineCandidates}
             : {}),
+          ...(compilation.schemaVersion === '0.2' && plan?.requiresHuman && plan.receiptContext !== undefined ? {
+            // Author mapping spawns one `git log` per implementation root, so
+            // it is assembled ONLY for a profile that actually needs a human
+            // obligation. An L1/L2/L3 gate never pays for it.
+            independenceInputs: workspaceIndependenceInputs({
+              cwd: '.', closures: plan.baseClosures, receiptContext: plan.receiptContext,
+              featureIds: [...plan.scopedFeatures],
+            }),
+          } : {}),
           ...(compilation.schemaVersion === '0.2' ? {
             proofViews: currentProofViews,
             ...(boundProofCriteria.criteria === undefined ? {} : {boundProofCriteria: boundProofCriteria.criteria}),
@@ -1105,7 +1121,7 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
             detectorCatalogSha256: detectorCatalogSha256(allDetectors),
             toolIdentity: getCurrentCladdingVersion() ?? 'unknown',
             environmentClass: 'foreground',
-            trustSnapshotSha256: emptyTrustSnapshot().digest,
+            trustSnapshotSha256: plan.trustSnapshot.digest,
           } as const;
           mintRunCheckStagesAuthority(assurance, {
             inputSha256: plan.snapshot.inputSha256,
@@ -1133,23 +1149,28 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
           const replacementFeatureIds = opts.deferAttestation && opts.prospectiveFeatureId !== undefined
             ? [opts.prospectiveFeatureId]
             : scopeFeatureIds;
-          // F6 has no registered product issuer.  Preserve this explicit empty
-          // current context so F9 can add a complete receipt-location census
-          // without changing writer-side sibling retention.
-          const receiptContext = {candidates: [], trustSnapshot: emptyTrustSnapshot()} as const;
-          v3Entries = createWorkspaceAttestations({
-            cwd: '.', compilation: attestationCompilation, verdict: assurance, featureIds: replacementFeatureIds,
-            detectorCatalogSha256: detectorCatalogSha256(allDetectors),
-            toolIdentity: getCurrentCladdingVersion() ?? 'unknown', environmentClass: 'foreground',
-            trustSnapshotSha256: receiptContext.trustSnapshot.digest,
-            receiptContext,
-          });
-          v3Retention = createAttestationV3RetentionContext(v3Entries, receiptContext);
-          const previous = readAttestation('.');
-          v3Freshness = v3Entries.map((entry) => {
-            const result = previous ? featureAttestationV3(previous, entry.feature, entry) : {state: 'unattested' as const};
-            return {feature: entry.feature, state: result.state, ...(result.state === 'stale' ? {field: result.field} : {})};
-          });
+          // F9d supplies the real current context: the committed public trust
+          // registry plus the complete safe `spec/evidence` census. A workspace
+          // whose census could not be proved safe has an UNRESOLVED receipt
+          // closure, and no row may be minted from a substituted empty set.
+          const receiptContext = plan === undefined
+            ? {candidates: [], trustSnapshot: emptyTrustSnapshot()} as const
+            : plan.receiptContext;
+          if (receiptContext !== undefined) {
+            v3Entries = createWorkspaceAttestations({
+              cwd: '.', compilation: attestationCompilation, verdict: assurance, featureIds: replacementFeatureIds,
+              detectorCatalogSha256: detectorCatalogSha256(allDetectors),
+              toolIdentity: getCurrentCladdingVersion() ?? 'unknown', environmentClass: 'foreground',
+              trustSnapshotSha256: receiptContext.trustSnapshot.digest,
+              receiptContext,
+            });
+            v3Retention = createAttestationV3RetentionContext(v3Entries, receiptContext);
+            const previous = readAttestation('.');
+            v3Freshness = v3Entries.map((entry) => {
+              const result = previous ? featureAttestationV3(previous, entry.feature, entry) : {state: 'unattested' as const};
+              return {feature: entry.feature, state: result.state, ...(result.state === 'stale' ? {field: result.field} : {})};
+            });
+          }
       }
       }
     } catch {
@@ -1336,6 +1357,16 @@ interface Schema02AssurancePlan {
   readonly requiresHuman: boolean;
   /** The compiler-proven module closure supplied to command-stage adapters. */
   readonly focusModules?: readonly string[];
+  /** Committed public trust registry snapshot; the empty snapshot when absent. */
+  readonly trustSnapshot: TrustSnapshot;
+  /**
+   * Current receipt/trust context, or undefined when the `spec/evidence` walk
+   * could not be proved safe. Undefined is an UNRESOLVED receipt closure and
+   * must never be replaced with an empty candidate set.
+   */
+  readonly receiptContext?: WorkspaceReceiptContext;
+  /** Receipt-free closure input the expected-digest producer resolved against. */
+  readonly baseClosures: AssuranceClosureInput;
   readonly snapshot: WorkspaceProfileSnapshot;
 }
 
@@ -1372,6 +1403,33 @@ function schema02AssurancePlan(
   let hasApplicableTestCriteria = hasApplicableSchema02TestCriteria(compilation, requestedScopeAddresses);
   const requiresQuality = level.level === 'L3' || level.level === 'L4';
   const requiresHuman = level.level === 'L4';
+  // F9d — one receipt-free closure assembly serves the expected-digest
+  // producer, the receipt-carrying closure, and every profile rebuild below.
+  // Deriving expected digests from a receipt-carrying closure would make each
+  // receipt's `reviewed_inputs_sha256` depend on itself and on its siblings.
+  const controlResolver = runnerConfigurationResolver('.');
+  const trustSnapshot = loadTrustSnapshot('.');
+  const census = receiptFileCensus('.');
+  const baseClosures = assuranceClosureInputFromWorkspace('.', compilation, undefined, undefined, controlResolver);
+  const expectedFor = workspaceExpectedDigestProducer('.', baseClosures);
+  // One expected-digest resolution per census file feeds both the candidate
+  // snapshot and the writer's location census, which must agree exactly.
+  const resolved = (census ?? []).map((file) => ({
+    path: file.path, bytes: file.bytes, expected: expectedDigestsForReceiptFile(file, expectedFor),
+  }));
+  const receiptContext: WorkspaceReceiptContext | undefined = census === undefined ? undefined : {
+    candidates: resolved.map((file) => ({bytes: file.bytes, expected: file.expected})),
+    trustSnapshot,
+    // The writer rereads these exact paths under the F4 lock; without the
+    // census a non-empty candidate set can never retain a sibling row.
+    currentLocations: resolved.map((file) => ({path: file.path, expected: file.expected})),
+  };
+  // Receipt identities are the ONLY receipt-derived closure input, so they are
+  // spread onto the one assembled closure rather than paying for a second
+  // module/binding walk that would otherwise run on every gate.
+  const gateClosures = receiptContext === undefined
+    ? baseClosures
+    : {...baseClosures, receiptIdentities: currentReceiptIdentities(receiptContext.candidates, receiptContext.trustSnapshot)};
   const buildSnapshot = (scopeComplete: boolean): WorkspaceProfileSnapshot => workspaceProfileSnapshot('.', compilation, {
     profile,
     scopeAddresses: requestedScopeAddresses,
@@ -1379,6 +1437,9 @@ function schema02AssurancePlan(
     oracleRequiredSubjects,
     requiresHuman,
     scopeComplete,
+    closureInput: gateClosures,
+    controlResolver,
+    ...(census === undefined ? {receiptCensusComplete: false} : {}),
   });
   let snapshot = buildSnapshot(effectiveScope.complete);
   const selectScope = (scopeAddresses: readonly string[]): void => {
@@ -1418,8 +1479,25 @@ function schema02AssurancePlan(
     ...(!repositoryScope && effectiveScope.complete && effectiveScope.focusModules
       ? {focusModules: effectiveScope.focusModules}
       : {}),
+    trustSnapshot,
+    ...(receiptContext === undefined ? {} : {receiptContext}),
+    baseClosures,
     snapshot,
   };
+}
+
+/**
+ * Resolves one census file's expected digests without trusting its stored bytes.
+ *
+ * A file the census already proved canonical still gets reparsed here: the
+ * expected context belongs to the CURRENT closure, and an unresolvable subject
+ * must leave the context empty rather than borrowing a neighbour's digests.
+ */
+function expectedDigestsForReceiptFile(
+  file: {readonly bytes: string},
+  expectedFor: (receipt: PortableReceipt) => ReceiptExpectedDigestContext | undefined,
+): ReceiptExpectedDigestContext {
+  try { return expectedFor(parsePortableReceiptYaml(file.bytes)) ?? {}; } catch { return {}; }
 }
 
 /** Handler for `clad check`. Runs the tier's Iron Law stages; exits with worst code. */
@@ -1941,15 +2019,44 @@ export function createProgram(): Command {
 
   program
     .command('signoff <featureId>')
-    .description('Record an asserted local audit or UAT history entry. This command never creates verified evidence.')
+    .description('Record local audit or UAT history. Asserted by default; with --verified --issuer <name> a human re-types the feature id at the terminal and cladding signs a portable receipt with the registered key. Without that confirmation, a registered issuer, or a local signing key it records asserted history only (HUMAN_REQUIRED in --json).')
     .addOption(new Option('--claim <claim>', 'asserted claim kind: audit or uat').makeOptionMandatory().choices(['audit', 'uat']))
     .option('--criterion <criterion>', 'criterion id; required for audit')
     .addOption(new Option('--result <result>', 'audit result: pass or fail').choices(['pass', 'fail']))
     .option('--note <note>', 'optional asserted history note')
     .option('--cwd <path>', 'target project directory (default cwd)')
     .option('--json', 'emit internal asserted-signoff details')
-    .action((featureId: string, opts: {claim: 'audit' | 'uat'; criterion?: string; result?: 'pass' | 'fail'; note?: string; cwd?: string; json?: boolean}) => {
-      runSignoffCommand(featureId, opts);
+    .option('--verified', 'request a signed receipt from a registered issuer; a human must confirm at the prompt')
+    .option('--issuer <issuer>', 'registered issuer name from spec/trust/issuers.yaml; required with --verified')
+    .action(async (featureId: string, opts: {claim: 'audit' | 'uat'; criterion?: string; result?: 'pass' | 'fail'; note?: string; cwd?: string; json?: boolean; verified?: boolean; issuer?: string}) => {
+      if (!opts.verified) { runSignoffCommand(featureId, opts); return; }
+      // Commander's sync `parse()` does not await an action, so a rejection
+      // here would surface as an unhandled rejection instead of a message.
+      try { await runVerifiedSignoffCommand(featureId, opts); } catch (error) {
+        process.stderr.write(`${(error as Error).message}\n`);
+        process.exitCode = 1;
+      }
+    });
+
+  const key = program
+    .command('key')
+    .description('Manage the issuer signing keys and the committed public trust registry.');
+  key
+    .command('create')
+    .description('Create one Ed25519 issuer key outside the workspace and register its public half.')
+    .requiredOption('--issuer <issuer>', 'issuer name recorded in spec/trust/issuers.yaml')
+    .option('--cwd <path>', 'target project directory (default cwd)')
+    .option('--json', 'emit issuer registration details')
+    .action((opts: {issuer: string; cwd?: string; json?: boolean}) => {
+      runKeyCreateCommand(opts.issuer, {cwd: opts.cwd, json: opts.json});
+    });
+  key
+    .command('list')
+    .description('List registered issuers and whether this machine holds each signing key.')
+    .option('--cwd <path>', 'target project directory (default cwd)')
+    .option('--json', 'emit issuer registry details')
+    .action((opts: {cwd?: string; json?: boolean}) => {
+      runKeyListCommand({cwd: opts.cwd, json: opts.json});
     });
 
   program

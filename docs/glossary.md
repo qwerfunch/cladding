@@ -60,7 +60,10 @@
 | `drive` | removed (0.8.0) | Old alias → `run` (no CLI precedent); removed — `run` is the only spelling now. | (제거됨) |
 | `work` | removed (0.6.0) | Was a permanently not-implemented reserved stub (always exit 2) — dishonest surface; `run` owns the slot. | (제거됨) |
 | `serve` | stable | Start the MCP server over stdio. | MCP 서버 |
-| `signoff` | stable (0.10.0) | Record asserted-only local audit or UAT history. It never marks evidence verified; schema 0.2 verification still requires a registered signed receipt and complete expected context. | 주장됨 전용 로컬 감사·UAT 기록 (검증됨으로 승격하지 않음) |
+| `signoff` | stable (0.10.0) | Record local audit or UAT history. Asserted by default; with `--verified --issuer <name>` a human re-types the feature id at the terminal and cladding signs a portable receipt with the registered key. Without that confirmation, a registered issuer, or a local signing key it records asserted history only. | 로컬 감사·UAT 기록 (사람이 확인하면 검증된 영수증 서명) |
+| `key` | stable (0.10.0) | Manage the issuer signing keys and the committed public trust registry: `create` → one owner-only Ed25519 signing key outside the workspace plus its public half in `spec/trust/issuers.yaml`; `list` → the registered issuers and whether this machine holds their signing keys. | 발행자 키 관리 |
+| `create` | stable (0.10.0) | Key subcommand that writes one owner-only Ed25519 signing key outside the workspace (`clad key create --issuer <name>`) and registers its public key in `spec/trust/issuers.yaml` through the spec transaction. | 발행자 키 생성 |
+| `list` | stable (0.10.0) | Key subcommand that shows the registered issuers and whether the local signing key is present (`clad key list`). | 발행자 목록 |
 | `ingest-receipt` | stable (0.10.0) | Create-only storage for one portable receipt under its subject feature. The CLI accepts no trust, public-key, private-key, or destination authority. | 주체 기능 아래 이식 가능한 영수증을 생성 전용으로 저장 (CLI 신뢰·키·대상 경로 권한 없음) |
 | `oracle` | stable | Print the impl-blind authoring brief for a feature/AC. | 오라클 브리프 |
 | `setup` | stable | Wire cladding into detected AI hosts (Claude/Codex/Gemini/Antigravity/Cursor). | 호스트 연결 |
@@ -121,7 +124,7 @@
 | `clad_create_scenario` | frozen | Author a scenario shard with a hash id. | 시나리오 샤드 생성 |
 | `clad_link_capability` | frozen | Upsert a capability-to-feature binding in Tier B. | 역량-기능 연결 |
 | `clad_ingest_receipt` | frozen | Create-only store one portable evidence receipt; trust comes from the registered host. | 이식 가능한 증거 영수증 수집 |
-| `clad_signoff` | frozen | Record asserted local audit or UAT history without creating verified evidence. | 주장 기반 서명 기록 |
+| `clad_signoff` | frozen | Record local audit or UAT history; with `verified` and a registered issuer, a human confirmation in the host's elicitation form signs a portable receipt. | 감사·UAT 서명 기록 (사람 확인 시 검증된 영수증) |
 
 ## Context surfaces (push vs pull)
 
