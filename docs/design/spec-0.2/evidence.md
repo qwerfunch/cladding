@@ -142,6 +142,19 @@ The role-contract architecture is shipped, while task-keyed projection and full-
 
 The two `spec-edit` projections enumerate every feature and criterion target, construct a fixed-key compact JSON envelope from the operation read/write set, include all fields named in the table, and measure `Buffer.byteLength(JSON.stringify(envelope), 'utf8')`; the reported value is the maximum record. F9 converts this read-only method into a committed fixture before treating the ceiling as a product result.
 
+#### Cycle context envelope (self corpus, 2026-09-03)
+
+Measured by `buildCycleContextEnvelope` over the live GraphIR workspace with no host-supplied runtime facts. Each figure is the final `payload_utf8_bytes` after budget and omission metadata, and every profile reached its byte fixed point in three remeasure rounds.
+
+| Feature | `spec-edit` | `implement` | `verify` | `observe` | `blind-oracle` | Omissions |
+|---|---:|---:|---:|---:|---:|---|
+| `F-208eaa79` (56 modules, 23 criteria) | 7,247 | 20,802 | 16,160 | 1,184 | 23,544 | 1: `implement` sheds `ownership-fan-out` (17,226 bytes) |
+| `F-001` (4 modules, 2 criteria) | 1,773 | 4,558 | 2,881 | 1,147 | 2,313 | 0 |
+
+`required_overflow` is zero on both. Two figures sit close to their class limit and are the ones to watch: hub `verify` holds 224 bytes under the 16 KiB limit with no optional section left to shed, and hub `blind-oracle` holds 1,032 bytes under 24 KiB carrying declaration-only signatures for 56 modules.
+
+I-4 closure width, measured the same day by `effectiveFeatureScope` over the compiled workspace for the `completion` L2 profile seeded at `feature:F-001`: the completion closure spans 287 of 294 features (complete, not repository-escalated) through shared-module hubs, so the closure-scoped test filter is recorded rather than built.
+
 ### Single-cycle simulation: working-set assembler
 
 The read-only design simulation used the live `F-06dfdad6` working-set feature because it combines six legacy criteria, two prerequisites, three affected paths, eleven legacy test references across three test files, shared-module ownership, and no authored capability edge. The proposed 0.2 delta added purpose `Give an implementation agent the smallest complete, impact-aware context needed to change a feature safely.` and criterion `F-06dfdad6/AC-1b7e4a2c`: `When a task context envelope is serialized, the system shall report its exact UTF-8 byte length after budget and omission metadata are included.` Its test carrier was `[covers:F-06dfdad6/AC-1b7e4a2c] reports final UTF-8 bytes after omission metadata`. These values are fixture inputs, not authored corpus changes.
@@ -185,11 +198,11 @@ Existing feature rationales record that role-brief wording changed live-agent in
 
 ### Supersession and document surface
 
-The current production orphan scan (`npx madge --extensions ts --orphans src`) resolves four real entrypoints — `src/cli/benchmark.ts`, `src/cli/clad.ts`, `src/graph/viewer/main.ts`, and `src/spec/cli.ts` — plus two production-unreferenced optimizer files, `src/optimizer/preamble.ts` and `src/optimizer/tail.ts`. The latter are not presently deletable because F-041 and F-063 still own their behavior. This is the control case for contract-aware retirement rather than grep-only deletion.
+The current production orphan scan (`npx madge --extensions ts --orphans src`) resolves four real entrypoints — `src/cli/benchmark.ts`, `src/cli/clad.ts`, `src/graph/viewer/main.ts`, and `src/spec/cli.ts` — plus `src/spec/compiler/corpus-snapshot.ts` and `src/optimizer/envelope.ts`, which scripts and tests reach but no product path calls yet. It also resolved `src/optimizer/preamble.ts` and `src/optimizer/tail.ts` until F9a: they survived only because F-041 and F-063 owned their behavior, and revising those contracts onto the envelope is what made both files and their tests deletable. That is the worked control case for contract-aware retirement rather than grep-only deletion.
 
 The measured F8/D19 supersession candidate surface is 788 source lines and 820 directly coupled test lines across graph v1, reverse-index, reverse/iterative slice, preamble, and tail files: 1,608 lines total. This is a candidate authority surface, not a promised net deletion. GraphIR, serializers, envelope code, and replacement contract/property tests will remain, so the acceptance signal is removal of duplicate models and traversals rather than a line-count target.
 
-Before semantic routing, this design occupied 92,189 UTF-8 bytes in one Markdown file, about 23k tokens under the deliberately named `characters / 4` estimator. The 2026-09-03 refresh measures a 7,505-byte router and thirteen routed owner/evidence/validation documents below 24 KiB (4,254–24,358 bytes). A default fresh session containing the 5,288-byte `AGENTS.md`, router, and one canonical decision owner is 17,047–37,151 bytes instead of 97,477 bytes for `AGENTS.md` plus the monolith: a 61.9–82.5% physical-input reduction before host-owned instructions and tool traffic. The complete routed design set is 200,107 bytes (195.4 KiB); selective loading is the gain, not disappearance of authority. Reproduce session figures from `AGENTS.md` + the router + one canonical owner; reproduce the complete routed-design total from the router plus all `docs/design/spec-0.2/*.md` owners, excluding `AGENTS.md`; the separate unsubmitted upstream RFC is not part of the routed target set.
+Before semantic routing, this design occupied 92,189 UTF-8 bytes in one Markdown file, about 23k tokens under the deliberately named `characters / 4` estimator. The 2026-09-03 refresh measures a 7,505-byte router and thirteen routed owner/evidence/validation documents below 24 KiB (4,366–24,358 bytes). A default fresh session containing the 5,288-byte `AGENTS.md`, router, and one canonical decision owner is 17,159–37,151 bytes instead of 97,477 bytes for `AGENTS.md` plus the monolith: a 61.9–82.4% physical-input reduction before host-owned instructions and tool traffic. The complete routed design set is 203,738 bytes (199.0 KiB); selective loading is the gain, not disappearance of authority. Reproduce session figures from `AGENTS.md` + the router + one canonical owner; reproduce the complete routed-design total from the router plus all `docs/design/spec-0.2/*.md` owners, excluding `AGENTS.md`; the separate unsubmitted upstream RFC is not part of the routed target set.
 
 ### Orphan and low-value fields
 

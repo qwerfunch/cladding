@@ -7,8 +7,7 @@ modules:
   - tests/drive/loop.test.ts
   - tests/agents/loader.test.ts
   - tests/events/log.test.ts
-  - tests/optimizer/preamble.test.ts
-  - tests/optimizer/tail.test.ts
+  - tests/optimizer/envelope.test.ts
   - tests/ui/pulse.test.ts
   - tests/ui/panel.test.ts
 depends_on:
@@ -50,9 +49,10 @@ acceptance_criteria:
 
       line coverage; non-current.
   - id: AC-161
-    statement: The system shall ship dedicated tests for src/optimizer/preamble.ts
-      and src/optimizer/tail.ts, bringing both to 100% line coverage so the
-      optimizer chapter closes.
+    kind: quality
+    statement: The system shall ship tests/optimizer/envelope.test.ts bringing
+      src/optimizer/envelope.ts to 100% line coverage so the optimizer chapter
+      closes.
   - id: AC-162
     statement: The system shall ship dedicated tests for src/ui/pulse.ts and
       src/ui/panel.ts, bringing both to 100% line coverage so the ui chapter

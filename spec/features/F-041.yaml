@@ -3,8 +3,7 @@ title: Token Optimizer — pruning, preamble suppression, tail-only logging
 status: done
 modules:
   - src/optimizer/prune.ts
-  - src/optimizer/preamble.ts
-  - src/optimizer/tail.ts
+  - src/optimizer/envelope.ts
 depends_on: []
 capability_refs: []
 acceptance_criteria:
@@ -13,14 +12,16 @@ acceptance_criteria:
       depends_on, including any scenario that mentions a retained feature.
       Original spec is returned unchanged when featureId is unknown.
   - id: AC-065
-    statement: "The system shall strip persona preamble lines (You are X, #
-      Orchestrator/Librarian/..., Your job is...) from a prompt and collapse the
-      resulting whitespace."
+    kind: behavior
+    statement: The context envelope shall strip persona preamble lines from
+      diagnostic sections before measurement and collapse the resulting blank
+      runs.
     evidence_refs:
       - fixture:F-041_AC-065
   - id: AC-066
-    statement: The system shall shrink long text to head N + tail M lines with an
-      elision marker, returning the original text unchanged when total lines fit
-      within head + tail.
+    kind: behavior
+    statement: When a diagnostic section exceeds its head and tail allowance, the
+      context envelope shall keep the head and tail lines with an elision marker
+      that names the exact number of elided lines.
     evidence_refs:
       - fixture:F-041_AC-066

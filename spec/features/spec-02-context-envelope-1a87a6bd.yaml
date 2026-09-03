@@ -1,0 +1,75 @@
+id: F-1a87a6bd
+title: Spec 0.2 cycle context envelope — task projections with measured,
+  fixed-point budgets
+status: in_progress
+purpose: A host agent should receive exactly the facts one operation needs from
+  the GraphIR workspace as a packet whose UTF-8 bytes and omissions are measured
+  on the final serialization, so context cost is proven rather than assumed and
+  the retired preamble and tail helpers have a covered successor.
+modules:
+  - src/optimizer/envelope.ts
+  - tests/optimizer/envelope.test.ts
+  - spec/features/F-041.yaml
+  - spec/features/F-063.yaml
+  - docs/design/spec-0.2/evidence.md
+  - docs/design/spec-0.2/change-log.md
+depends_on: []
+capability_refs: []
+acceptance_criteria:
+  - id: AC-87b85505
+    kind: behavior
+    statement: When a task profile is requested for one feature, the context
+      envelope shall project the required sections that D19 defines for that
+      profile from the GraphIR workspace.
+    notes: "Profiles: spec-edit, implement, verify, observe, blind-oracle. Sections
+      per profile follow the D19 task projection table."
+  - id: AC-a9150a5d
+    kind: behavior
+    statement: The context envelope shall measure payload and resident and total
+      UTF-8 bytes with a named token estimator on the final serialization until
+      the totals reach a fixed point.
+    notes: Estimator name is `characters/4`; the measurement is repeated after
+      writing budget and omission metadata until the serialized bytes stop
+      changing.
+  - id: AC-d609cdef
+    kind: behavior
+    statement: When required facts exceed the task ceiling, the context envelope
+      shall report required_overflow with the oversized section instead of
+      truncating a required fact.
+    notes: "Ceilings: 16 KiB for spec-edit, verify, observe; 24 KiB for implement
+      and blind-oracle."
+  - id: AC-fb5c7567
+    kind: behavior
+    statement: When optional sections exceed the remaining budget, the context
+      envelope shall omit them in task-specific priority order and aggregate
+      each omission in the budget summary.
+  - id: AC-06ad5c92
+    kind: behavior
+    statement: The context envelope shall carry a write scope with predicted or
+      observed or unknown provenance while treating an unknown scope as
+      incomplete impact rather than empty impact.
+  - id: AC-249b7630
+    kind: behavior
+    statement: When a diagnostic section exceeds its line allowance, the context
+      envelope shall keep its head and tail lines with an exact elision count
+      after stripping persona preamble lines.
+    notes: Successor of the retired src/optimizer/preamble.ts and
+      src/optimizer/tail.ts helpers (F-041 AC-065, AC-066; F-063 AC-161).
+  - id: AC-90ad1c33
+    kind: behavior
+    statement: When the blind-oracle profile is projected, the context envelope
+      shall exclude implementation bodies and prior implementation results while
+      keeping the criterion and the public signatures and the target test path.
+  - id: AC-abd6e2d4
+    kind: constraint
+    statement: The context envelope shall keep clad_get_context at schema_version 1
+      with its shipped payload unchanged.
+    rationale: D17 and D19 freeze the no-code context-slice wire through 0.10; the
+      envelope is an internal measurement contract and must not leak into that
+      surface.
+design_impact:
+  classification: none
+  rationale: Implements the accepted D19 internal measurement contract; no
+    accepted decision or owner document changes beyond evidence and change-log
+    rows.
+  status: resolved

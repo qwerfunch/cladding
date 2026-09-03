@@ -46,7 +46,7 @@ features:
   F-038: {slug: F-038, status: done, modules: 1}
   F-039: {slug: F-039, status: done, modules: 2}
   F-040: {slug: F-040, status: done, modules: 4}
-  F-041: {slug: F-041, status: done, modules: 3}
+  F-041: {slug: F-041, status: done, modules: 2}
   F-042: {slug: F-042, status: done, modules: 2}
   F-043: {slug: F-043, status: done, modules: 1}
   F-044: {slug: F-044, status: done, modules: 5}
@@ -68,7 +68,7 @@ features:
   F-060: {slug: F-060, status: done, modules: 9}
   F-061: {slug: F-061, status: done, modules: 7}
   F-062: {slug: F-062, status: done, modules: 5}
-  F-063: {slug: F-063, status: done, modules: 9}
+  F-063: {slug: F-063, status: done, modules: 8}
   F-064: {slug: F-064, status: done, modules: 4}
   F-065: {slug: F-065, status: done, modules: 11}
   F-066: {slug: F-066, status: done, modules: 5}
@@ -107,6 +107,7 @@ features:
   F-182eaa53: {slug: spec-compiler-registry-bootstrap, status: done, modules: 92}
   F-18e951: {slug: drift-baseline-cleanup, status: done, modules: 7}
   F-195cb59e: {slug: onboarding-handoff-steer, status: done, modules: 2}
+  F-1a87a6bd: {slug: spec-02-context-envelope, status: in_progress, modules: 6}
   F-1aab1bba: {slug: stop-outcome-telemetry, status: done, modules: 6}
   F-1c9166: {slug: readme-capability-sync, status: done, modules: 2}
   F-1d23a6: {slug: host-hooks, status: done, modules: 5}
@@ -173,7 +174,7 @@ features:
   F-6d943d: {slug: version-bump-script, status: done, modules: 4}
   F-6e49fd24: {slug: inventory-churn-diet, status: done, modules: 1}
   F-6ed216f3: {slug: interactive-drift-profile, status: done, modules: 5}
-  F-6f0a2106: {slug: spec-02-assurance-attestation, status: done, modules: 35}
+  F-6f0a2106: {slug: spec-02-assurance-attestation, status: done, modules: 38}
   F-6f80e7: {slug: claude-code-dogfood, status: done, modules: 1}
   F-7076f7: {slug: smoke-probe-demand, status: done, modules: 3}
   F-70ed1afd: {slug: adoption-honors-host-capabilities, status: done, modules: 1}
