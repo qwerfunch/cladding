@@ -129,13 +129,11 @@ The role-contract architecture is shipped, while task-keyed projection and full-
 | Measurement | Value | Classification / consequence |
 |---|---:|---|
 | Canonical role-brief Markdown | 6 files; 27,420 bytes; 406 lines | Verified measurement; excludes the directory README. Preserve unique role contracts, but remove repeated choreography only through canonical-source edits. |
-| Current developer role body | 4,955 bytes; about 1,229 estimated tokens | Verified measurement; stable prompt prefix is a material cold-input component. |
+| Current developer role body | 4,969 bytes; about 1,232 estimated tokens | Verified measurement; stable prompt prefix is a material cold-input component. |
 | Current reviewer role body | 4,521 bytes; about 1,118 estimated tokens | Verified measurement. |
 | Current per-dispatch wire across 281 features | p50 7,977 bytes; p95 11,392; max 27,848 | Verified measurement; developer and reviewer receive the same full feature JSON rather than task-specific projections. |
 | Current two-dispatch headless cycle | p50 15,836 bytes; p95 22,460; max 55,286 | Verified measurement; excludes subsequent tool results and MCP catalog residence, so it is a lower bound on physical cycle context. |
 | Current serialized feature body | p50 about 704; p95 1,507; max 5,454 estimated tokens | Verified measurement under the `characters / 4` estimator. |
-| Prototype 0.2 contract-only two-task aggregate, legacy notes retained | p50 13,044 bytes; p95 15,978; max 35,976 | Combined implement+verify projection lower bound, not a per-task ceiling result; proof, impact, catalog, and retry sections are incomplete. |
-| Prototype strict two-task aggregate without legacy notes | p50 12,412 bytes; p95 14,698; max 27,854 | Combined implement+verify projection lower bound. The former content-class ceiling wording was ambiguous; D19 now judges each task profile independently. |
 | Conservative full-feature `spec-edit` envelope | max 12,186 bytes (`F-0f4dd6`) | Read-only projection including feature contract, parsed architecture, project intent, relevant capabilities, revisions, write scope, and budget metadata; below the 16 KiB class limit. |
 | Criterion-target `spec-edit` envelope | max 1,473 bytes | Read-only operation-scoped projection; supports deriving required content from the write set rather than shipping a whole feature unnecessarily. |
 | Focused independence/oracle regression suite | 46/46 tests passed | Verified run over independence, done-policy, oracle recording, and spec-conformance contracts. |
@@ -148,10 +146,38 @@ Measured by `buildCycleContextEnvelope` over the live GraphIR workspace with no 
 
 | Feature | `spec-edit` | `implement` | `verify` | `observe` | `blind-oracle` | Omissions |
 |---|---:|---:|---:|---:|---:|---|
-| `F-208eaa79` (56 modules, 23 criteria) | 7,247 | 20,802 | 16,160 | 1,184 | 23,544 | 1: `implement` sheds `ownership-fan-out` (17,226 bytes) |
-| `F-001` (4 modules, 2 criteria) | 1,773 | 4,558 | 2,881 | 1,147 | 2,313 | 0 |
+| `F-208eaa79` (56 modules, 23 criteria) | 7,247 | 20,757 | 16,160 | 1,184 | 23,544 | 0 |
+| `F-001` (4 modules, 2 criteria) | 1,773 | 2,401 | 2,881 | 1,147 | 2,313 | 0 |
+
+The `implement` column is the default packet, which does not carry `ownership-fan-out`: D19 keeps that summary available lazily, so it travels only when a request names it in `include`. Asked for explicitly the hub packet is 20,828 bytes and sheds the block it asked for, reporting `ownership-fan-out` omitted at 17,460 bytes — the expansion does not fit under 24 KiB alongside the hub's own contract. The small feature's included packet is 4,558 bytes with nothing omitted. The F9b census reads that difference across the whole corpus.
 
 `required_overflow` is zero on both. Two figures sit close to their class limit and are the ones to watch: hub `verify` holds 224 bytes under the 16 KiB limit with no optional section left to shed, and hub `blind-oracle` holds 1,032 bytes under 24 KiB carrying declaration-only signatures for 56 modules.
+
+#### A–E simulation (self corpus, 2026-09-03)
+
+Measured by `tests/optimizer/topology-suite.test.ts` over 295 features; exact UTF-8 bytes. Arm A is the shipped dispatch (persona body plus the `ctxFor` packet), arm B one general agent's task envelope, arm E the legacy read set the projection replaces. These two rows replace the retired prototype two-task aggregates, which were lower bounds over an incomplete projection.
+
+| Arm and measurement | p50 | p95 | max |
+|---|---:|---:|---:|
+| A developer dispatch, persona-inclusive | 7,570 | 10,834 | 30,050 |
+| A reviewer dispatch, persona-inclusive | 7,122 | 10,386 | 29,602 |
+| A shard JSON only, persona removed | 2,601 | 5,865 | 25,081 |
+| A two-dispatch no-retry cycle | 14,692 | 21,220 | 59,652 |
+| B `implement`, default | 3,753 | 7,002 | 20,757 |
+| B `verify` | 3,849 | 5,819 | 16,160 |
+| B `spec-edit` | 2,186 | 3,311 | 9,896 |
+| B `observe` | 1,173 | 1,194 | 1,278 |
+| B `blind-oracle` | 2,294 | 8,283 | 29,172 |
+| B implement+verify cycle, default | 7,572 | 12,542 | 36,917 |
+| B `implement` follow-up carrying the fan-out | 7,462 | 20,371 | 23,805 |
+| B ownership fan-out block itself | 5,699 | 22,340 | 33,774 |
+| B cycle including the fan-out follow-up | 15,948 | 29,901 | 57,745 |
+| E reconstruction floor, matched lines | 8,622 | 29,051 | 128,282 |
+| E reconstruction ceiling, whole files with attestation read by row | 1,066,077 | 1,290,265 | 1,580,140 |
+
+The fan-out rows are what changed the shipped packer. F9a packed `ownership-fan-out` resident whenever it fitted under the 24 KiB `implement` ceiling, and that one block put the cycle p95 at 25,092 bytes against arm A's 21,220 on 94 of 295 features — the projection cost more than the two-dispatch path it replaces. D19 calls the same summary available lazily, and the profile now says so structurally: a lazy section is never packed by default, a caller that needs it names it in `include`, and the follow-up is a second whole packet. The default cycle is 12,542 bytes at p95 and exceeds arm A on no feature, which is the figure AC-397aac78 asserts. The follow-up cycle is recorded and deliberately not asserted: asking for the expansion costs 29,901 bytes at p95 and exceeds arm A on 142 of 295 features. That is the honest price of a second query, and it is paid by the operation that wants the fan-out rather than by every implement packet. This is a physical-input record only: no host ran a task, so it supports no efficiency-when-used or adoption claim.
+
+All 295 features project a blind packet, and none of the 174,677 candidate implementation lines of their `src/` modules appeared in one. A candidate is a non-blank, non-comment, non-import line that is neither an `export` declaration header nor a continuation of one nor a `name: Type` field, at least 12 characters long and carrying two or more word characters. Fourteen declared modules are directories rather than files, with and without a trailing slash; a directory has no declaration lines, so it contributes none and is still recorded in the read manifest as a path that was offered. Before F9b swept the corpus the declaration-only extractor tested for existence and then read bytes, which a directory answers only halfway, so three features could not project at all. The two arm E rows include the test report on disk whenever one is present, so they move with it: this census ran with the full-suite report, 997,786 bytes on disk. The AB11 independence half and the AB12 adoption half are computed from the fixture receipts and event log in every arm, because the envelope carries no per-receipt assurance section and no adoption-telemetry section by design; adding one would be the production growth D19's internal measurement contract forbids. The twelve-item A/B/C matrix, both byte censuses, the leakage sweep, and the 5,000-feature hub add 6.1 s to a full suite run; the 5,000-feature hub packet is 5,692 bytes at its fixed point in about 7 ms.
 
 I-4 closure width, measured the same day by `effectiveFeatureScope` over the compiled workspace for the `completion` L2 profile seeded at `feature:F-001`: the completion closure spans 287 of 294 features (complete, not repository-escalated) through shared-module hubs, so the closure-scoped test filter is recorded rather than built.
 
@@ -178,7 +204,7 @@ The read-only design simulation used the live `F-06dfdad6` working-set feature b
 | Task-profile MCP challenger | 7,183–88,313 bytes | Controlled tools-only projections are 36.0–94.8% smaller than that full list bundle; host discovery, retries, and provider tokens remain unmeasured. |
 | Graph projection model | directed 375 bytes; undirected 610; avoidable 235 | Same required synthetic task output; validates projection mechanics, not GraphIR v2 product efficiency. |
 | Assurance cadence model | every-edit 36 units; tiered 15 | Same completion obligations and GREEN reduction; deterministic relative units, not wall-time evidence. |
-| V0 validation state | 12 pass; 2 implementation-pending; 3 not-run; 2 inconclusive; 0 fail | Infrastructure and model state only. Pending runtime and host evidence are not promoted. |
+| V0 validation state (2026-09-03) | 14 pass; 2 implementation-pending; 3 not-run; 2 inconclusive; 0 fail | Infrastructure and model state only. Pending runtime and host evidence are not promoted. |
 | Feature-only impact seed | 3 direct dependents | Verified current graph relation. |
 | Predicted write path `src/optimizer/working-set.ts` | 4 owners + 2 downstream | Prototype write-scope projection. |
 | Expanding all three declared modules | 23 owner seeds + 73 downstream | Negative control; feature modules are too broad as default impact seeds. |
@@ -202,7 +228,7 @@ The current production orphan scan (`npx madge --extensions ts --orphans src`) r
 
 The measured F8/D19 supersession candidate surface is 788 source lines and 820 directly coupled test lines across graph v1, reverse-index, reverse/iterative slice, preamble, and tail files: 1,608 lines total. This is a candidate authority surface, not a promised net deletion. GraphIR, serializers, envelope code, and replacement contract/property tests will remain, so the acceptance signal is removal of duplicate models and traversals rather than a line-count target.
 
-Before semantic routing, this design occupied 92,189 UTF-8 bytes in one Markdown file, about 23k tokens under the deliberately named `characters / 4` estimator. The 2026-09-03 refresh measures a 7,505-byte router and thirteen routed owner/evidence/validation documents below 24 KiB (4,366–24,358 bytes). A default fresh session containing the 5,288-byte `AGENTS.md`, router, and one canonical decision owner is 17,159–37,151 bytes instead of 97,477 bytes for `AGENTS.md` plus the monolith: a 61.9–82.4% physical-input reduction before host-owned instructions and tool traffic. The complete routed design set is 203,738 bytes (199.0 KiB); selective loading is the gain, not disappearance of authority. Reproduce session figures from `AGENTS.md` + the router + one canonical owner; reproduce the complete routed-design total from the router plus all `docs/design/spec-0.2/*.md` owners, excluding `AGENTS.md`; the separate unsubmitted upstream RFC is not part of the routed target set.
+Before semantic routing, this design occupied 92,189 UTF-8 bytes in one Markdown file, about 23k tokens under the deliberately named `characters / 4` estimator. The 2026-09-03 refresh measures a 7,505-byte router, eight canonical decision owners inside the 24 KiB ceiling (4,366–24,358 bytes), and five supporting evidence, validation, and log documents (5,595–28,115 bytes); this evidence snapshot is the one routed document above 24 KiB, because it accumulates dated measurements rather than normative text and no owner loads it to read a decision. A default fresh session containing the 5,288-byte `AGENTS.md`, router, and one canonical decision owner is 17,159–37,151 bytes instead of 97,477 bytes for `AGENTS.md` plus the monolith: a 61.9–82.4% physical-input reduction before host-owned instructions and tool traffic. The complete routed design set is 210,081 bytes (205.2 KiB); selective loading is the gain, not disappearance of authority. Reproduce session figures from `AGENTS.md` + the router + one canonical owner; reproduce the complete routed-design total from the router plus all `docs/design/spec-0.2/*.md` owners, excluding `AGENTS.md`; the separate unsubmitted upstream RFC is not part of the routed target set.
 
 ### Orphan and low-value fields
 

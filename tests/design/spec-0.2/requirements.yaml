@@ -76,7 +76,7 @@ integration_journeys:
   - {id: J08, decisions: [D11, D20, D21], status: simulated, scenario: proof-observation-and-provenance}
   - {id: J09, decisions: [D13, D23], status: implementation_pending, scenario: selective-attestation-staleness}
   - {id: J10, decisions: [D17, D19], status: simulated, scenario: bounded-graph-projection}
-  - {id: J11, decisions: [D19, D20], status: simulated, scenario: topology-invariant-context}
+  - {id: J11, decisions: [D19, D20], status: validation-active, scenario: topology-invariant-context, test_ref: "tests/optimizer/topology-suite.test.ts#J11 topology-invariant context is validation-active with a resolvable test reference"}
   - {id: J12, decisions: [D21, D22, D23], status: simulated, scenario: cadence-verdict-equivalence}
   - {id: J13, decisions: [D15, D16, D24], status: not_run, scenario: reference-host-spec-02-cycle}
 

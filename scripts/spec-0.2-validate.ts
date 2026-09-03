@@ -50,8 +50,10 @@ interface CaseRequirement {
 interface IntegrationJourney {
   readonly id: string;
   readonly decisions: readonly string[];
-  readonly status: 'simulated' | 'implementation_pending' | 'not_run';
+  readonly status: 'simulated' | 'validation-active' | 'implementation_pending' | 'not_run';
   readonly scenario: string;
+  /** Exact executable test reference required of a validation-active journey. */
+  readonly test_ref?: string;
 }
 
 interface HostAbTask {
@@ -451,20 +453,32 @@ function checkCompilerRegistry(root: string, manifest: ValidationManifest): Vali
   }
 }
 
-function checkJourneyLedger(manifest: ValidationManifest): ValidationCheck {
+function checkJourneyLedger(root: string, manifest: ValidationManifest): ValidationCheck {
   const expected = Array.from({length: 13}, (_, index) => `J${String(index + 1).padStart(2, '0')}`);
   const ids = manifest.integration_journeys.map((journey) => journey.id);
   const decisions = new Set(manifest.decisions.map((decision) => decision.id));
   const invalid = manifest.integration_journeys.filter((journey) =>
     journey.decisions.length === 0 || journey.decisions.some((decision) => !decisions.has(decision)),
   );
-  const valid = stableJson(ids) === stableJson(expected) && unique(ids) && invalid.length === 0;
+  // A validation-active journey claims a RUNNING test, so the reference must resolve: the
+  // named file has to exist and has to carry the named title. An unresolvable reference is a
+  // promoted status with nothing behind it, which is exactly the state this ledger forbids.
+  const active = manifest.integration_journeys.filter((journey) => journey.status === 'validation-active');
+  const unresolved = active.filter((journey) => {
+    const reference = journey.test_ref;
+    if (reference === undefined) return true;
+    const separator = reference.indexOf('#');
+    if (separator <= 0 || separator === reference.length - 1) return true;
+    const path = join(root, reference.slice(0, separator));
+    return !existsSync(path) || !readFileSync(path, 'utf8').includes(reference.slice(separator + 1));
+  });
+  const valid = stableJson(ids) === stableJson(expected) && unique(ids) && invalid.length === 0 && unresolved.length === 0;
   return {
     id: 'integration-journey-ledger',
     status: valid ? 'pass' : 'fail',
     evidence: valid
-      ? 'J01-J13 map model simulations, pending implementation journeys, and the unrun reference-host cycle without collapsing their states.'
-      : `journey_ids=${ids.join(',')}; invalid=${invalid.map((journey) => journey.id).join(',') || 'none'}`,
+      ? `J01-J13 map model simulations, ${active.length} validation-active journey(s) with resolvable test references (${active.map((journey) => journey.id).join(', ') || 'none'}), pending implementation journeys, and the unrun reference-host cycle without collapsing their states.`
+      : `journey_ids=${ids.join(',')}; invalid=${invalid.map((journey) => journey.id).join(',') || 'none'}; unresolved_test_ref=${unresolved.map((journey) => journey.id).join(',') || 'none'}`,
   };
 }
 
@@ -826,7 +840,7 @@ export async function validateSpec02(cwd = process.cwd()): Promise<ValidationRep
     checkDecisionOwnership(root, manifest),
     checkDocumentationRatchets(root),
     checkPreregisteredCases(root, manifest),
-    checkJourneyLedger(manifest),
+    checkJourneyLedger(root, manifest),
     checkMcpScenarioLedger(root, manifest),
     checkCompilerRegistry(root, manifest),
     simulateWhyAndIdentity(),

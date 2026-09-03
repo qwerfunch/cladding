@@ -34,7 +34,7 @@ The initial harness validates:
   matching router navigation heading, and no normative heading in another
   routed document;
 - the P/L/B/C/T/U/A matrix contains 37 unique preregistered IDs documented by D16;
-- J01–J13 preserve model-simulated, implementation-pending, and reference-host-not-run journeys as different states;
+- J01–J13 preserve model-simulated, validation-active, implementation-pending, and reference-host-not-run journeys as different states, and a validation-active journey must name a test reference whose file and title the validator resolves;
 - preregistration is not presented as 37 passing runtime cases;
 - current MCP identifiers equal the live in-memory tool/resource/prompt catalog;
 - dynamic tool discovery is negotiated and the real initialization path emits list-changed;

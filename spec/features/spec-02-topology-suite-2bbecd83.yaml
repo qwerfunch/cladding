@@ -1,0 +1,78 @@
+id: F-2bbecd83
+title: Spec 0.2 A–E topology invariance suite (J11)
+status: in_progress
+purpose: Prove that Cladding's contracts, gates, verdicts, and stale closures do
+  not depend on which agent topology or persona produced the work, so that hosts
+  can choose one or many general agents without losing any guarantee.
+modules:
+  - tests/optimizer/topology-suite.test.ts
+  - tests/optimizer/topology/ab-tasks.ts
+  - tests/optimizer/topology/synthetic-graph.ts
+  - scripts/spec-0.2-validate.ts
+  - tests/design/spec-0.2/requirements.yaml
+depends_on: []
+capability_refs: []
+acceptance_criteria:
+  - id: AC-3ab6f8be
+    kind: behavior
+    statement: When the twelve ledger work items are executed through arms A and B
+      and C on the same fixture workspace with the edit or refusal of each arm
+      applied to a fresh copy and reduced by the completion profile, the
+      topology suite shall observe identical contract addresses, verdicts, stale
+      closures, and observed write-scope impact across the three arms.
+  - id: AC-ed542c22
+    kind: behavior
+    statement: When the blind-oracle packet is built for any fixture or self-corpus
+      feature, the topology suite shall find zero implementation body lines and
+      zero prior implementation results inside the packet.
+  - id: AC-3600523a
+    kind: behavior
+    statement: When every general persona prompt is removed from arms A and B and C,
+      the topology suite shall observe the same contract addresses and verdicts
+      and stale closures as with the prompts present.
+  - id: AC-a35b579b
+    kind: constraint
+    statement: The assurance and proof and compiler kernels shall not import the
+      persona loader or reference a persona identifier.
+    rationale: D20 admits no gate or verdict that depends on a general persona id; a
+      structural scan is the negative control that keeps the topology invariance
+      from silently regressing.
+  - id: AC-9d189f9f
+    kind: behavior
+    statement: When purpose or criterion identity or constraint rationale or
+      selector or provenance or direction or impact or freshness is removed from
+      an envelope, the corresponding ablation shall fail.
+  - id: AC-013fc518
+    kind: quality
+    statement: The topology suite shall record for every self-corpus feature the arm
+      A dispatch bytes with and without persona prompts, the arm B payload bytes
+      per profile, and the arm E reconstruction byte range so that the no-retry
+      implement and verify cycle is compared against the shipped two-dispatch
+      path at p50 and p95.
+  - id: AC-397aac78
+    kind: behavior
+    statement: When the no-retry implement and verify cycle is measured across the
+      self corpus, the arm B p50 and p95 payload bytes shall not exceed the
+      shipped persona-inclusive developer and reviewer dispatch bytes.
+  - id: AC-0ddb51d3
+    kind: behavior
+    statement: When the suite builds an implement envelope for a hub feature of the
+      five-thousand-feature synthetic graph, the envelope shall reach its byte
+      fixed point within the measure-round cap and within 500 milliseconds.
+  - id: AC-27ee0ea7
+    kind: behavior
+    statement: The validation ledger shall mark J11 validation-active with a test
+      reference that the design validator verifies to exist.
+  - id: AC-51a9a41e
+    kind: constraint
+    statement: The topology suite shall add no production module and no default-path
+      runtime cost.
+    rationale: The user's cost-first condition and D19's internal measurement
+      contract both forbid growing the shipped runtime for evidence that tests
+      can produce.
+design_impact:
+  classification: none
+  rationale: D19 already specifies the A–E simulation and its invariants; this
+    feature adds the executable suite and ledger status only, with no change to
+    any canonical owner document.
+  status: resolved
