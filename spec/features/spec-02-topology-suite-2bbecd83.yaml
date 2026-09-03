@@ -1,6 +1,6 @@
 id: F-2bbecd83
 title: Spec 0.2 A–E topology invariance suite (J11)
-status: in_progress
+status: done
 purpose: Prove that Cladding's contracts, gates, verdicts, and stale closures do
   not depend on which agent topology or persona produced the work, so that hosts
   can choose one or many general agents without losing any guarantee.

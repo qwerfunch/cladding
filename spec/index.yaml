@@ -121,7 +121,7 @@ features:
   F-284be4f6: {slug: init-empty-layers-valid-yaml, status: done, modules: 1}
   F-2883ff4d: {slug: spec-02-proof-evidence-kernel, status: done, modules: 32}
   F-288864ae: {slug: claude-md-diet, status: done, modules: 2}
-  F-2bbecd83: {slug: spec-02-topology-suite, status: in_progress, modules: 5}
+  F-2bbecd83: {slug: spec-02-topology-suite, status: done, modules: 5}
   F-2be3e3bb: {slug: infer-depends-on, status: done, modules: 2}
   F-2c02991f: {slug: arch-gate-skips-build-output, status: done, modules: 1}
   F-2de65d: {slug: drive-auto-rollback, status: done, modules: 1}
