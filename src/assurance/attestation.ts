@@ -46,7 +46,17 @@ export interface AttestationV3 {
   readonly tool_identity: string;
   readonly environment_class: string;
   readonly trust_snapshot_sha256: string;
-  readonly observation_identities: readonly string[];
+  /**
+   * Content address of this row's current observation identity set.
+   *
+   * The identities themselves stay in the in-memory verdict. Persisting the
+   * whole sorted list made the file grow with `features × obligations`, which
+   * a per-feature seal never needed: the digest still binds the row to exactly
+   * one observation set, and any changed, added, or dropped identity moves it.
+   */
+  readonly observation_set_sha256: string;
+  /** Size of that de-duplicated identity set, so counts stay checkable without it. */
+  readonly observation_count: number;
   readonly observation_counts: Readonly<{required: number; pass: number; na: number; migration_baseline: number}>;
   /** Present only when this attested profile scope compacted current L2 baseline rows. */
   readonly migration_baseline?: MigrationBaselineAttestationSummary;
@@ -56,7 +66,14 @@ export interface AttestationV3 {
 export interface MigrationBaselineAttestationSummary {
   readonly baseline_receipt_sha256: string;
   readonly resolution_sha256: string;
-  readonly criterion_authorization_sha256: readonly string[];
+  /**
+   * Content address of this scope's authorized-criterion set.
+   *
+   * Inlining one digest per authorized criterion made this summary the second
+   * `features × criteria` term in the persisted file. `criterion_count` already
+   * carries the size, so the set only ever needed an address.
+   */
+  readonly criterion_authorization_set_sha256: string;
   readonly criterion_count: number;
   readonly obligation_count: number;
 }
@@ -130,6 +147,25 @@ export interface AttestationV3Input {
   readonly trustSnapshotSha256: string;
 }
 
+/**
+ * Content-addresses one observation identity set for a persisted v3 row.
+ *
+ * Normalizing here (de-duplicate, then order by code unit) is what makes the
+ * digest an identity rather than a rendering: the writer, the compaction
+ * script, and any future reader all reach the same address from the same set.
+ *
+ * @param identities - Current observation identities, in any order.
+ * @returns SHA-256 of the compact JSON array of the sorted, unique identities.
+ * @throws Never.
+ * @see docs/design/spec-0.2/assurance.md#d23--attestation-reducer
+ * @since 0.10.0
+ */
+export function observationSetSha256(identities: readonly string[]): string {
+  return createHash('sha256')
+    .update(JSON.stringify([...new Set(identities)].sort(compareCodeUnits)), 'utf8')
+    .digest('hex');
+}
+
 /** Returns a v3 payload only from an authoritative profile-complete GREEN verdict. */
 export function mintWorkspaceAttestationV3(input: AttestationV3Input): AuthoritativeAttestationV3 | undefined {
   const verdict = input.verdict;
@@ -182,7 +218,8 @@ export function mintWorkspaceAttestationV3(input: AttestationV3Input): Authorita
     profile_sha256, obligation_sha256: verdict.obligation_sha256, registry_sha256: input.registrySha256,
     detector_catalog_sha256: input.detectorCatalogSha256, tool_identity: input.toolIdentity,
     environment_class: input.environmentClass, trust_snapshot_sha256: input.trustSnapshotSha256,
-    observation_identities: Object.freeze(observationIdentities), observation_counts: Object.freeze(counts),
+    observation_set_sha256: observationSetSha256(observationIdentities),
+    observation_count: observationIdentities.length, observation_counts: Object.freeze(counts),
     ...(migrationBaseline === null ? {} : {migration_baseline: migrationBaseline}),
     [AUTHORITATIVE_V3]: true as const,
   });
@@ -231,7 +268,7 @@ function compactMigrationBaselineRows(
   return Object.freeze({
     baseline_receipt_sha256: first.baseline_receipt_sha256,
     resolution_sha256: first.resolution_sha256,
-    criterion_authorization_sha256: Object.freeze(authorizations),
+    criterion_authorization_set_sha256: observationSetSha256(authorizations),
     criterion_count: summaries.length,
     obligation_count: obligationCount,
   });

@@ -35,8 +35,11 @@ modules:
   - tests/stages/stale-attestation.test.ts
   - tests/stages/stale-specification.test.ts
   - tests/assurance/adapters.test.ts
+  - tests/scripts/compact-attestation-v3.test.ts
   - tests/design/spec-0.2/requirements.yaml
   - scripts/spec-0.2-validate.ts
+  - scripts/compact-attestation-v3.mjs
+  - scripts/compact-attestation-v3.d.mts
 depends_on: []
 capability_refs: []
 acceptance_criteria:
@@ -97,6 +100,12 @@ acceptance_criteria:
     statement: The assurance authority shall label an unresolved-applicability row
       unresolved and an unbound criterion row unbound, and expose the incomplete
       closure addresses in its machine verdict.
+  - id: AC-6f0a2116
+    kind: behavior
+    statement: The assurance authority shall persist each attestation v3 row with
+      the observation set digest, the authorization set digest, and the
+      observation count instead of inline identity lists so that the attestation
+      size stays bounded by the feature count.
 design_impact:
   classification: structural
   rationale: F6 centralizes assurance identity, closure freshness, profile

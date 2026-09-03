@@ -309,10 +309,12 @@ authority.
 The attestation records profile ID, configured and achieved assurance level,
 scope and input digests, contract/subject/verification closure digests, current
 obligation and adapter registry identities, detector catalog, tool/environment
-class, trust snapshot, and sorted identities that earned GREEN. Private run
-authority seals baseline identities and requires executed passing scope Unit and
-Coverage rows before minting; only current observed required results have
-observation identities. It embeds no receipt body and copies no stale observation forward. Feedback,
+class, trust snapshot, and `observation_set_sha256` plus `observation_count`
+over the identities that earned GREEN. Private run authority seals baseline
+identities and requires executed passing scope Unit and Coverage rows before
+minting; the `migration_baseline` summary seals `criterion_authorization_set_sha256`
+rather than an authorization list, so a row stays constant-size. It embeds no
+receipt body and copies no stale observation forward. Feedback,
 checkpoint, silent verdict polling, background work, and incomplete profiles
 never stamp.
 

@@ -15,7 +15,7 @@ import {
   type AttestationPolicy,
 } from '../../src/spec/attestation.js';
 import {loadSpec} from '../../src/spec/load.js';
-import {createAttestationV3RetentionContext, serializeAttestationV3} from '../../src/assurance/attestation.js';
+import {createAttestationV3RetentionContext, observationSetSha256, serializeAttestationV3} from '../../src/assurance/attestation.js';
 import {reduceLegacyStageAdapter} from '../../src/assurance/adapters.js';
 import {assuranceProfile} from '../../src/assurance/kernel.js';
 import {createWorkspaceAttestations, currentProofViewsFromWorkspace, workspaceProfileSnapshot} from '../../src/assurance/workspace.js';
@@ -566,7 +566,10 @@ describe('attestation policy stamp', () => {
     writeAttestation(dir, loadSpec(dir), policy, [a, b], undefined, {writeLegacy: false});
     const summary = {
       baseline_receipt_sha256: 'a'.repeat(64), resolution_sha256: 'b'.repeat(64),
-      criterion_authorization_sha256: ['c'.repeat(64)], criterion_count: 1, obligation_count: 2,
+      // Well-formed in the compact shape, so the row is dropped for disagreeing
+      // with the current zero-baseline scope, not for being unreadable.
+      criterion_authorization_set_sha256: observationSetSha256(['c'.repeat(64)]),
+      criterion_count: 1, obligation_count: 2,
     };
     const forged = {
       ...b,
@@ -589,7 +592,7 @@ describe('attestation policy stamp', () => {
     expect(readAttestation(dir)?.v3?.has('F-b11ce002')).toBe(false);
   });
 
-  test('retains a current sibling with a nonzero migration-baseline summary', () => {
+  test('[covers:F-6f0a2106/AC-6f0a2116] retains a current sibling with a nonzero migration-baseline summary', () => {
     writeSchema02Siblings(dir);
     writeEligibleBaselineForSibling(dir);
     const [a] = currentEntries(dir, 'completion', ['F-a11ce001']);
@@ -616,6 +619,13 @@ describe('attestation policy stamp', () => {
     const retained = readAttestation(dir)?.v3?.get('F-b11ce002');
     expect(retained).toBeDefined();
     expect(retained && serializeAttestationV3(retained)).toBe(priorSerialized);
+    // Retention re-derives the summary from the current scope and compares it,
+    // so surviving here is the proof that the minting and the reading builder
+    // address the same authorization set identically.
+    expect(retained?.migration_baseline?.criterion_authorization_set_sha256)
+      .toBe(observationSetSha256(snapshot.migrationBaselineCandidates.map((candidate) => candidate.basis.criterion_authorization_sha256)));
+    expect(Object.keys(retained?.migration_baseline ?? {})).not.toContain('criterion_authorization_sha256');
+    expect(Object.keys(retained ?? {})).not.toContain('observation_identities');
   });
 
   test('treats malformed and contradictory last-wins v3 duplicates as rejected', () => {

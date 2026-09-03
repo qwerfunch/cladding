@@ -23,6 +23,7 @@ import {
   attestationProfileSha256,
   attestationV3RetentionState,
   isAuthoritativeAttestationV3,
+  observationSetSha256,
   type AttestationV3,
   type AttestationV3RetentionContext,
   type AuthoritativeAttestationV3,
@@ -1006,15 +1007,19 @@ function normalizeAttestationV3(value: unknown, feature: string): AttestationV3 
     && digestFields.every((digest) => /^[a-f0-9]{64}$/.test(digest ?? ''))
     && typeof entry.tool_identity === 'string' && entry.tool_identity.length > 0
     && typeof entry.environment_class === 'string' && entry.environment_class.length > 0
-    && Array.isArray(entry.observation_identities)
-    && entry.observation_identities.every((identity) => /^[a-f0-9]{64}$/.test(identity))
-    && entry.observation_identities.every((identity, index, values) => index === 0 || values[index - 1]! <= identity)
-    && entry.observation_identities.every((identity, index, values) => index === 0 || values[index - 1]! !== identity)
+    && /^[a-f0-9]{64}$/.test(entry.observation_set_sha256 ?? '')
+    && typeof entry.observation_count === 'number'
+    && Number.isSafeInteger(entry.observation_count) && entry.observation_count >= 0
+    // The pre-compaction shape inlined the whole identity list, which grew the
+    // file with `features × obligations`. Its digest cannot be recomputed from
+    // a row that also carries the array (a hand-merged file could disagree
+    // with itself), so the old form is not read — it is re-stamped.
+    && !('observation_identities' in entry)
     && counts !== undefined
     // D13 preserves literal PASS independently from an upstream report
     // failure. Every resolved required non-baseline result still needs a
-    // distinct current observation identity after sorted/unique validation.
-    && entry.observation_identities.length >= counts.required - counts.migration_baseline;
+    // distinct current observation identity behind the sealed set.
+    && entry.observation_count >= counts.required - counts.migration_baseline;
   if (!valid || counts === undefined) return undefined;
   const migrationBaseline = normalizeMigrationBaselineSummary(entry.migration_baseline, counts.migration_baseline);
   if (migrationBaseline === undefined && counts.migration_baseline !== 0) return undefined;
@@ -1055,25 +1060,24 @@ function normalizeMigrationBaselineSummary(
   const keys = Object.keys(summary).sort(compareCodeUnits);
   const baselineReceiptSha256 = summary.baseline_receipt_sha256;
   const resolutionSha256 = summary.resolution_sha256;
-  const authorizations = summary.criterion_authorization_sha256;
+  const authorizationSetSha256 = summary.criterion_authorization_set_sha256;
   const criterionCount = summary.criterion_count;
   const obligationCount = summary.obligation_count;
-  if (keys.join(',') !== 'baseline_receipt_sha256,criterion_authorization_sha256,criterion_count,obligation_count,resolution_sha256'
+  // The exact key set is what refuses the pre-compaction summary, which inlined
+  // one digest per authorized criterion: such a row is not read, it is
+  // re-stamped, so no file can carry both the array and its address.
+  if (keys.join(',') !== 'baseline_receipt_sha256,criterion_authorization_set_sha256,criterion_count,obligation_count,resolution_sha256'
     || !isSha256(baselineReceiptSha256)
     || !isSha256(resolutionSha256)
-    || !Array.isArray(authorizations)
-    || !authorizations.every(isSha256)
-    || !authorizations.every((authorization, index, values) => index === 0
-      || compareCodeUnits(values[index - 1]!, authorization) < 0)
+    || !isSha256(authorizationSetSha256)
     || !isPositiveSafeInteger(criterionCount)
     || !isPositiveSafeInteger(obligationCount)
-    || authorizations.length !== criterionCount
     || obligationCount !== baselineCount
     || obligationCount !== 2 * criterionCount) return undefined;
   return Object.freeze({
     baseline_receipt_sha256: baselineReceiptSha256,
     resolution_sha256: resolutionSha256,
-    criterion_authorization_sha256: Object.freeze([...authorizations]),
+    criterion_authorization_set_sha256: authorizationSetSha256,
     criterion_count: criterionCount,
     obligation_count: obligationCount,
   });
@@ -1104,7 +1108,7 @@ function currentMigrationBaselineSummary(
   return Object.freeze({
     baseline_receipt_sha256: first.baseline_receipt_sha256,
     resolution_sha256: first.resolution_sha256,
-    criterion_authorization_sha256: Object.freeze(authorizations),
+    criterion_authorization_set_sha256: observationSetSha256(authorizations),
     criterion_count: authorizations.length,
     obligation_count: authorizations.length * 2,
   });

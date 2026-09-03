@@ -3,7 +3,7 @@
 import {describe, expect, test} from 'vitest';
 import {createHash} from 'node:crypto';
 
-import {mintWorkspaceAttestationV3} from '../../src/assurance/attestation.js';
+import {mintWorkspaceAttestationV3, observationSetSha256} from '../../src/assurance/attestation.js';
 import {canonicalClosureJson} from '../../src/assurance/closures.js';
 import {reduceLegacyStageAdapter} from '../../src/assurance/adapters.js';
 import {hasRunCheckStagesAuthority, mintRunCheckStagesAuthority} from '../../src/assurance/run-authority.js';
@@ -122,11 +122,12 @@ describe('F6 attestation v3 payload', () => {
     expect(hasSealedAuthority(sealedVerdict(baselineRows))).toBe(true);
     const minted = mintWorkspaceAttestationV3(sealedInput(sealedVerdict(baselineRows)));
     expect(minted?.observation_counts).toEqual({required: 4, pass: 2, na: 0, migration_baseline: 2});
-    expect(minted?.observation_identities).toEqual(['scope:stage_2.1', 'scope:stage_2.2']);
+    expect(minted?.observation_set_sha256).toBe(observationSetSha256(['scope:stage_2.1', 'scope:stage_2.2']));
+    expect(minted?.observation_count).toBe(2);
     expect(minted?.migration_baseline).toEqual({
       baseline_receipt_sha256: basis.baseline_receipt_sha256,
       resolution_sha256: basis.resolution_sha256,
-      criterion_authorization_sha256: [basis.criterion_authorization_sha256],
+      criterion_authorization_set_sha256: observationSetSha256([basis.criterion_authorization_sha256]),
       criterion_count: 1,
       obligation_count: 2,
     });
@@ -170,11 +171,12 @@ describe('F6 attestation v3 payload', () => {
     }))]);
     const entry = mintWorkspaceAttestationV3(sealedInput(sealedVerdict(rows)));
     expect(entry?.observation_counts).toEqual({required: 6, pass: 2, na: 0, migration_baseline: 4});
-    expect(entry?.observation_identities).toEqual(['scope:stage_2.1', 'scope:stage_2.2']);
+    expect(entry?.observation_set_sha256).toBe(observationSetSha256(['scope:stage_2.1', 'scope:stage_2.2']));
+    expect(entry?.observation_count).toBe(2);
     expect(entry?.migration_baseline).toEqual({
       baseline_receipt_sha256: basis.baseline_receipt_sha256,
       resolution_sha256: basis.resolution_sha256,
-      criterion_authorization_sha256: ['d'.repeat(64), 'e'.repeat(64)],
+      criterion_authorization_set_sha256: observationSetSha256(['d'.repeat(64), 'e'.repeat(64)]),
       criterion_count: 2,
       obligation_count: 4,
     });
@@ -186,7 +188,8 @@ describe('F6 attestation v3 payload', () => {
     const oneSubject = rows.filter((row) => row.subject === `scope:${authorityScopeSha256}` || row.subject === 'criterion:F-a/AC-b');
     const withNa = mintWorkspaceAttestationV3(sealedInput(sealedVerdict([...oneSubject, na])));
     expect(withNa?.observation_counts).toEqual({required: 4, pass: 2, na: 1, migration_baseline: 2});
-    expect(withNa?.observation_identities).toEqual(['scope:stage_2.1', 'scope:stage_2.2']);
+    expect(withNa?.observation_set_sha256).toBe(observationSetSha256(['scope:stage_2.1', 'scope:stage_2.2']));
+    expect(withNa?.observation_count).toBe(2);
   });
 
   test('[covers:F-065/AC-175][covers:F-6f0a2106/AC-6f0a2108] mints a current profile-complete authoritative attestation only from the authoritative verdict', () => {
@@ -267,5 +270,56 @@ describe('F6 attestation v3 payload', () => {
     ]);
     expect(hasSealedAuthority(duplicate)).toBe(false);
     expect(mintWorkspaceAttestationV3(sealedInput(duplicate))).toBeUndefined();
+  });
+
+  test('[covers:F-6f0a2106/AC-6f0a2116] seals the observation set by address and count, never by inlining it', () => {
+    const identities = ['9'.repeat(64), '7'.repeat(64), '8'.repeat(64)];
+    const rows = identities.map((identity, index) => authorityResult('pass', `stage_1.${index + 1}`, identity));
+    const minted = mintWorkspaceAttestationV3(sealedInput(sealedVerdict(rows)));
+    expect(minted).toBeDefined();
+    expect(Object.keys(minted!)).not.toContain('observation_identities');
+    expect(minted?.observation_count).toBe(3);
+    // The address is of the set, not of the order it was observed in.
+    expect(minted?.observation_set_sha256).toBe(observationSetSha256([...identities].reverse()));
+    // Any changed, added, or dropped identity has to move the address; that is
+    // the whole reason a per-feature row can stop carrying the list.
+    const dropped = mintWorkspaceAttestationV3(sealedInput(sealedVerdict(rows.slice(0, 2))));
+    expect(dropped?.observation_set_sha256).not.toBe(minted?.observation_set_sha256);
+    const changed = mintWorkspaceAttestationV3(sealedInput(sealedVerdict([
+      ...rows.slice(0, 2), authorityResult('pass', 'stage_1.3', '6'.repeat(64)),
+    ])));
+    expect(changed?.observation_count).toBe(3);
+    expect(changed?.observation_set_sha256).not.toBe(minted?.observation_set_sha256);
+  });
+
+  test('[covers:F-6f0a2106/AC-6f0a2116] keeps the persisted size bounded by the feature count, not by the observation count', () => {
+    const featureIds = Array.from({length: 300}, (_, index) => `F-${String(index).padStart(4, '0')}`);
+    const scopeAddresses = featureIds.map((feature) => `feature:${feature}`);
+    const scopeSha256 = createHash('sha256').update(canonicalClosureJson([...scopeAddresses].sort()), 'utf8').digest('hex');
+    const results: ObligationResult[] = Array.from({length: 4000}, (_, index) => ({
+      obligation: 'stage_1.1', subject: `criterion:F-0000/AC-${index}`, state: 'pass',
+      source_strictness: 'hard', blocking: 'hard',
+      observation_identities: [createHash('sha256').update(`observation-${index}`, 'utf8').digest('hex')],
+    }));
+    const verdict: AssuranceVerdict = Object.freeze({
+      profile: 'push', assurance_level: 'L2', configured_assurance_level: 'L2', achieved_assurance_level: 'L2',
+      scope_sha256: scopeSha256, input_sha256: digest, state: 'green', profile_complete: true,
+      results: Object.freeze(results), independence: 'not-applicable', obligation_sha256: digest,
+    });
+    mintRunCheckStagesAuthority(verdict, {
+      inputSha256: digest, scopeAddresses, profileAuthoritative: true, executedStageIds: ['stage_1.1'],
+      featureSeals: featureIds.map((feature) => ({
+        feature, contractSha256: digest, subjectSha256: digest, verificationSha256: digest, runtimeDependencySha256: digest,
+      })),
+      profileIdentity: {registrySha256: digest, detectorCatalogSha256: digest, toolIdentity: 'cladding', environmentClass: 'test', trustSnapshotSha256: digest},
+    });
+    const minted = featureIds.map((feature) => mintWorkspaceAttestationV3({...sealedInput(verdict), feature}));
+    expect(minted.every((entry) => entry !== undefined)).toBe(true);
+    // These are the exact bytes the writer renders per row (`renderAttestation`
+    // is module-private), so the assertion is on the persisted size itself.
+    const rendered = minted.map((entry) => `  ${entry!.feature}: ${JSON.stringify(entry)}\n`).join('');
+    expect(rendered.length).toBeLessThan(512 * 1024);
+    // Same set, one more feature: the file grows by a row, not by a list.
+    expect(rendered.length / featureIds.length).toBeLessThan(2 * 1024);
   });
 });
