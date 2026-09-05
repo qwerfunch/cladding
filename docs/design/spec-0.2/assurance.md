@@ -223,7 +223,7 @@ Caches under `.cladding/cache/` are disposable and never proof authority, spec b
 
 ### Persistent background scheduler
 
-Cladding 0.10 schedules in persistent `clad serve`, with local `auto | off` (default `auto`) policy, not a spec fact. `off` disables only anticipation: explicit checkpoint/completion/push/release run the same kernel. Without a server, correctness is unchanged.
+The persistent scheduler is deferred past 0.10.0; 0.10.0 `clad serve` runs no anticipation and behaves as `off`: explicit checkpoint/completion/push/release run the same kernel. Without a server, correctness is unchanged. The design below is the accepted target for the release that adopts it: a local `auto | off` (default `auto`) policy, not a spec fact.
 
 In `auto` mode the scheduler:
 
@@ -343,8 +343,8 @@ never stamp.
   from the registry. New consumers use obligations and profiles. The 15 IDs may
   be retired from a future public default only through a separate compatibility
   decision; their historical interpretation remains stable.
-- The background scheduler ships with the 0.10 assurance kernel, but correctness
-  and acceptance fixtures run with both `auto` and `off`. Verdict bytes apart
+- The background scheduler is deferred past 0.10.0, and correctness and
+  acceptance fixtures still run with both `auto` and `off`. Verdict bytes apart
   from timing/cache diagnostics, requested scope, failure set, freshness, and
   attestation content must be topology- and scheduler-invariant.
 

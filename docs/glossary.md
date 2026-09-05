@@ -56,9 +56,9 @@
 | `refine` | removed (0.8.0) | Old alias → `clarify` (no CLI precedent); removed — `clarify` is the only spelling now. | (제거됨) |
 | `status` | stable (0.6.0) | Render the feature × stage integrity matrix (`git status` convention). | 상태 매트릭스 |
 | `panel` | removed (0.8.0) | Old alias → `status` (no CLI precedent); removed — `status` is the only spelling now. | (제거됨) |
-| `run` | stable (0.6.0) | Autonomous feature loop (EXPERIMENTAL; host-delegated path preferred). | 자율 루프 실행 |
-| `drive` | removed (0.8.0) | Old alias → `run` (no CLI precedent); removed — `run` is the only spelling now. | (제거됨) |
-| `work` | removed (0.6.0) | Was a permanently not-implemented reserved stub (always exit 2) — dishonest surface; `run` owns the slot. | (제거됨) |
+| `run` | removed (0.10.0) | Was the experimental headless loop; retired because no recorded session ever ran it — start `clad serve` and let your AI host drive the cycle instead. | (제거됨) |
+| `drive` | removed (0.8.0) | Old alias → `run`; both spellings are gone now that the headless loop is retired. | (제거됨) |
+| `work` | removed (0.6.0) | Was a permanently not-implemented reserved stub (always exit 2) — dishonest surface; the retired `run` verb owned the slot. | (제거됨) |
 | `serve` | stable | Start the MCP server over stdio. | MCP 서버 |
 | `signoff` | stable (0.10.0) | Record local audit or UAT history. Asserted by default; with `--verified --issuer <name>` a human re-types the feature id at the terminal and cladding signs a portable receipt with the registered key. Without that confirmation, a registered issuer, or a local signing key it records asserted history only. | 로컬 감사·UAT 기록 (사람이 확인하면 검증된 영수증 서명) |
 | `key` | stable (0.10.0) | Manage the issuer signing keys and the committed public trust registry: `create` → one owner-only Ed25519 signing key outside the workspace plus its public half in `spec/trust/issuers.yaml`; `list` → the registered issuers and whether this machine holds their signing keys. | 발행자 키 관리 |
@@ -85,14 +85,14 @@
 | `report` | stable (0.8.0) | Render one deterministic review packet for a git range — spec entry movement (from `changelog`), how each acceptance criterion moved, changed source files resolved to their owning features via the reverse index, the tests those features declare, the deduped regression set, and gate + attestation state. `--format md \| sarif \| json`. For PR reviewers/team-leads/auditors: it RENDERS, it gates nothing. | 리뷰 패킷 렌더링 |
 | `bundle` | stable (0.8.0) | Write ONE self-contained offline HTML audit bundle (`--out <file.html> [--since <ref>]`) a non-coder can double-click — provenance banner, project header + inventory, feature × stage matrix, capability catalog, shipped changes, audit table, attestation summary. Zero network, no scripts. Deterministic modulo the date stamp; a range that cannot be anchored degrades the changelog + audit sections to a notice while the rest still renders. | 감사 번들 |
 
-> **Internal name — the drive loop.** The `run` verb's loop is internally the
-> *drive loop* (`src/drive/loop.ts`), and its evidence identity is `clad-drive`,
-> frozen for audit-log compatibility — so `drive` persists in code paths and event
-> provenance even though the user-facing verb is `run` (never as a CLI verb: `drive`
-> was removed in 0.8.0).
-> KO: `run` 루프의 내부 이름은 *drive loop*(`src/drive/loop.ts`)이며, 증거 식별자
-> `clad-drive`는 감사 로그 호환을 위해 동결되어 있다 — 사용자 표면 verb는 `run`이지만
-> 코드 경로와 이벤트 기록에는 여전히 `drive`가 남는다.
+> **Internal name — the drive loop.** The headless loop was internally the
+> *drive loop*, and its evidence identity `clad-drive` stays reserved, frozen for
+> audit-log compatibility, so old audit entries keep replaying after the loop
+> itself was retired in 0.10.0 (never as a CLI verb: `drive` was removed in
+> 0.8.0, `run` in 0.10.0).
+> KO: 헤드리스 루프의 내부 이름은 *drive loop*였고, 증거 식별자 `clad-drive`는 감사 로그
+> 호환을 위해 동결된 채 예약되어 있다 — 루프 자체는 0.10.0에서 은퇴했지만 과거 감사 기록은
+> 그대로 재생된다.
 
 ## MCP tools (frozen wire identifiers)
 

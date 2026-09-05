@@ -26,7 +26,7 @@ export const PERSONAS = Object.freeze([
  * @see spec/features/persona-skill-md-cleanup-40327b.yaml AC-003
  */
 export const SKILLS = Object.freeze([
-  'changelog', 'check', 'checkpoint', 'clarify', 'doctor', 'init', 'oracle', 'rollback', 'route', 'run', 'serve', 'status', 'sync',
+  'changelog', 'check', 'checkpoint', 'clarify', 'doctor', 'init', 'oracle', 'rollback', 'route', 'serve', 'status', 'sync',
 ]);
 
 const MIRROR_INPUT_PATHS = Object.freeze([

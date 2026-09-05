@@ -38,9 +38,9 @@ Old chat transcripts are not authority. This router intentionally contains no du
 | F5 bindings/evidence or F6 assurance/attestation | [Proof and editing](spec-0.2/proof-and-editing.md), [Assurance](spec-0.2/assurance.md), D17 closures, and D15/D16 |
 | F7 scenarios | D09 in [Model and migration](spec-0.2/model-and-migration.md#d09--scenario-contract), D15/D16, and D17 |
 | F8 GraphIR cutover, graph query/export/viewer | [GraphIR and bounded retrieval](spec-0.2/graph.md) and D15/D16 |
-| F9 task projection, context measurement, background scheduler, or orchestration A/B | [Context and orchestration](spec-0.2/context-and-orchestration.md), [Assurance](spec-0.2/assurance.md), and D15/D16 |
+| F9 task projection, context measurement, deferred background scheduler, or orchestration A/B | [Context and orchestration](spec-0.2/context-and-orchestration.md), [Assurance](spec-0.2/assurance.md), and D15/D16 |
 | Iron Law theory, stage/profile policy, incremental verification, or upstream RFC | [Assurance](spec-0.2/assurance.md), then D15/D16 and [Assurance evidence](spec-0.2/assurance-evidence.md) only when reproducing cadence measurements |
-| F10 headless task-state loop or F11 generated relocation | [Context and orchestration](spec-0.2/context-and-orchestration.md) or D03/D14 in [Model and migration](spec-0.2/model-and-migration.md), plus D15/D16 |
+| F10 headless-loop retirement record or F11 generated relocation | [Context and orchestration](spec-0.2/context-and-orchestration.md) or D03/D14 in [Model and migration](spec-0.2/model-and-migration.md), plus D15/D16 |
 | MCP adapter, host compatibility, or catalog/token validation | [MCP boundary](spec-0.2/mcp.md), D15/D16, and the [Validation protocol](spec-0.2/validation.md) |
 | Implementation hygiene, code/doc/test retirement | D18 in [Implementation hygiene](spec-0.2/hygiene.md#d18--implementation-hygiene-and-documentation-surface) |
 | Claims, alternatives, later work, history | [Decision log](spec-0.2/decision-log.md) |

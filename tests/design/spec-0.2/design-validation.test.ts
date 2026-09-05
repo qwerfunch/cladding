@@ -217,6 +217,22 @@ describe('Spec 0.2 validation ledger', () => {
       .toBe('not_run');
   });
 
+  test('[covers:F-9fcdd0a0/AC-7313dbc4] records the F10 loop retirement and the F9c scheduler deferral in the decision log', () => {
+    const decisions = readFileSync(join(process.cwd(), 'docs/design/spec-0.2/decision-log.md'), 'utf8');
+    const retirement = decisions.split('\n').find((line) => line.includes('F10 headless loop — retired'));
+    expect(retirement, 'the decision log carries the retirement row').toBeTruthy();
+    expect(retirement as string, 'the row carries its measured evidence').toContain('5,176 recorded events');
+    expect(retirement as string, 'the row names the host-delegated successor').toContain('host-delegated cycle owns execution');
+
+    const deferral = decisions.split('\n').find((line) => line.includes('F9c persistent scheduler — deferred'));
+    expect(deferral, 'the decision log carries the deferral row').toBeTruthy();
+    expect(deferral as string, 'the deferral states its entry condition').toContain('50 percent');
+    expect(deferral as string, 'the deferral states the latency bound').toContain('p95 latency within 10 percent');
+
+    const assurance = readFileSync(join(process.cwd(), 'docs/design/spec-0.2/assurance.md'), 'utf8');
+    expect(assurance, '0.10.0 ships no anticipation').toContain('deferred past 0.10.0');
+  });
+
   test('[covers:F-2f840a6c/AC-21a9e51f] keeps validation evidence measurements scoped and reproducible', () => {
     const evidence = readFileSync(join(process.cwd(), 'docs/design/spec-0.2/evidence.md'), 'utf8');
     const designDir = join(process.cwd(), 'docs/design/spec-0.2');

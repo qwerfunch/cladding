@@ -18,11 +18,11 @@ describe('sampling-context (F-075, v0.2.26)', () => {
     clearHostMcpServerForTesting();
   });
 
-  test('getHostMcpServer returns null when nothing is registered', () => {
+  test('[covers:F-075/AC-219] getHostMcpServer returns null when nothing is registered', () => {
     expect(getHostMcpServer()).toBeNull();
   });
 
-  test('setHostMcpServer stores the server and getHostMcpServer returns it', () => {
+  test('[covers:F-075/AC-217][covers:F-075/AC-218] setHostMcpServer stores the server and getHostMcpServer returns it', () => {
     const s = stubServer();
     setHostMcpServer(s);
     expect(getHostMcpServer()).toBe(s);

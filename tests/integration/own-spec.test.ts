@@ -45,10 +45,9 @@ describe('cladding own spec', () => {
     // Regression guard for the status-aware detector policy: a `planned`
     // feature whose test_refs name files that do not yet exist on disk
     // must not produce error findings — only `done` features are
-    // checked. Cladding's own spec includes F-049 (status: planned)
-    // pointing at tests/drive/{agent,loop-llm}.test.ts which do not
-    // exist yet; if either detector regresses to status-blind, this
-    // test trips.
+    // checked. Cladding's own spec keeps non-done features whose
+    // test_refs name files that are not on disk; if either detector
+    // regresses to status-blind, this test trips.
     const untested = untestedAc.run({cwd: repoRoot});
     const missing = missingTests.run({cwd: repoRoot});
     const errors = [...untested, ...missing].filter((f) => f.severity === 'error');

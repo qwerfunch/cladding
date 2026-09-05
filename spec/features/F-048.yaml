@@ -1,11 +1,7 @@
 id: F-048
 title: Cladding drive — deterministic L1 floor for autonomous loops
-status: done
-modules:
-  - src/drive/halt.ts
-  - src/drive/assurance.ts
-  - src/drive/loop.ts
-  - src/cli/clad.ts
+status: archived
+modules: []
 depends_on:
   - F-031
   - F-047
@@ -43,3 +39,7 @@ acceptance_criteria:
 
       The historical closed ten-class enumeration is obsolete because transport
       classes expanded.
+archive_reason: "Retired in 0.10.0 with the headless drive loop: no recorded
+  session ran the loop (0 runs across 5,176 events measured 2026-09-02) and the
+  host-delegated cycle owns execution."
+archived_at: 2026-09-05T12:49:30.937Z

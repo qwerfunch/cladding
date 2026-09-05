@@ -45,7 +45,7 @@ Branch off `develop`, never `main`, and open ordinary PRs against `develop`. A r
 
 ## 6. Agent personas
 
-cladding ships five persona definitions under `src/agents/`. **Planning intents** (deciding scope · drafting acceptance criteria · drawing a roadmap) are planner-territory (the persona formerly named `librarian`) and surface through natural language to the host AI tool, not through a fixed CLI verb. `clad run` (formerly `drive`) is for *executing* an already-defined plan as a feature group, not for *making* a plan.
+cladding ships five persona definitions under `src/agents/`. **Planning intents** (deciding scope · drafting acceptance criteria · drawing a roadmap) are planner-territory (the persona formerly named `librarian`) and surface through natural language to the host AI tool, not through a fixed CLI verb. Execution itself is no longer a cladding verb: 0.10.0 retired the headless loop, so `clad serve` publishes the spec and the gates over MCP and the host AI owns carrying an already-defined plan out.
 
 Each file is markdown with a YAML frontmatter that declares two parallel keys:
 

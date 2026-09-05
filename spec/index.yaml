@@ -53,8 +53,8 @@ features:
   F-045: {slug: F-045, status: done, modules: 1}
   F-046: {slug: F-046, status: done, modules: 1}
   F-047: {slug: F-047, status: done, modules: 5}
-  F-048: {slug: F-048, status: done, modules: 4}
-  F-049: {slug: F-049, status: done, modules: 7}
+  F-048: {slug: F-048, status: archived, modules: 0}
+  F-049: {slug: F-049, status: archived, modules: 0}
   F-04f50847: {slug: graph-viewer-obsidian, status: archived, modules: 0}
   F-051: {slug: F-051, status: done, modules: 5}
   F-052: {slug: F-052, status: done, modules: 5}
@@ -68,22 +68,22 @@ features:
   F-060: {slug: F-060, status: done, modules: 9}
   F-061: {slug: F-061, status: done, modules: 7}
   F-062: {slug: F-062, status: done, modules: 5}
-  F-063: {slug: F-063, status: done, modules: 8}
-  F-064: {slug: F-064, status: done, modules: 4}
-  F-065: {slug: F-065, status: done, modules: 11}
+  F-063: {slug: F-063, status: done, modules: 7}
+  F-064: {slug: F-064, status: done, modules: 2}
+  F-065: {slug: F-065, status: done, modules: 10}
   F-066: {slug: F-066, status: done, modules: 5}
   F-067: {slug: F-067, status: done, modules: 3}
-  F-068: {slug: F-068, status: done, modules: 4}
-  F-069: {slug: F-069, status: done, modules: 5}
+  F-068: {slug: F-068, status: done, modules: 2}
+  F-069: {slug: F-069, status: archived, modules: 0}
   F-06dfdad6: {slug: working-set-assembler, status: done, modules: 3}
-  F-070: {slug: F-070, status: done, modules: 2}
-  F-071: {slug: F-071, status: done, modules: 3}
-  F-072: {slug: F-072, status: done, modules: 2}
+  F-070: {slug: F-070, status: archived, modules: 0}
+  F-071: {slug: F-071, status: archived, modules: 0}
+  F-072: {slug: F-072, status: archived, modules: 0}
   F-073: {slug: F-073, status: done, modules: 2}
   F-074: {slug: F-074, status: done, modules: 3}
-  F-075: {slug: F-075, status: done, modules: 8}
-  F-076: {slug: F-076, status: done, modules: 13}
-  F-077: {slug: F-077, status: done, modules: 14}
+  F-075: {slug: F-075, status: done, modules: 6}
+  F-076: {slug: F-076, status: done, modules: 12}
+  F-077: {slug: F-077, status: done, modules: 13}
   F-078: {slug: F-078, status: done, modules: 3}
   F-079: {slug: F-079, status: done, modules: 3}
   F-080: {slug: F-080, status: done, modules: 2}
@@ -124,7 +124,7 @@ features:
   F-2bbecd83: {slug: spec-02-topology-suite, status: done, modules: 5}
   F-2be3e3bb: {slug: infer-depends-on, status: done, modules: 2}
   F-2c02991f: {slug: arch-gate-skips-build-output, status: done, modules: 1}
-  F-2de65d: {slug: drive-auto-rollback, status: done, modules: 1}
+  F-2de65d: {slug: drive-auto-rollback, status: archived, modules: 0}
   F-2e28cc72: {slug: clad-verdict, status: done, modules: 2}
   F-2f840a6c: {slug: spec-02-validation-findings-refinement, status: done, modules: 9}
   F-315fd7: {slug: scenario-coverage-detector, status: done, modules: 2}
@@ -138,7 +138,7 @@ features:
   F-3b3690: {slug: multi-agent-orchestration, status: done, modules: 4}
   F-3c2bf8b9: {slug: readme-record-honesty, status: done, modules: 5}
   F-3fd220d8: {slug: readme-multiagent-label-diagram, status: done, modules: 10}
-  F-40327b: {slug: persona-skill-md-cleanup, status: done, modules: 22}
+  F-40327b: {slug: persona-skill-md-cleanup, status: done, modules: 21}
   F-417ff0: {slug: scan-llm-dispatcher-chain, status: done, modules: 5}
   F-42af48: {slug: architecture-from-spec, status: done, modules: 2}
   F-43d8e3: {slug: smoke-probe-token-pass, status: done, modules: 3}
@@ -162,7 +162,7 @@ features:
   F-5b188856: {slug: graph-color-groups, status: done, modules: 4}
   F-5b9f9f: {slug: spec-yaml-inventory-and-hints, status: done, modules: 6}
   F-5cac007a: {slug: init-onboarding-english-source, status: done, modules: 3}
-  F-5d3ed2: {slug: postmortem-on-rollback, status: done, modules: 2}
+  F-5d3ed2: {slug: postmortem-on-rollback, status: archived, modules: 0}
   F-5dfbac9c: {slug: review-packet-ac-delta, status: done, modules: 4}
   F-5f6b45: {slug: init-path-intent, status: done, modules: 2}
   F-600272d7: {slug: orchestrator-contract-card, status: done, modules: 2}
@@ -214,6 +214,7 @@ features:
   F-9d168287: {slug: ears-complex-pattern, status: done, modules: 6}
   F-9d8ece66: {slug: persona-map-non-exclusivity, status: done, modules: 2}
   F-9e1279d4: {slug: language-evidence-core, status: done, modules: 4}
+  F-9fcdd0a0: {slug: spec-02-drive-retirement, status: in_progress, modules: 11}
   F-a04cd9: {slug: ac-hash-ids, status: done, modules: 3}
   F-a4085adf: {slug: spec-driven-agents-md, status: done, modules: 1}
   F-a4b512: {slug: dependency-cycle-detector, status: done, modules: 2}
@@ -230,7 +231,7 @@ features:
   F-b0c8ba2c: {slug: gate-no-progress, status: done, modules: 1}
   F-b0f898a6: {slug: attestation-v2-per-module, status: done, modules: 3}
   F-b2094740: {slug: lint-config-detection, status: done, modules: 1}
-  F-b43066: {slug: model-defaults-refresh, status: done, modules: 6}
+  F-b43066: {slug: model-defaults-refresh, status: done, modules: 5}
   F-b61449: {slug: gemini-cli-dogfood, status: done, modules: 1}
   F-b7873005: {slug: gate-error-parser, status: done, modules: 4}
   F-b81d203e: {slug: vacuous-test-guard, status: done, modules: 2}
@@ -239,7 +240,7 @@ features:
   F-b8d77abf: {slug: spec-02-final-audit-closure, status: done, modules: 19}
   F-b99577: {slug: stale-archive-suggestion, status: done, modules: 4}
   F-ba2e05: {slug: ab-outcome-quality, status: done, modules: 8}
-  F-ba4b7a: {slug: pulse-progressive, status: done, modules: 2}
+  F-ba4b7a: {slug: pulse-progressive, status: archived, modules: 0}
   F-bae800bd: {slug: ab-case-doc-binding, status: done, modules: 6}
   F-bb15e6: {slug: clad-doctor, status: done, modules: 3}
   F-bc8ad013: {slug: mcp-description-diet, status: done, modules: 2}

@@ -2,9 +2,8 @@ id: F-063
 title: Drive and event behavior evidence
 status: done
 modules:
-  - src/drive/loop.ts
   - src/events/log.ts
-  - tests/drive/loop.test.ts
+  - src/agents/loader.ts
   - tests/agents/loader.test.ts
   - tests/events/log.test.ts
   - tests/optimizer/envelope.test.ts
@@ -14,23 +13,6 @@ depends_on:
   - F-062
 capability_refs: []
 acceptance_criteria:
-  - id: AC-158
-    statement: When the autonomous loop finishes an iteration, the drive loop shall
-      return the current deciding halt detail while preserving retry,
-      skipped-runner, and transport behavior without granting authority to its
-      observer record.
-    kind: behavior
-    notes: >
-      ## Historical schema-0.1 note
-
-      2026-05-19 · v0.2.14 · 3324b23. Loop fixtures: spec, persona, agent,
-      stage,
-
-      event, audit, halt, and happy paths; at least 85% line coverage;
-      non-current.
-
-      Release headline: "Coverage sweep — drive · agents · events · optimizer ·
-      ui all covered" (5 chapters).
   - id: AC-159
     statement: The system shall ship tests/agents/loader.test.ts bringing
       src/agents/loader.ts to at least 90% line coverage.

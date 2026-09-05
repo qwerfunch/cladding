@@ -110,7 +110,7 @@ import {loadSpec, loadSpecFromDiskUnlocked} from '../spec/load.js';
 import {readEvidence} from '../hitl/audit.js';
 import {pulse, type PulseKind} from '../ui/pulse.js';
 import {buildPanelModel, renderPanel} from '../ui/panel.js';
-import {featureLabel, gateLabel, haltMessage, plainLead} from '../ui/softShell.js';
+import {gateLabel, plainLead} from '../ui/softShell.js';
 
 /** Handler for `clad serve`. Boots the MCP server over stdio. */
 export async function runServeCommand(opts: {cwd?: string}): Promise<void> {
@@ -264,68 +264,6 @@ export function renderInitCompletionHints(
     ].join('\n');
   }
   return '';
-}
-
-interface RunCommandOptions {
-  cwd?: string;
-  maxIterations: string;
-  maxWallClockMs: string;
-  maxRetries: string;
-  json?: boolean;
-}
-
-/** Handler for `clad run [goal]` (formerly `drive`). Runs the autonomous loop. */
-export async function runRunCommand(
-  goal: string | undefined,
-  opts: RunCommandOptions,
-): Promise<void> {
-  // `clad run` is EXPERIMENTAL. The headless code-author transport is unbuilt
-  // and nothing auto-invokes it — the supported, exercised path is host-delegated
-  // (run `clad serve` and let your AI host loop the per-feature cadence). The loop
-  // halts honestly rather than certifying empty stubs when no real LLM is reachable.
-  pulse('note', 'run', 'EXPERIMENTAL — prefer the host-delegated path (clad serve + your AI host). See docs/feature-cycle.md § Execution surface.');
-  const {runDriveLoop} = await import('../drive/loop.js');
-  const result = await runDriveLoop({
-    cwd: opts.cwd,
-    goal,
-    budget: {
-      maxIterations: Number(opts.maxIterations),
-      maxWallClockMs: Number(opts.maxWallClockMs),
-      maxRetriesPerFeature: Number(opts.maxRetries),
-    },
-  });
-  const tag = result.halt.class === 'ALL_FEATURES_DONE' ? 'pass' : 'note';
-  if (opts.json) {
-    pulse(
-      tag,
-      'run',
-      `halt=${result.halt.class} iter=${result.iterations} features=${result.featuresTouched.length} stubs=${result.stubsCreated.length} gates=${result.gateRuns}`,
-    );
-    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-  } else {
-    const spec = loadSpec(opts.cwd ?? '.');
-    const touched = result.featuresTouched.map((id) => featureLabel(id, spec));
-    const summary = `${haltMessage(result.halt, spec)} iter=${result.iterations} features=${touched.length} stubs=${result.stubsCreated.length} gates=${result.gateRuns}`;
-    pulse(tag, 'run', summary);
-    if (touched.length > 0) {
-      process.stdout.write(`Touched: ${touched.join(', ')}\n`);
-    }
-  }
-  // Honest exit code (anti-Vacuous-Green for the headless loop). A run that
-  // produced empty auto-stubs (no real implementation — the code-author transport
-  // is mock/unbuilt) is NOT a success even when the loop "cleared" features on the
-  // L1 floor: it implemented nothing. Surface that and exit non-zero, so a user or
-  // CI never reads a stub-only `clad run` as done. Likewise any non-completion
-  // halt exits non-zero. Only a real, fully-cleared run is 0.
-  const vacuous = result.stubsCreated.length > 0;
-  if (vacuous) {
-    pulse(
-      'fail',
-      'run',
-      `produced ${result.stubsCreated.length} empty auto-stub(s) and implemented nothing — the headless code-author needs a real LLM transport (set ANTHROPIC_API_KEY) or use the host-delegated path (clad serve + your AI host). This run did NOT do the work.`,
-    );
-  }
-  process.exit(result.halt.class === 'ALL_FEATURES_DONE' && !vacuous ? 0 : 1);
 }
 
 /**
@@ -1976,16 +1914,6 @@ export function createProgram(): Command {
     .option('--schema <version>', 'spec schema to scaffold: 0.2 (default, current) or 0.1 (legacy seed)')
     .option('--json', 'emit the raw InitResult for tooling; default is the human-readable surface')
     .action(runInitCommand);
-
-  program
-    .command('run [goal]')
-    .description('(experimental) Headless autonomous loop — iterate ready features, dispatch developer + reviewer personas, run L1 gates, record evidence. The supported, exercised path is host-delegated (clad serve + your AI host loops the cadence); this loop needs a real LLM transport and is not auto-invoked')
-    .option('--cwd <path>', 'target project directory (default cwd)')
-    .option('--max-iterations <n>', 'cap iterations (default 50)', '50')
-    .option('--max-wall-clock-ms <ms>', 'cap wall clock (default 600000)', '600000')
-    .option('--max-retries <n>', 'cap retries per feature (default 3)', '3')
-    .option('--json', 'emit the raw internal result (Iron Core view); default is a plain Soft Shell summary')
-    .action(runRunCommand);
 
   program
     .command('sync')

@@ -66,8 +66,8 @@ Orphan artifacts get demoted (move to Tier D as historical reference) or removed
 
 | Artifact | Producer | Consumer | Refresh trigger |
 |---|---|---|---|
-| `.cladding/events.log.jsonl` | every stage runner, checkpoint, drive loop, sentinel-miss emitter | `observability` persona + `clad doctor` + MCP resource subscriptions | append-only |
-| `.cladding/audit.log.jsonl` | evidence recorders (checkpoint, postmortem, manual signoff) | anti-self-cert validator + `clad rollback` | append-only |
+| `.cladding/events.log.jsonl` | every stage runner, checkpoint, sentinel-miss emitter | `observability` persona + `clad doctor` + MCP resource subscriptions | append-only |
+| `.cladding/audit.log.jsonl` | evidence recorders (checkpoint, manual signoff) | anti-self-cert validator + `clad rollback` | append-only |
 | `.cladding/onboarding/state.yaml` | `clad init <intent>` + `clad clarify` | `orchestrator` (drives Q&A loop) + `clad clarify` itself | mutated on each clarify; persists post-`status: done` as audit |
 | `.cladding/scan/*.proposal` | `writeArtifact` divert when target file already exists | humans review + manually accept/reject | one-shot per scan run |
 

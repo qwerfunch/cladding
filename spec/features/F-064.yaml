@@ -3,9 +3,7 @@ title: CLI and adapter behavior evidence
 status: done
 modules:
   - src/cli/clad.ts
-  - src/adapters/index.ts
   - tests/cli/clad.test.ts
-  - tests/adapters/index.test.ts
 depends_on:
   - F-063
 capability_refs: []
@@ -32,18 +30,6 @@ acceptance_criteria:
 
       coverage; non-current. Released title: "Final coverage closure — every
       source dir ≥ 90% lines".
-  - id: AC-166
-    statement: When an agent adapter is resolved, the adapter selector shall apply
-      environment selection before configuration and automatic selection,
-      resolve registered adapters exactly, and fall back to the generic host
-      adapter for incomplete, malformed, or unknown selections without provider
-      credential access.
-    kind: behavior
-    notes: |
-      ## Historical schema-0.1 note
-      2026-05-19 · v0.2.15 · 8379db7. Adapter-selection fixtures: environment,
-      config, auto detection, malformed/partial input, unknown hosts, and SDK
-      fallback; at least 95% line coverage; non-current.
   - id: AC-167
     statement: While current coverage assurance is evaluated, the assurance registry
       shall derive it from the coverage obligation and treat the v0.2.15

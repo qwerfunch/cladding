@@ -1,9 +1,8 @@
 id: F-2de65d
 title: Iron Law backbone Phase 3.2 — drive loop checkpoint + auto-rollback on
   RETRY_THRESHOLD (v0.3.21)
-status: done
-modules:
-  - src/drive/loop.ts
+status: archived
+modules: []
 depends_on:
   - F-c2c996
 capability_refs: []
@@ -29,3 +28,7 @@ acceptance_criteria:
       reserved for the one transition that genuinely needs the Iron Law
       fallback.
     kind: behavior
+archive_reason: "Retired in 0.10.0 with the headless drive loop: no recorded
+  session ran the loop (0 runs across 5,176 events measured 2026-09-02) and the
+  host-delegated cycle owns execution."
+archived_at: 2026-09-05T12:49:30.864Z

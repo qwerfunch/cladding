@@ -1,9 +1,7 @@
 id: F-070
 title: Drive-loop integration test against AnthropicTransport (v0.3.0 substep 3)
-status: done
-modules:
-  - src/adapters/sdk/anthropic.ts
-  - tests/integration/loop-real-transport.test.ts
+status: archived
+modules: []
 depends_on:
   - F-049
   - F-068
@@ -35,3 +33,7 @@ acceptance_criteria:
 
       The one-size LLM_UNAVAILABLE mapping was replaced by actionable transport
       classifications.
+archive_reason: "Retired in 0.10.0 with the headless drive loop: no recorded
+  session ran the loop (0 runs across 5,176 events measured 2026-09-02) and the
+  host-delegated cycle owns execution."
+archived_at: 2026-09-05T12:49:30.962Z

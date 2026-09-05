@@ -12,8 +12,8 @@
 //      `getHostMcpServer()` returns the connected server. v0.3.34
 //      will wire this; v0.3.33 leaves a stub.
 //   2. Anthropic SDK direct — when ANTHROPIC_API_KEY is set, call
-//      the SDK directly. Already a cladding dependency
-//      (src/adapters/sdk/anthropic.ts), so no new external code.
+//      the SDK directly. `@anthropic-ai/sdk` is already a cladding
+//      dependency, so no new external code.
 //
 // When neither is available the chain returns `null` and the
 // caller falls back to the deterministic interpreter — no LLM

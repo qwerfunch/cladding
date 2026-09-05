@@ -20,7 +20,7 @@ import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
 const SCRIPT_PATH = join(process.cwd(), 'scripts', 'build-plugin.mjs');
 const MIRROR_PERSONAS = ['blind-author', 'developer', 'observability', 'orchestrator', 'planner', 'reviewer'];
-const MIRROR_SKILLS = ['changelog', 'check', 'checkpoint', 'clarify', 'doctor', 'init', 'oracle', 'rollback', 'route', 'run', 'serve', 'status', 'sync'];
+const MIRROR_SKILLS = ['changelog', 'check', 'checkpoint', 'clarify', 'doctor', 'init', 'oracle', 'rollback', 'route', 'serve', 'status', 'sync'];
 
 function seedTree(dir: string, detectorCount: number, declaredCurrent: string, declaredTarget: string): void {
   // The mirror policy fails closed on canonical inputs, so this fixture seeds

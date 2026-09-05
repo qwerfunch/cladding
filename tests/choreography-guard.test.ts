@@ -11,7 +11,7 @@
 // orchestrator persona (and its built mirrors, so a stale mirror fails too),
 // while the new contract-card content — the outcome conditions and the
 // "host owns execution" boundary — must be literally present. It also pins
-// docs/feature-cycle.md's CI/SDK-lane positioning for headless `clad run`.
+// docs/feature-cycle.md's CI/SDK-lane positioning for headless execution.
 //
 // Sibling: tests/shard-term-guard.test.ts is the same guard genre (needle
 // presence/absence across AI-facing surfaces) for the shard->spec-entry

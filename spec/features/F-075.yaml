@@ -4,8 +4,6 @@ title: Host adapter MCP routing + release readiness sweep (v0.2.26, v0.3.0 Phase
 status: done
 modules:
   - src/adapters/host/sampling-context.ts
-  - src/adapters/host/claude-code.ts
-  - src/adapters/host/generic-mcp.ts
   - src/cli/clad.ts
   - scripts/build.mjs
   - SECURITY.md
@@ -18,18 +16,19 @@ depends_on:
 capability_refs: []
 acceptance_criteria:
   - id: AC-217
-    statement: The system shall expose a process-scoped sampling context module that
-      lets clad serve register the active MCP server and lets host adapters read
-      it back so the routing decision is uniform across all host adapters.
+    kind: behavior
+    statement: When clad serve registers the active MCP server, the sampling context
+      module shall let host callers read that server back through one
+      process-scoped accessor.
   - id: AC-218
-    statement: While clad serve has registered an MCP server, the system shall route
-      invokeAgent and healthCheck through McpSamplingTransport with a
-      host-tagged id (mcp-sampling:claude-code or mcp-sampling:generic-mcp)
-      instead of the Mock fallback.
+    kind: behavior
+    statement: While clad serve has registered an MCP server, the sampling context
+      shall return that server so the scan dispatcher routes sampling through
+      the host.
   - id: AC-219
-    statement: While no MCP server is registered, the system shall route host
-      adapters through the Mock fallback transport so unit tests and standalone
-      clad invocations keep their pre-v0.2.26 behaviour.
+    kind: behavior
+    statement: While no MCP server is registered, the sampling context shall return
+      no server so callers fall back to their standalone path.
   - id: AC-220
     statement: The system shall ship a minified single-file bundle (dist/clad.js) so
       the MCP SDK dependency added in v0.2.24 does not bloat the install

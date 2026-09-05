@@ -227,13 +227,11 @@ proof channel exists. Fixture trust snapshots prove protocol or mechanism only,
 never live human evidence; F9 evidence for this path is L4 mechanism evidence
 until real signing runs through MCP11. The issuer calls F5 ingestion and emits
 portable receipts for offline verification. Only real human-signed MCP11
-receipts count as live human evidence. F9 preserves the experimental
-developer→reviewer loop. F10 introduces its 0.10.0 task-state loop only after:
-
-1. A–E proves topology-invariant contracts, gates, verdicts, and stale closures;
-2. verified human and blind evidence are produced through real product paths;
-3. `independence_policy: require` is no weaker than before;
-4. blind leakage remains zero;
-5. general role-brief removal changes no deterministic result.
-
-The F10 loop may request `implement`, `verify`, or `observe` work, but those are operations rather than required identities. The host may satisfy several with one agent; receipts and evidence, not dispatch count, decide independence. Rich public GraphIR cursors, viewer expansion, and broader retrieval generalization remain non-blocking tail work; F9's session-local `diagnostic_cursor` is a narrow task-projection exception.
+receipts count as live human evidence. F10's task-state loop is retired rather
+than introduced: measurement on 2026-09-02 found zero loop runs across 5,176
+recorded events over 3.5 months, no README mention, and no automatic
+invocation, so 0.10.0 removes the headless loop with its loop-only adapters and
+skill. The host-delegated cycle owns execution. `implement`, `verify`, and
+`observe` remain requestable work, but as operations rather than required
+identities: the host may satisfy several with one agent, and receipts and
+evidence, not dispatch count, decide independence. Rich public GraphIR cursors, viewer expansion, and broader retrieval generalization remain non-blocking tail work; F9's session-local `diagnostic_cursor` is a narrow task-projection exception.

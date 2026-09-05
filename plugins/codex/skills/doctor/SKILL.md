@@ -31,7 +31,7 @@ The text surface prints:
 
 - After `clad init --scan` to confirm the scan refinement ran with full LLM coverage (no `sentinel_miss` events).
 - After installing or updating the Claude Code plugin to confirm a new session actually fired the shipped hooks and loaded the current engine.
-- After `clad run` to confirm the autonomous loop received refined replies from the configured host.
+- After a `clad serve` session to confirm the host returned refined replies through the configured dispatcher.
 - Periodically in CI to track miss rate across sampling-policy changes.
 - Before reporting "the LLM seems off" to a host (Claude Code / Cursor / Continue) — the breakdown tells you whether the issue is dispatcher transport (`cause: dispatcher_error`) or model output quality (`cause: blank_section`).
 

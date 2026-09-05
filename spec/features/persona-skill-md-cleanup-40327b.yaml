@@ -9,7 +9,6 @@ modules:
   - src/agents/observability.md
   - src/agents/README.md
   - skills/init/SKILL.md
-  - skills/run/SKILL.md
   - skills/status/SKILL.md
   - skills/check/SKILL.md
   - skills/doctor/SKILL.md
@@ -45,7 +44,6 @@ acceptance_criteria:
       discover undocumented flags by reading the binary's --help output.
     evidence_refs:
       - skills/init/SKILL.md
-      - skills/run/SKILL.md
       - skills/status/SKILL.md
       - skills/check/SKILL.md
   - id: AC-003
@@ -55,14 +53,14 @@ acceptance_criteria:
       - skills/
       - scripts/plugin-mirror-policy.mjs
   - id: AC-004
+    kind: behavior
     statement: When the plugin mirror build runs, the mirror builder shall derive
       every managed persona and skill mirror from its canonical src/agents/ or
       skills/ input, reject a missing or extra or stale generated destination,
       and produce no diff on a second run.
-    kind: behavior
     notes: >-
-      The canonical manifest names six persona briefs and thirteen skills;
-      README is not a persona.
+      The canonical manifest names six persona briefs and twelve skills; README
+      is not a persona.
 
 
       ## Non-normative history (2026-08-31)

@@ -17,8 +17,7 @@ layers:
   - - stages
     - adapters
     - verdict
-  - - drive
-    - serve
+  - - serve
   - - cli
 rules:
   - id: AR-991fb15a
@@ -26,12 +25,6 @@ rules:
     from: adapters
     to: cli
     rationale: Provider adapters must remain reusable outside the CLI entry layer.
-  - id: AR-b447b70b
-    kind: forbidden_import
-    from: adapters
-    to: drive
-    rationale: Provider adapters are reusable host boundaries and must not depend on
-      the development-cycle orchestrator that consumes them.
   - id: AR-ccffc397
     kind: forbidden_import
     from: adapters
@@ -43,12 +36,6 @@ rules:
     to: cli
     rationale: Changelog collection and rendering must remain reusable outside the
       CLI entry layer.
-  - id: AR-dd32c79a
-    kind: forbidden_import
-    from: changelog
-    to: drive
-    rationale: Changelog logic is composed by development-cycle orchestration and
-      therefore cannot depend on the driver.
   - id: AR-dc5bfd18
     kind: forbidden_import
     from: changelog
@@ -66,12 +53,6 @@ rules:
     from: graph
     to: cli
     rationale: Graph derivation must remain reusable outside the CLI entry layer.
-  - id: AR-3b2311fa
-    kind: forbidden_import
-    from: graph
-    to: drive
-    rationale: Graph derivation must remain independent of the development-cycle
-      orchestrator.
   - id: AR-6851d15b
     kind: forbidden_import
     from: graph
@@ -90,12 +71,6 @@ rules:
     to: cli
     rationale: Report rendering must remain reusable outside the CLI that supplies
       its inputs.
-  - id: AR-6ba68659
-    kind: forbidden_import
-    from: report
-    to: drive
-    rationale: Report rendering is a pure service composed by orchestration and must
-      not depend on the development-cycle driver.
   - id: AR-5d6006dc
     kind: forbidden_import
     from: report
@@ -113,12 +88,6 @@ rules:
     to: cli
     rationale: Specification logic must remain reusable across hosts and therefore
       cannot depend on the CLI entry layer.
-  - id: AR-1b5a8226
-    kind: forbidden_import
-    from: spec
-    to: drive
-    rationale: Specification logic is consumed by development-cycle orchestration
-      and must remain independent of the driver.
   - id: AR-f8513932
     kind: forbidden_import
     from: spec
@@ -143,12 +112,6 @@ rules:
     to: cli
     rationale: Stage execution must remain reusable across hosts and must not depend
       on the CLI entry layer.
-  - id: AR-aefb1e54
-    kind: forbidden_import
-    from: stages
-    to: drive
-    rationale: Stage execution is a lower-level service invoked by orchestration and
-      must not depend on the development-cycle driver.
   - id: AR-0f641e5d
     kind: forbidden_import
     from: stages
@@ -161,12 +124,6 @@ rules:
     to: cli
     rationale: The CLI composes the pure verdict reducer, so the reducer must not
       depend on its entrypoint.
-  - id: AR-e18030ff
-    kind: forbidden_import
-    from: verdict
-    to: drive
-    rationale: Verdict reduction is pure and must not invoke or depend on
-      development-cycle orchestration.
   - id: AR-5ad06491
     kind: forbidden_import
     from: verdict

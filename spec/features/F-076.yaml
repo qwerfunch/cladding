@@ -6,7 +6,6 @@ modules:
   - skills/sync/SKILL.md
   - skills/check/SKILL.md
   - skills/status/SKILL.md
-  - skills/run/SKILL.md
   - skills/init/SKILL.md
   - skills/serve/SKILL.md
   - plugins/claude-code/agents/orchestrator.md
@@ -29,15 +28,14 @@ acceptance_criteria:
     evidence_refs:
       - plugins/claude-code/.claude-plugin/plugin.json
   - id: AC-224
-    statement: The system shall expose cladding's six primary verbs (sync, check,
-      status, run, init, serve) as Claude Code skills under
-      skills/<verb>/SKILL.md so a user can invoke them via /cladding:<verb>
-      instead of the bare CLI.
+    kind: behavior
+    statement: The system shall expose cladding's five primary verbs (sync, check,
+      status, init, serve) as Claude Code skills under skills/<verb>/SKILL.md so
+      a user can invoke them via /cladding:<verb> instead of the bare CLI.
     evidence_refs:
       - skills/sync/SKILL.md
       - skills/check/SKILL.md
       - skills/status/SKILL.md
-      - skills/run/SKILL.md
       - skills/init/SKILL.md
       - skills/serve/SKILL.md
   - id: AC-225

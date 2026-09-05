@@ -369,7 +369,7 @@ function checkPreregisteredCases(cwd: string, manifest: ValidationManifest): Val
     id: 'preregistered-case-ledger',
     status: valid ? 'pass' : 'fail',
     evidence: valid
-      ? 'Validation-active fixture IDs: P01-P10, L01-L04, B01-B06, C01-C06, T01-T04, U01-U04, A01-A03. The 37 declared ledger rows are not complete runtime evidence: runtime pass count is not asserted here; F7 scenario contract fixtures and the F9d registered file-key issuer path are validation-active, while F8 graph cutover, the F9 scheduler/cache runtime, and host cycles remain pending.'
+      ? 'Validation-active fixture IDs: P01-P10, L01-L04, B01-B06, C01-C06, T01-T04, U01-U04, A01-A03. The 37 declared ledger rows are not complete runtime evidence: runtime pass count is not asserted here; F7 scenario contract fixtures and the F9d registered file-key issuer path are validation-active, while F8 graph cutover and host cycles remain pending and the F9 scheduler/cache runtime is deferred to 0.10.x.'
       : `count=${ids.length}; duplicates=${ids.length - new Set(ids).size}; active=${active.join(',')}; undocumented_groups=${undocumentedGroups.join(',') || 'none'}; unmapped=${unmapped.map((entry) => entry.id).join(',') || 'none'}; missing_test_refs=${missingTestRefs.join(',') || 'none'}; duplicate_test_refs=${duplicateTestRefs}`,
   };
 }
@@ -445,7 +445,7 @@ function checkCompilerRegistry(root: string, manifest: ValidationManifest): Vali
       id: 'compiler-registry-boundary',
       status: valid ? 'pass' : 'fail',
       evidence: valid
-        ? `D05-D14 compiler/proof/attestation inputs, the D09 scenario policy and closure slice, the D17 GraphIR v2 cutover, D20 portable receipt mechanics, and the D21-D23 assurance kernel/profile/verdict slice cover ${snapshot.records.semanticOwners.length} semantic owners, ${snapshot.derived.proofOccurrences} live authored proof records, and ${migrationProofs.length} source-located migration bindings. F8 public GraphIR cutover and the F9d registered file-key issuer path are validation-active; the F9 scheduler/cache runtime and host cycles remain pending or not run.`
+        ? `D05-D14 compiler/proof/attestation inputs, the D09 scenario policy and closure slice, the D17 GraphIR v2 cutover, D20 portable receipt mechanics, and the D21-D23 assurance kernel/profile/verdict slice cover ${snapshot.records.semanticOwners.length} semantic owners, ${snapshot.derived.proofOccurrences} live authored proof records, and ${migrationProofs.length} source-located migration bindings. F8 public GraphIR cutover and the F9d registered file-key issuer path are validation-active; host cycles remain pending or not run and the F9 scheduler/cache runtime is deferred to 0.10.x.`
         : 'D05-D14 compiler/proof/attestation inputs, the D09 scenario policy, the D17 closure slice, D20 portable receipt mechanics, D21-D23 profiles, region ownership, or authored-only provenance failed.',
     };
   } catch (error) {
@@ -521,7 +521,7 @@ function checkMcpScenarioLedger(root: string, manifest: ValidationManifest): Val
     id: 'mcp-scenario-ledger',
     status: valid ? 'pass' : 'fail',
     evidence: valid
-      ? 'MCP04 receipt-operation parity and MCP09 receipt ingestion/asserted fallback are F5 validation-active, and MCP08 is validation-active for the F8 graph-v2 focused-projection and statistics slice; the F9d registered file-key issuer path is validation-active, while the F9 scheduler/cache runtime and MCP11 stay pending and the non-blocking Codex A/B caps at 24 calls.'
+      ? 'MCP04 receipt-operation parity and MCP09 receipt ingestion/asserted fallback are F5 validation-active, and MCP08 is validation-active for the F8 graph-v2 focused-projection and statistics slice; the F9d registered file-key issuer path is validation-active, while MCP11 stays pending, the F9 scheduler/cache runtime is deferred to 0.10.x, and the non-blocking Codex A/B caps at 24 calls.'
       : `mcp=${scenarioIds.join(',')}; mcp04_artifacts=${mcp04Evidence}; ab=${taskIds.join(',')}; hosts=${manifest.mcp_reference_hosts.join(',')}; ab_policy=${JSON.stringify(manifest.host_ab)}; invalid_profiles=${invalidProfiles.map((task) => task.id).join(',') || 'none'}`,
   };
 }

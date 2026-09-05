@@ -4,7 +4,9 @@
 // residue in provenance banners, detector remediation messages, pinned
 // fixtures, and the docs banner table — a first-run trust break where a new
 // user is told to run a command that no longer exists. This suite pins the
-// four acceptance criteria of the closing sweep.
+// four acceptance criteria of the closing sweep. 0.10.0 adds the retired
+// headless-loop verb to the same tripwire: the loop and its verb are gone,
+// so no source or test file may name them either.
 //
 // TEST-AUTHOR NOTE (anti-self-certification): authored from the shard's
 // acceptance_criteria + the module signatures only. The implementation diff
@@ -12,7 +14,7 @@
 //
 // SELF-EXCLUSION (AC-7026c2e7 trap): the tripwire below walks src/**/*.ts AND
 // tests/**/*.ts — i.e. it walks THIS FILE too. To keep that honest this file
-// contains ZERO literal occurrences of the three removed two-word verb
+// contains ZERO literal occurrences of the removed two-word verb
 // phrases; every such phrase is assembled at runtime from parts (see
 // `REMOVED`). No path-based exclusion is used — including this file in the
 // walk keeps the ">100 files" vacuous-walk guard honest and proves the
@@ -47,8 +49,8 @@ import {specConformance} from '../../src/stages/detectors/spec-conformance.js';
 // ───────────────────────── runtime-assembled needles ─────────────────────────
 // The literal phrases never appear in this file's source; they are built here.
 const CLAD = 'clad';
-const REMOVED_VERBS = ['refine', 'drive', 'panel'] as const;
-/** The three removed two-word verb phrases, assembled at runtime (never literal here). */
+const REMOVED_VERBS = ['refine', 'drive', 'panel', 'run'] as const;
+/** The removed two-word verb phrases, assembled at runtime (never literal here). */
 const REMOVED: readonly string[] = REMOVED_VERBS.map((v) => `${CLAD} ${v}`);
 /** The pre-0.6.0 refresh clause (init + the first removed verb), assembled at runtime. */
 const OLD_REFINE_CLAUSE = `${CLAD} init / ${CLAD} ${REMOVED_VERBS[0]}`;
@@ -252,17 +254,11 @@ describe('AC-2f20bc65 — emitters name only current verbs', () => {
     }
   });
 
-  test('run-loop auto-stub string names clad run, no removed verb', () => {
-    const src = read('src/drive/loop.ts');
-    expect(src).toContain('auto-stub created by clad run');
-    expectNoRemovedVerbs(src, 'src/drive/loop.ts');
-  });
-
-  test('spec-conformance "no clad run history" message names clad run, no removed verb', () => {
+  test('[covers:F-9fcdd0a0/AC-157aeb33] spec-conformance names the missing implementer identity, not a retired verb', () => {
     // Drive the detector to its info branch: an oracle mandate is active, a
     // done AC declares a resolvable oracle with a provenance record, but NO
     // implementer identity is recorded — so author≠implementer can't be
-    // verified and the message names the current run verb.
+    // verified and the message says exactly that, naming no verb at all.
     const dir = tmp('conf');
     try {
       mkdirSync(join(dir, 'tests/oracle'), {recursive: true});
@@ -287,9 +283,9 @@ describe('AC-2f20bc65 — emitters name only current verbs', () => {
           '        oracle_refs: [tests/oracle/foo.test.ts]\n',
       );
       const findings = specConformance.run({cwd: dir}).filter((f) => f.detector === 'SPEC_CONFORMANCE');
-      const info = findings.find((f) => f.severity === 'info' && f.message.includes('no clad run history to compare'));
+      const info = findings.find((f) => f.severity === 'info' && f.message.includes('no implementer identity recorded'));
       expect(info, `expected the info message; got ${JSON.stringify(findings)}`).toBeTruthy();
-      expect((info as {message: string}).message).toContain('clad run');
+      expect((info as {message: string}).message).toContain('audit log');
       expectNoRemovedVerbs(findings.map((f) => f.message).join('\n'), 'spec-conformance messages');
     } finally {
       rmSync(dir, {recursive: true, force: true});

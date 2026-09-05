@@ -1,9 +1,7 @@
 id: F-072
 title: Pre-flight transport health check in drive loop (v0.2.23)
-status: done
-modules:
-  - src/drive/loop.ts
-  - src/drive/halt.ts
+status: archived
+modules: []
 depends_on:
   - F-049
   - F-068
@@ -35,3 +33,7 @@ acceptance_criteria:
     statement: While the pre-flight health check returns ready=true, the system
       shall continue past it without recording any halt — pre-flight is a
       fast-fail filter, not a normal control-flow branch.
+archive_reason: "Retired in 0.10.0 with the headless drive loop: no recorded
+  session ran the loop (0 runs across 5,176 events measured 2026-09-02) and the
+  host-delegated cycle owns execution."
+archived_at: 2026-09-05T12:49:30.981Z

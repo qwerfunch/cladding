@@ -1,0 +1,94 @@
+id: F-9fcdd0a0
+title: Retire the headless drive loop and record the scheduler deferral
+status: in_progress
+purpose: Cladding 0.10.0 ships without the experimental headless agent loop
+  because no recorded session ever ran it and the host-delegated cycle already
+  owns execution; retiring the loop with its loop-only adapters, skill, and
+  features removes dead shipped surface, and the same decision record defers the
+  F9c background scheduler so the release documents only what it runs.
+modules:
+  - src/cli/clad.ts
+  - src/ui/softShell.ts
+  - src/ui/pulse.ts
+  - src/adapters/types.ts
+  - src/stages/detectors/spec-conformance.ts
+  - scripts/plugin-mirror-policy.mjs
+  - tests/retirement/drive-loop.test.ts
+  - tests/cli/verb-residue.test.ts
+  - tests/cli/clad.test.ts
+  - tests/terminology-canon.test.ts
+  - tests/design/spec-0.2/design-validation.test.ts
+depends_on: []
+capability_refs: []
+acceptance_criteria:
+  - id: AC-8752a68c
+    kind: behavior
+    statement: When the retirement guard scans the source tree, the cladding source
+      tree shall contain no drive module and no import of the retired agent
+      invocation adapters.
+    notes: "Retired modules: src/drive/** (loop, agent, assurance, halt),
+      src/adapters/index.ts, src/adapters/sdk/anthropic.ts,
+      src/adapters/host/claude-code.ts, src/adapters/host/generic-mcp.ts,
+      src/core/postmortem.ts, the softShell halt-message table, and the
+      progressive pulse API. The host transport and sampling-context adapters
+      stay because the onboarding scan dispatcher consumes them."
+  - id: AC-fa140fd0
+    kind: behavior
+    statement: When the clad help lists the shipped commands, the clad CLI shall
+      omit the run verb.
+    notes: "The run verb was the only entry point of the headless loop. Its removal
+      follows the drive/panel/refine precedent: the verb-residue guard lists run
+      as a removed verb and the glossary records the removal."
+  - id: AC-157aeb33
+    kind: behavior
+    statement: When the shipped skill surfaces and plugin mirrors are rebuilt, the
+      plugin build shall emit no run skill and no clad run invocation in any
+      persona or skill surface.
+    notes: scripts/plugin-mirror-policy.mjs drops run from SKILLS; skills/run/ is
+      deleted; the checkpoint, doctor, rollback, and sync skills stop pointing
+      at clad run; the Claude Code, Codex, and Gemini mirrors regenerate with
+      zero residual diff.
+  - id: AC-6128e8ca
+    kind: behavior
+    statement: When the feature corpus is loaded after the retirement, the spec
+      loader shall report every loop-only feature as archived with an archive
+      reason and no bound modules.
+    notes: "Loop-only features archived through the typed feature.archive operation:
+      F-2de65d, F-5d3ed2, F-ba4b7a, F-048, F-049, F-069, F-070, F-071, F-072.
+      Their criteria stay as history; their modules are cleared. Features that
+      also own surviving code (F-063, F-064, F-068, F-075, F-b43066, F-076,
+      F-077, F-40327b) are rebound instead of archived."
+  - id: AC-7313dbc4
+    kind: behavior
+    statement: When the Spec 0.2 decision log is read, the decision log shall record
+      the F10 loop retirement and the F9c scheduler deferral with their evidence
+      and conditions.
+    notes: "F10 evidence: zero loop runs across 5,176 recorded events over 3.5
+      months (measured 2026-09-02), no README mention, no automatic invocation.
+      F9c condition for 0.10.x: an A/B/C replay fixture must show active-wait
+      reduction of at least 50 percent with p95 latency within 10 percent;
+      same-commit test-ledger reuse already ships in the test-run cache, and the
+      descriptor cache remains unmeasured."
+  - id: AC-2433eb15
+    kind: constraint
+    statement: The drive retirement shall keep the Anthropic SDK dependency that the
+      onboarding scan dispatcher loads on its API-key fallback path.
+    rationale: src/cli/scan/dispatcher.ts requires @anthropic-ai/sdk lazily when
+      ANTHROPIC_API_KEY is set and no host sampling server is registered;
+      deleting the loop adapters must not remove the package or that fallback.
+design_impact:
+  classification: structural
+  rationale: Retiring F10 and deferring the F9c scheduler changes the Runtime
+    rollout plan in context-and-orchestration.md, the D22 background-scheduler
+    paragraph in assurance.md, and the F9/F10 delivery rows in delivery.md;
+    these Tier-B owner documents must state the retirement and the deferral
+    before the feature completes.
+  status: resolved
+  artifacts:
+    - docs/design/spec-0.2/context-and-orchestration.md
+    - docs/design/spec-0.2/assurance.md
+    - docs/design/spec-0.2/delivery.md
+  baseline_digests:
+    docs/design/spec-0.2/context-and-orchestration.md: c4263540aa6398dc498197ab8490e252a538deb4bd3243dc226aceab8c84a5af
+    docs/design/spec-0.2/assurance.md: d59c67a154f877a433edb84181b4d81734c1bc0229957fe590c80d9bbabc05b5
+    docs/design/spec-0.2/delivery.md: 55ab9cb20a1e386eb552699ee764aacded07cc569a27fb7c5ba33077ce83e2eb

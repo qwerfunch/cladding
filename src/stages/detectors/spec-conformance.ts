@@ -39,9 +39,8 @@
 // require_oracles) — by reading the `kind: 'oracle'` authoring-provenance
 // records in the audit log. Three deterministic structural checks per
 // declared oracle_ref: (i) a provenance record exists; (ii) the oracle
-// author identity != the feature's implementer identity (lifting the
-// drive-only reviewer barrier, agent.ts:91-95, into an all-paths gate
-// check); (iii) the author's read-manifest does NOT intersect the
+// author identity != the feature's implementer identity (the
+// reviewer barrier as an all-paths gate check); (iii) the author's read-manifest does NOT intersect the
 // feature's `modules` (the load-bearing impl-blindness invariant). A
 // self-reported (host-protocol, `blind:false`) manifest is still checked
 // against modules but flagged `info` so the honesty boundary stays visible.
@@ -159,7 +158,7 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
           findings.push({
             detector: NAME,
             severity: 'info',
-            message: `${feature.id}.${ac.id} oracle author≠implementer not verified — no implementer identity recorded (no clad run history to compare)`,
+            message: `${feature.id}.${ac.id} oracle author≠implementer not verified — no implementer identity recorded (no implementer identity recorded in the audit log)`,
           });
         }
         const overlap = (prov.readManifest ?? []).filter((m) => (feature.modules ?? []).includes(m));

@@ -1,9 +1,7 @@
 id: F-ba4b7a
 title: Pulse UI progressive — in-place status updates in drive loop (v0.3.23)
-status: done
-modules:
-  - src/ui/pulse.ts
-  - src/drive/loop.ts
+status: archived
+modules: []
 depends_on:
   - F-5d3ed2
 capability_refs: []
@@ -30,3 +28,7 @@ acceptance_criteria:
     statement: When a feature fails a gate, the system shall emit
       pulseProgressEnd("fail") with the retry counter in the detail string so
       the user sees exactly how many attempts remain before the loop rolls back.
+archive_reason: "Retired in 0.10.0 with the headless drive loop: no recorded
+  session ran the loop (0 runs across 5,176 events measured 2026-09-02) and the
+  host-delegated cycle owns execution."
+archived_at: 2026-09-05T12:49:30.932Z

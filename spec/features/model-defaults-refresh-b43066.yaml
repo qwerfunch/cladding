@@ -4,7 +4,6 @@ title: Current-generation SDK model defaults, 16k output ceiling, config-file
 status: done
 modules:
   - src/cli/scan/dispatcher.ts
-  - src/adapters/sdk/anthropic.ts
   - src/adapters/host/transport.ts
   - src/cli/init.ts
   - src/cli/update.ts

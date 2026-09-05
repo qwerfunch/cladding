@@ -3,8 +3,6 @@ title: Transport interface extraction — adapter / body split (v0.3.0 substep 1
 status: done
 modules:
   - src/adapters/host/transport.ts
-  - src/adapters/host/claude-code.ts
-  - src/adapters/host/generic-mcp.ts
   - tests/adapters/transport.test.ts
 depends_on:
   - F-049
@@ -14,19 +12,6 @@ acceptance_criteria:
     statement: The system shall define a Transport interface in
       src/adapters/host/transport.ts that adapters compose to perform
       host-boundary dispatch.
-  - id: AC-184
-    statement: The system shall refactor the two host adapters to compose a
-      Transport instance, preserving the AgentAdapter contract.
-    evidence_refs:
-      - src/adapters/host/claude-code.ts
-      - src/adapters/host/generic-mcp.ts
-  - id: AC-185
-    statement: While v0.2.19 ships MockTransport as the default for both host
-      adapters, the system shall keep behaviour identical to v0.2.18 — only the
-      structural seam changes.
-    evidence_refs:
-      - tests/adapters/host-parity.test.ts
-      - tests/adapters/index.test.ts
   - id: AC-186
     statement: The system shall ship tests/adapters/transport.test.ts covering
       MockTransport's observable behaviour at 100% line coverage.

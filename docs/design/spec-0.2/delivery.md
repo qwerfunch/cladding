@@ -24,8 +24,8 @@ F1 uses an independent sorted source-YAML snapshot oracle, without production lo
 6. **F6:** shared closures, the [D21–D23](assurance.md#d21--iron-law-assurance-kernel) DAG/reducer, legacy 15-stage projection, profile-aware `clad done`, and v3.
 7. **F7:** scenario v2 and `off | advisory | required`, then accept/reject the narrow L2 baseline before atomic self-migration; complete F7 on 0.2 and write pure-0.2 v3.
 8. **F8:** atomically cut graph CLI/JSON, exporters/viewer, and `clad_get_graph` to GraphIR v2; retain no v1 adapter.
-9. **F9:** ship `CycleContextEnvelope`, task projections, scheduler, a registered file-key human issuer, and A–E; retain headless-loop compatibility.
-10. **F10:** after F9 green, replace developer→reviewer choreography with task-state dispatch. Viewer polish/broader retrieval remain tail work.
+9. **F9:** ship `CycleContextEnvelope`, task projections, a registered file-key human issuer, and A–E; the persistent scheduler defers to 0.10.x.
+10. **F10:** retired. 0.10.0 removes the unused headless loop instead of dispatching from it. Viewer polish/broader retrieval remain tail work.
 11. **F11:** add aliases/`clad relocate-generated [--apply]`, transition self before final enforcement, and prove D14 state/recovery.
 
 There is no F7.5 context-wire migration; F8 is the graph-v2 cutover. F11 does not retroactively block F7–F10 completion, but 0.10.0 needs applicable F1–F11 evidence. Standards, docs, glossary, and generated mirrors update in their owner feature.
@@ -40,7 +40,7 @@ F1 is the same-cycle-retirement exception: additive parity deletes no shipped co
 | F5/F6 proof compiler | Remove duplicate reference normalization, binding joins, and proof-closure calculations after detectors, report paths, and attestation consume the shared implementations. Keep legacy references as input compatibility, not as a parallel proof model. |
 | F8 GraphIR cutover | Retire graph v1 identities, reverse-index materialization, undirected/repeated traversal, and tests that assert those obsolete internals. CLI, MCP, report, impact, working-set, export, and viewer paths become queries or serializers over GraphIR; no v1 adapter survives. |
 | F9 context-envelope implementation | Retired in F9a: the F-041/F-063 contracts are revised onto `src/optimizer/envelope.ts`, and `src/optimizer/preamble.ts`, `src/optimizer/tail.ts` are deleted with their tests now that the packer covers omission, tail, budget, and fixed-point behavior. |
-| F10 task-state loop | Retire hard-coded developer/reviewer identity choreography and loop-only mock/stub dispatch after topology invariance and real evidence ingress are green. Product transport fallbacks remain until their separately owned compatibility contracts are intentionally revised. |
+| F10 task-state loop | Retired in 0.10.0 with no successor loop: the headless loop, its loop-only adapters and skill, and the nine loop-only features go after measurement found no recorded run. Product transport fallbacks remain until their own compatibility contracts are revised. |
 
 A path survives only with a distinct public/compatibility contract and recorded feature-rationale/test exit condition. There is no permanent retirement manifest or cleanup-only release phase.
 
@@ -140,7 +140,7 @@ These are new test obligations, not evidence that an earlier session ran “37/3
 - **T01–T04 transaction:** different shards, same-shard stale, BUSY no-write, crash recovery.
 - **U01–U04 upgrade:** unresolved no-write, `L = N`, atomic apply/zero-diff, interrupted restore-or-finish.
 
-At the F6 boundary, the active fixture ledger names P01–P10, L01–L04, B01–B06, C01–C06, T01–T04, U01–U04, and A01–A03. These are executable obligations, not a runtime pass count; F7 scenarios, F8 public GraphIR cutover, F9 scheduler/cache paths, relocation, and reference-host cycles remain pending; the F9d issuer path is validation-active.
+At the F6 boundary, the active fixture ledger names P01–P10, L01–L04, B01–B06, C01–C06, T01–T04, U01–U04, and A01–A03. These are executable obligations, not a runtime pass count; F7 scenarios, F8 public GraphIR cutover, relocation, and reference-host cycles remain pending, the F9 scheduler/cache paths are deferred to 0.10.x; the F9d issuer path is validation-active.
 - **A01–A03 attestation:** selective contract stale, proof-input stale, target-versus-sibling receipt freshness.
 
 ### Repository gates

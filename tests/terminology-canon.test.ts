@@ -184,13 +184,13 @@ describe('AC-5a249349 · glossary defines the previously missing concept rows', 
     expect(phasesCount, 'counting-quartet "phases" count vs the Iron Law row\'s own count').toBe(ironLawPhases);
   });
 
-  test('the drive-loop internal-name note: clad-drive frozen for audit compatibility, KO gloss present', () => {
+  test('the drive-loop internal-name note: clad-drive stays reserved for audit compatibility after the 0.10.0 retirement, KO gloss present', () => {
     const idx = glossary.indexOf('Internal name');
     expect(idx, 'drive-loop internal-name note').toBeGreaterThanOrEqual(0);
     const note = glossary.slice(idx, idx + 900);
-    expect(note, 'names the drive loop module').toContain('src/drive/loop.ts');
     expect(note, 'names the frozen evidence identity').toContain(asm(['clad', '-drive']));
-    expect(note, 'states the freeze reason').toContain('frozen for audit-log compatibility');
+    expect(note.replace(/\n>\s*/g, ' '), 'states the freeze reason').toContain('frozen for audit-log compatibility');
+    expect(note, 'records that the loop itself is retired').toContain('retired in 0.10.0');
     expect(note, 'states drive is not a CLI verb').toContain('never as a CLI verb');
     expect(note, 'KO gloss line present').toContain('KO:');
   });

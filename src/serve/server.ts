@@ -4,14 +4,14 @@
 // Continue, Cline, …) as an MCP server. Phase A ships the read-only
 // surface: tools that query the spec / run drift / tail events, plus
 // resources for spec.yaml / events.log / audit.log, plus prompt
-// templates wrapping each persona body. Sampling-based dispatch (the
-// transport the drive loop will use) lands in v0.2.25.
+// templates wrapping each persona body. Sampling-based dispatch
+// landed in v0.2.25.
 //
 // Architectural placement: the server is a *thin* read layer over
 // cladding's existing modules. It does not duplicate logic — every
 // handler calls a real cladding function and translates the result
 // into MCP shapes. That keeps `clad serve` and `clad check` /
-// `clad sync` / `clad run` running the same drift detectors,
+// `clad sync` running the same drift detectors,
 // the same spec loader, the same audit log — only the transport
 // differs.
 //

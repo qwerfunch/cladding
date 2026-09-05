@@ -1,12 +1,7 @@
 id: F-069
 title: AnthropicSdkTransport — first real-LLM dispatch path (v0.3.0 substep 2)
-status: done
-modules:
-  - src/adapters/sdk/anthropic.ts
-  - src/adapters/index.ts
-  - tests/adapters/anthropic.test.ts
-  - tests/adapters/index.test.ts
-  - package.json
+status: archived
+modules: []
 depends_on:
   - F-049
   - F-068
@@ -34,3 +29,7 @@ acceptance_criteria:
   - id: AC-191
     statement: The system shall instantiate the Anthropic SDK client lazily on first
       dispatch and reuse it for subsequent invocations.
+archive_reason: "Retired in 0.10.0 with the headless drive loop: no recorded
+  session ran the loop (0 runs across 5,176 events measured 2026-09-02) and the
+  host-delegated cycle owns execution."
+archived_at: 2026-09-05T12:49:30.953Z

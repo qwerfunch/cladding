@@ -7,10 +7,10 @@
 // stand-alone SDK adapter (Anthropic / OpenAI / Gemini) when the
 // caller explicitly opts in via `agent.mode = sdk`.
 //
-// Every adapter implements the same shape. drive/agent.ts dispatches
-// to the active adapter; drive/loop.ts is unaware of which one ran.
-// Parity tests (tests/adapters/*-parity.test.ts) prove the evidence
-// schema and halt enum stay invariant across adapters.
+// Every adapter implements the same shape, so a host caller never
+// learns which transport ran. 0.10.0 retired the headless loop and
+// its loop-only adapters; the host transport and sampling context
+// below are what the onboarding scan dispatcher still consumes.
 //
 // @see spec/features/F-049.yaml AC-085 / AC-088 / AC-089 / AC-090 /
 //      AC-091 — the normative contract this interface implements.
@@ -18,9 +18,6 @@
 // @see ironclad-design/14-agent-orchestration.md — 5-agent topology.
 
 import type {Identity} from '../hitl/identity.js';
-
-/** Which dispatch mode an adapter runs in. */
-export type AdapterMode = 'host' | 'sdk';
 
 /** Capabilities the adapter exposes — mirrors agents/*.md frontmatter. */
 export type Capability = 'read' | 'write' | 'edit' | 'exec' | 'dispatch';
@@ -64,17 +61,17 @@ export interface AgentResult {
   /** Identity of the actor that produced this output. */
   readonly identity: Identity;
   /**
-   * Free-form summary of what the agent did this turn. The drive
-   * loop records this in the audit log as evidence `content`.
+   * Free-form summary of what the agent did this turn. The caller
+   * records this in the audit log as evidence `content`.
    */
   readonly summary: string;
   /**
-   * Files the agent created or modified during the turn. The drive
-   * loop replays these to the working tree.
+   * Files the agent created or modified during the turn. The caller
+   * replays these to the working tree.
    */
   readonly mutations: readonly AgentMutation[];
   /**
-   * Optional structured note the agent wants downstream loop steps
+   * Optional structured note the agent wants a downstream step
    * (or a future reviewer) to see — never user-facing.
    */
   readonly notes?: string;
@@ -93,27 +90,4 @@ export interface HealthStatus {
   readonly ready: boolean;
   /** Human-readable reason when `ready=false`. */
   readonly reason?: string;
-}
-
-/**
- * The contract every adapter (host or sdk) implements.
- *
- * Conformance:
- * - `invokeAgent` must be idempotent on identical (persona, ctx) —
- *   the deterministic-evidence requirement (F-049 AC-090).
- * - Errors during invocation should be thrown so the drive loop can
- *   preserve its matching transport halt class and underlying detail.
- * - Host adapters must not read provider API-key env vars. SDK
- *   adapters declare and read only their matching key (F-049 AC-091).
- */
-export interface AgentAdapter {
-  readonly mode: AdapterMode;
-  /** Short adapter id — `claude-code`, `generic-mcp`, `anthropic`, … */
-  readonly name: string;
-  /** SDK credential env var; omitted for host-bound adapters. */
-  readonly apiKeyEnv?: string;
-  /** Capabilities this transport supports — bounded by host or SDK. */
-  readonly capabilities: ReadonlySet<Capability>;
-  invokeAgent(persona: PersonaSpec, ctx: AgentContext): Promise<AgentResult>;
-  healthCheck(): Promise<HealthStatus>;
 }

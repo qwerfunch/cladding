@@ -25,7 +25,7 @@ const SSOT_AUDIT_DOC = ['ssot', 'audit'].join('-') + '.md';
 const DELETED_DOCS: readonly string[] = [MARKETPLACE_DOC, SSOT_AUDIT_DOC];
 
 const removedVerb = (v: string): string => ['clad', v].join(' ');
-const REMOVED_VERBS: readonly string[] = [removedVerb('drive'), removedVerb('panel')];
+const REMOVED_VERBS: readonly string[] = [removedVerb('drive'), removedVerb('panel'), removedVerb('run')];
 
 // Known, pre-adjudicated exceptions outside src/ tests/ docs/ — repo-root
 // history, the regenerated doc-link index, and this feature's own shard.
@@ -155,14 +155,13 @@ describe('AC-51b8dbee · the roadmap keeps Transport verbatim and drops removed-
   const ROADMAP = 'docs/multi-provider-roadmap.md';
   const TRANSPORT_HEADING = '## Transport architectural decision';
 
+  // 0.10.0 retired the loop-only adapters, so only the surviving host
+  // transport still cites the Transport decision, and only the adapter
+  // contract still cites the two-modes overview.
   const TRANSPORT_CITING_FILES: readonly string[] = [
     'src/adapters/host/transport.ts',
-    'src/adapters/host/claude-code.ts',
-    'src/adapters/host/generic-mcp.ts',
   ];
   const OTHER_SECTION_CITING_FILES: ReadonlyArray<{file: string; heading: string}> = [
-    {file: 'src/adapters/index.ts', heading: '## Adapter matrix'},
-    {file: 'src/adapters/sdk/anthropic.ts', heading: '## Adapter matrix'},
     {file: 'src/adapters/types.ts', heading: '## Two modes'},
   ];
 
@@ -177,7 +176,7 @@ describe('AC-51b8dbee · the roadmap keeps Transport verbatim and drops removed-
     }
   });
 
-  test('[covers:F-987be195/AC-51b8dbee] the three Transport-citing adapter files still name the section, and the section still resolves', () => {
+  test('[covers:F-987be195/AC-51b8dbee] the surviving Transport-citing adapter file still names the section, and the section still resolves', () => {
     const roadmap = read(ROADMAP);
     expect(roadmap).toContain(TRANSPORT_HEADING);
     for (const file of TRANSPORT_CITING_FILES) {
@@ -187,7 +186,7 @@ describe('AC-51b8dbee · the roadmap keeps Transport verbatim and drops removed-
     }
   });
 
-  test('[covers:F-987be195/AC-51b8dbee] the other three @see anchors (adapter matrix ×2, two-modes overview ×1) still resolve to real headings', () => {
+  test('[covers:F-987be195/AC-51b8dbee] the remaining two-modes @see anchor still resolves to a real heading', () => {
     const roadmap = read(ROADMAP);
     for (const {file, heading} of OTHER_SECTION_CITING_FILES) {
       const content = read(file);
@@ -196,10 +195,10 @@ describe('AC-51b8dbee · the roadmap keeps Transport verbatim and drops removed-
     }
   });
 
-  test('[covers:F-987be195/AC-51b8dbee] all six @see docs/multi-provider-roadmap.md anchors are accounted for', () => {
-    const allSix = [...TRANSPORT_CITING_FILES, ...OTHER_SECTION_CITING_FILES.map((x) => x.file)];
-    expect(new Set(allSix).size, 'six distinct adapter files').toBe(6);
-    for (const file of allSix) {
+  test('[covers:F-987be195/AC-51b8dbee] every surviving @see docs/multi-provider-roadmap.md anchor is accounted for', () => {
+    const all = [...TRANSPORT_CITING_FILES, ...OTHER_SECTION_CITING_FILES.map((x) => x.file)];
+    expect(new Set(all).size, 'two distinct adapter files survive the retirement').toBe(2);
+    for (const file of all) {
       expect(read(file), `${file} still @see-references ${ROADMAP}`).toContain(ROADMAP);
     }
   });

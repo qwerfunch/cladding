@@ -364,8 +364,8 @@ describe('bounded source-reference scanner', () => {
     const currentGateObservationRecords = scan.records
       .filter((record) => record.sourcePath === 'src/graph/test-observations.ts');
 
-    expect(carriers.size).toBe(152);
-    expect(scan.records).toHaveLength(194);
+    expect(carriers.size).toBe(142);
+    expect(scan.records).toHaveLength(180);
     expect(scan.records.every((record) => record.state === 'resolved' && sourceArtifacts.has(record.sourcePath))).toBe(true);
     expect(scan.issues).toEqual([]);
     expect(scan.unknownFiles).toEqual([]);

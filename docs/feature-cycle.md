@@ -91,7 +91,7 @@ its dependency's code.
 | conversational → multi-feature | 1 (wider only across *independent* DAG units) | host; user between cycles |
 | prompt → ONE feature | 1 | single pass |
 | `/goal` → autonomous | 1 (N for independent units) | host self-loops to the goal |
-| headless `clad run` | 1 (`nextReady` already does this) | the loop |
+| headless / unattended | 1 (one ready feature at a time) | the CI script that calls the host |
 
 The cycle steps are **byte-identical across modes** — no mode-specific control-flow. The
 always-loaded CLAUDE.md states the cadence so the host structures its own plan around it, and the
@@ -117,10 +117,11 @@ gate still blocks a too-wide batch (fails safe).
   supported default: the host (Claude Code) authors files with its own Write/Edit when it embodies
   `cladding:developer`; cladding owns the cycle + the gates, the host owns the parallel execution
   engine.
-- **Headless `clad run` (formerly `drive`) — the CI/SDK lane.** A sequential reference loop for
-  unattended runs (CI pipelines, SDK-driven automation) — `nextReady` already drives ONE feature at
-  a time. Its transports do **not** yet author code (the tool-use/mutation protocol is unbuilt), so
-  a no-real-dispatch run is honestly degraded, never reported as success.
+- **Unattended runs — the CI/SDK lane.** For CI pipelines and SDK-driven automation, the same
+  cycle runs with no human in the room: the automation starts `clad serve`, its AI host takes ONE
+  ready feature at a time, and the gate decides completion exactly as it does in-session. 0.10.0
+  retired the built-in headless loop that used to own this lane — it shipped without a code-authoring
+  transport and no recorded session ever ran it, so the host owns execution here too.
 
 ## Gate economy — one authoritative full gate per feature
 

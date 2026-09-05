@@ -72,7 +72,6 @@ vi.mock('../../src/ui/panel.js', () => ({renderPanel: vi.fn(() => 'panel-output'
 vi.mock('../../src/ui/softShell.js', () => ({
   featureLabel: (id: string) => `LABEL(${id})`,
   gateLabel: (s: string) => `GATE(${s})`,
-  haltMessage: (h: {class: string}) => `HALT(${h.class})`,
   // F-dd8dc994 / F-9af291fa: printStageDetails renders one plain English lead per finding.
   plainLead: (detector: string, fallback = '') => fallback || `LEAD(${detector})`,
 }));
@@ -130,7 +129,6 @@ vi.mock('../../src/core/checkpoint.js', async (importOriginal) => {
     ),
   };
 });
-vi.mock('../../src/drive/loop.js', () => ({runDriveLoop: vi.fn()}));
 // MCP server build is mocked — the runServeCommand test only verifies
 // the CLI plumbing (server constructed, transport connected). The
 // real server is exercised separately in tests/serve/server.test.ts.
@@ -175,7 +173,6 @@ const clad = await import('../../src/cli/clad.js');
 const initMod = await import('../../src/cli/init.js');
 const specMod = await import('../../src/spec/load.js');
 const intentMod = await import('../../src/router/intent.js');
-const driveMod = await import('../../src/drive/loop.js');
 const editMod = await import('../../src/spec/edit.js');
 const agentsMdMod = await import('../../src/init/agents-md.js');
 const testRefMod = await import('../../src/spec/test-ref-repair.js');
@@ -184,7 +181,6 @@ const deliverableMod = await import('../../src/spec/deliverable-detect.js');
 const runInitMock = initMod.runInit as unknown as ReturnType<typeof vi.fn>;
 const loadSpecMock = specMod.loadSpec as unknown as ReturnType<typeof vi.fn>;
 const classifyMock = intentMod.classifyIntent as unknown as ReturnType<typeof vi.fn>;
-const runDriveLoopMock = driveMod.runDriveLoop as unknown as ReturnType<typeof vi.fn>;
 const pulseMod = await import('../../src/ui/pulse.js');
 const pulseMock = pulseMod.pulse as unknown as ReturnType<typeof vi.fn>;
 const refreshDerivedSpecProjectionsMock = editMod.refreshDerivedSpecProjections as unknown as ReturnType<typeof vi.fn>;
@@ -214,7 +210,6 @@ describe('cli/clad — handler exports', () => {
     runInitMock.mockReset();
     loadSpecMock.mockReset();
     classifyMock.mockReset();
-    runDriveLoopMock.mockReset();
     pulseMock.mockClear();
     refreshDerivedSpecProjectionsMock.mockClear();
     writeSpecDrivenAgentsMdMock.mockClear();
@@ -605,41 +600,6 @@ describe('cli/clad — handler exports', () => {
     expect(exitCalls).toEqual([1]);
   });
 
-  test('runRunCommand happy path exits 0 with summary text', async () => {
-    runDriveLoopMock.mockResolvedValueOnce({
-      halt: {class: 'ALL_FEATURES_DONE', detail: 'done', iteration: 5},
-      iterations: 5,
-      featuresTouched: ['F-001'],
-      stubsCreated: [],
-      gateRuns: 15,
-    });
-    loadSpecMock.mockReturnValueOnce({features: [{id: 'F-001', title: 'alpha'}]});
-    await clad.runRunCommand(undefined, {
-      maxIterations: '50',
-      maxWallClockMs: '600000',
-      maxRetries: '3',
-    });
-    expect(runDriveLoopMock).toHaveBeenCalledOnce();
-    expect(exitCalls).toEqual([0]);
-  });
-
-  test('runRunCommand UNCAUGHT_ERROR exits 1', async () => {
-    runDriveLoopMock.mockResolvedValueOnce({
-      halt: {class: 'UNCAUGHT_ERROR', detail: 'spec load failed', iteration: 0},
-      iterations: 0,
-      featuresTouched: [],
-      stubsCreated: [],
-      gateRuns: 0,
-    });
-    loadSpecMock.mockReturnValueOnce({features: []});
-    await clad.runRunCommand(undefined, {
-      maxIterations: '50',
-      maxWallClockMs: '600000',
-      maxRetries: '3',
-    });
-    expect(exitCalls).toEqual([1]);
-  });
-
   // Lever 1 — `clad oracle --required` prints the policy worklist (which done
   // ACs need an oracle) instead of a single feature's brief.
   test('[covers:F-bdcd90/AC-004] runOracleCommand --required lists policy-required ACs and exits 1 when one is missing', () => {
@@ -682,26 +642,6 @@ describe('cli/clad — handler exports', () => {
     expect(exitCalls).toEqual([1]);
   });
 
-  test('runRunCommand --json emits raw result to stdout', async () => {
-    runDriveLoopMock.mockResolvedValueOnce({
-      halt: {class: 'ALL_FEATURES_DONE', detail: 'done', iteration: 1},
-      iterations: 1,
-      featuresTouched: [],
-      stubsCreated: [],
-      gateRuns: 3,
-    });
-    await clad.runRunCommand('goal text', {
-      maxIterations: '10',
-      maxWallClockMs: '60000',
-      maxRetries: '2',
-      json: true,
-    });
-    const calls = stdoutSpy.mock.calls.map((c: unknown[]) => c[0]);
-    expect(
-      calls.some((c: unknown) => typeof c === 'string' && c.includes('ALL_FEATURES_DONE')),
-    ).toBe(true);
-    expect(exitCalls).toEqual([0]);
-  });
 });
 
 describe('cli/clad — createProgram', () => {
@@ -735,12 +675,11 @@ describe('cli/clad — createProgram', () => {
     expect(scopedCommands.every((command) => typeof Reflect.get(command, '_actionHandler') === 'function')).toBe(true);
   });
 
-  test('[covers:F-040/AC-061] exposes only supported commands through declared handlers', () => {
+  test('[covers:F-040/AC-061][covers:F-9fcdd0a0/AC-fa140fd0] exposes only supported commands through declared handlers', () => {
     const program = clad.createProgram();
     const names = program.commands.map((c) => c.name());
     expect(names).toEqual([
       'init',
-      'run',
       'sync',
       'migrate',
       'begin',
@@ -776,7 +715,7 @@ describe('cli/clad — createProgram', () => {
     for (const command of executableCommands) {
       expect(Reflect.get(command, '_actionHandler')).toEqual(expect.any(Function));
     }
-    for (const retired of ['create', 'drive', 'panel', 'refine', 'work']) {
+    for (const retired of ['create', 'drive', 'panel', 'refine', 'work', 'run']) {
       expect(names).not.toContain(retired);
     }
   });
@@ -794,7 +733,7 @@ describe('cli/clad — createProgram', () => {
       expect(names).not.toContain(gone);
       expect(aliases).not.toContain(gone);
     }
-    expect(names).toEqual(expect.arrayContaining(['run', 'status', 'clarify']));
+    expect(names).toEqual(expect.arrayContaining(['status', 'clarify']));
   });
 
   // The removed spellings must fail closed: commander treats each as an unknown

@@ -1,7 +1,7 @@
 // Cladding · unit tests · plain-first finding render + English catalog (F-dd8dc994, F-9af291fa)
 //
 // Sibling home: tests/ui/softShell.test.ts pins the PRE-EXISTING softShell
-// exports (featureLabel/haltMessage/gateLabel); this file is the AC-owning
+// exports (featureLabel/gateLabel); this file is the AC-owning
 // suite for the plain-first-render surface the same module grew —
 // DETECTOR_PLAIN, plainLead/plainFinding, and the three surface templates. It
 // complements (does not duplicate) the existing-pin fallout already covered in

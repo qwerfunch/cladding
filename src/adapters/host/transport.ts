@@ -1,22 +1,22 @@
 // Cladding · Host adapter · Transport layer
 //
 // v0.2.19 (F-068) splits the host adapters into two layers:
-//   1. The AgentAdapter (`AgentAdapter` contract) — what drive/agent.ts
-//      sees. Its `invokeAgent` and `healthCheck` are thin wrappers.
+//   1. The adapter contract — what a host-side caller sees. Its
+//      `invokeAgent` and `healthCheck` are thin wrappers.
 //   2. The Transport (this file) — the body that actually crosses
 //      the host boundary. The body is the part that has to swap
 //      between "mock" (deterministic stub) and "real" (MCP server
 //      roundtrip or subagent dispatch) without touching the
-//      adapter contract or the surrounding selector / drive loop.
+//      adapter contract or the surrounding selector.
 //
 // v0.2.19 ships only the MockTransport. v0.2.25 (F-074) adds
 // {@link McpSamplingTransport} — the real body that delegates the
 // LLM call to a connected MCP client via the SDK's `createMessage`
 // sampling request. The host adapter swaps Mock ↔ Sampling based
-// on whether `clad serve` is wired up; the AgentAdapter contract
-// stays invariant.
+// on whether `clad serve` is wired up; the adapter contract stays
+// invariant.
 //
-// @see src/adapters/types.ts — the AgentAdapter contract this layer underlies.
+// @see src/adapters/types.ts — the adapter contract this layer underlies.
 // @see docs/multi-provider-roadmap.md — Transport architectural decision.
 // @see spec/features/F-049.yaml AC-092 — original adapter contract.
 // @see spec/features/F-068.yaml AC-183 — this extraction.
@@ -31,9 +31,9 @@ import type {AgentContext, AgentResult, HealthStatus, PersonaSpec} from '../type
  * `ClaudeCodeTransport` and `McpTransport` real bodies.
  *
  * Stable contract — adapters that compose a Transport never have to
- * change when the body swaps from mock to real. The selector,
- * drive loop, and parity tests all stay on the AgentAdapter
- * contract; only the Transport instance inside each adapter changes.
+ * change when the body swaps from mock to real. The selector and
+ * the parity tests all stay on the adapter contract; only the
+ * Transport instance inside each adapter changes.
  */
 export interface Transport {
   /** Stable id for telemetry / logs (e.g. `mock:claude-code`). */
@@ -70,11 +70,11 @@ export interface MockTransportOptions {
  * code path can be replaced surgically by a real Transport in
  * v0.2.20.
  *
- * Why this is OK to ship: the surrounding code (`drive/agent.ts`,
- * `drive/loop.ts`, the selector) doesn't care whether the result is
- * real or mock — it only checks the AgentResult shape + the
- * reviewer-identity barrier (F-049 AC-086). The mock satisfies the
- * contract while keeping the loop testable end-to-end.
+ * Why this is OK to ship: the surrounding code (the selector, the
+ * host caller) doesn't care whether the result is real or mock — it
+ * only checks the AgentResult shape + the reviewer-identity barrier
+ * (F-049 AC-086). The mock satisfies the contract while keeping the
+ * host dispatch path testable end-to-end.
  */
 export class MockTransport implements Transport {
   readonly id: string;

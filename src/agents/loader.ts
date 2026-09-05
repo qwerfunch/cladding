@@ -1,14 +1,14 @@
 // Cladding · agents · persona loader
 //
-// Parses an `agents/<id>.md` file into a {@link PersonaSpec} so the
-// drive loop can hand it to an adapter. Each shipped persona declares
+// Parses an `agents/<id>.md` file into a {@link PersonaSpec} so a
+// caller can hand it to an adapter. Each shipped persona declares
 // YAML frontmatter that names it, describes it, and declares the
 // the Claude Code `tools:` enum, and the provider-agnostic
 // `capabilities:` set; the body is the prose prompt every adapter
 // passes to its LLM.
 //
-// Loaded personas are cached by id — re-parsing on every drive
-// iteration is wasteful and the file content does not change at
+// Loaded personas are cached by id — re-parsing on every lookup
+// is wasteful and the file content does not change at
 // runtime.
 //
 // @see adapters/types.ts — `PersonaSpec` contract.
@@ -54,8 +54,8 @@ export const PERSONA_ALIASES: Readonly<Record<string, string>> = {
  * Returns the {@link PersonaSpec} for the named persona.
  *
  * Looks for `agents/<id>.md` relative to {@link rootDir}. When the
- * file is missing the function throws — the drive loop should map
- * the error to a `UNCAUGHT_ERROR` halt and surface it to the user.
+ * file is missing the function throws — the caller should surface
+ * the error to the user.
  *
  * Deprecated ids (`librarian` → `planner`, `specialists` →
  * `developer`) still resolve through {@link PERSONA_ALIASES} for the
@@ -100,7 +100,7 @@ function resolveAgentPath(id: string, rootDir?: string): string {
   // src/agents/, so the sibling <id>.md), the bundled binary (build.mjs copies them
   // to dist/agents/ next to the dist/clad.js bundle), or — as a last resort — the
   // packaged plugin tree. Earlier this returned only `dist/<id>.md`, which the build
-  // never produced, so `clad run` and the MCP persona prompts crashed on a real
+  // never produced, so the MCP persona prompts crashed on a real
   // npm install. Return the first candidate that exists.
   const candidates = [
     join(here, `${id}.md`), // dev: src/agents/<id>.md

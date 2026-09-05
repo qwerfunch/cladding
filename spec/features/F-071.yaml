@@ -1,11 +1,8 @@
 id: F-071
 title: Transport-specific halt classes for real-LLM dispatch failures (v0.3.0
   substep 4)
-status: done
-modules:
-  - src/drive/halt.ts
-  - src/drive/loop.ts
-  - src/ui/softShell.ts
+status: archived
+modules: []
 depends_on:
   - F-049
   - F-068
@@ -36,3 +33,7 @@ acceptance_criteria:
       transport-failure shapes (auth, rate limit, network, unknown), the drive
       loop shall halt with the matching transport-specific HaltClass — proving
       the classifier is wired correctly end-to-end.
+archive_reason: "Retired in 0.10.0 with the headless drive loop: no recorded
+  session ran the loop (0 runs across 5,176 events measured 2026-09-02) and the
+  host-delegated cycle owns execution."
+archived_at: 2026-09-05T12:49:30.971Z

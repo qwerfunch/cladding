@@ -21,6 +21,12 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 - Authoritative 0.2 profiles (completion, push, release) block on warn-class drift findings; `--strict` remains an explicit escalation.
 - An archived feature whose successor is not yet done reports surviving modules as informational until the successor completes.
 
+### Removed
+
+- The experimental headless loop and its `run` command. Nothing ever ran it — three and a half months of recorded sessions contain zero runs — and it never learned to write code, so it could only report honest failure. Start the server with `clad serve` and let your AI host work the feature cycle instead; that is the path everything else already used.
+- The agent adapters, the crash-postmortem recorder, and the progress-line renderer that existed only to serve that loop. The host transport the onboarding scan uses is untouched, and so is the Anthropic SDK dependency behind its API-key fallback.
+- The `run` skill, and its copies in the Claude Code, Codex, and Antigravity plugin folders.
+
 ### Fixed
 
 - `src/graph` no longer imports stage code (architecture rule AR-cabee171).
