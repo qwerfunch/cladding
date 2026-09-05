@@ -1,6 +1,6 @@
 id: F-9fcdd0a0
 title: Retire the headless drive loop and record the scheduler deferral
-status: in_progress
+status: done
 purpose: Cladding 0.10.0 ships without the experimental headless agent loop
   because no recorded session ever ran it and the host-delegated cycle already
   owns execution; retiring the loop with its loop-only adapters, skill, and
