@@ -5,7 +5,8 @@
 // (0 runs across 5,176 events measured 2026-09-02) and the host-delegated
 // cycle owns execution. This suite is the tripwire that keeps the retired
 // surface from creeping back — the source tree, the shipped skill catalog,
-// the feature corpus, and the one dependency that must NOT leave with it.
+// the feature corpus, the one dependency that must NOT leave with it, and the
+// shipped documentation surfaces that users read as current fact.
 //
 // SELF-EXCLUSION: the removed-verb tripwire in tests/cli/verb-residue.test.ts
 // walks tests/**/*.ts, so this file contains zero literal occurrences of the

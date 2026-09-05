@@ -120,7 +120,7 @@ describe('SessionStart — context card', () => {
 describe('UserPromptSubmit — one-line routing suggestion', () => {
   test("'add a login feature' → suggestion line naming run + the feature cycle", () => {
     const out = runHookEvent('UserPromptSubmit', {prompt: 'add a login feature'}, cwd);
-    expect(out).toBe('cladding: this looks like run work — feature cycle: spec entry → implement → tests → clad done');
+    expect(out).toBe('cladding: this looks like feature work — feature cycle: spec entry → implement → tests → clad done');
   });
 
   test("'explain how auth works' → empty (no suggestion, no noise)", () => {

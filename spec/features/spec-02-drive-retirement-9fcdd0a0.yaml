@@ -23,9 +23,10 @@ capability_refs: []
 acceptance_criteria:
   - id: AC-8752a68c
     kind: behavior
-    statement: When the retirement guard scans the source tree, the cladding source
-      tree shall contain no drive module and no import of the retired agent
-      invocation adapters.
+    statement: When the retirement guard scans the source tree and the shipped
+      documentation surfaces, the cladding repository shall contain no drive
+      module and no import or current-tense reference to the retired loop
+      surfaces.
     notes: "Retired modules: src/drive/** (loop, agent, assurance, halt),
       src/adapters/index.ts, src/adapters/sdk/anthropic.ts,
       src/adapters/host/claude-code.ts, src/adapters/host/generic-mcp.ts,

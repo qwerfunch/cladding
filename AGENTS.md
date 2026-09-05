@@ -58,7 +58,7 @@ Non-Claude-Code hosts (Cursor, Cline, Continue, …) should map `capabilities:` 
 
 cladding does **not** require an API key by default. The default agent dispatch mode is `host` — cladding runs inside the user's existing AI tool (Claude Code with the Max/Pro subscription, Cursor, Cline, Continue, generic-MCP, …) and the host environment handles the LLM call.
 
-SDK adapters (Anthropic / OpenAI / Gemini) read their respective environment variable (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`) only when explicitly selected via `agent.mode = sdk` in `.cladding/config.yaml` or the `CLADDING_AGENT_MODE` env var. Full roadmap: `docs/multi-provider-roadmap.md`.
+The only place cladding itself reads a provider key is the onboarding scan fallback: `src/cli/scan/dispatcher.ts` lazily requires `@anthropic-ai/sdk` with `ANTHROPIC_API_KEY` when no host sampling server is registered. Every other execution path is owned by the host AI. Full roadmap: `docs/multi-provider-roadmap.md`.
 
 ## 8. Soft Shell rule
 

@@ -67,7 +67,7 @@ After authoring, run `clad sync` to validate; the error message names the offend
 
 ## Authentication
 
-This extension uses your **Gemini CLI Google account login** (60 req/min · 1000/day free tier). Cladding's host adapter path requires no API key — F-049 AC-091 invariant. The SDK adapter body is not shipped: the loop-only, mode-keyed SDK registry retired with the headless loop in 0.10.0, so there is no direct-SDK dispatch to fall back to. If you need one (raised quotas, CI/CD batch), open a feature request before relying on it.
+This extension uses your **Gemini CLI Google account login** (60 req/min · 1000/day free tier). Cladding's host adapter path requires no API key. The SDK adapter body is not shipped: the loop-only, mode-keyed SDK registry retired with the headless loop in 0.10.0, so there is no direct-SDK dispatch to fall back to. If you need one (raised quotas, CI/CD batch), open a feature request before relying on it.
 
 ## Headless / CI usage
 

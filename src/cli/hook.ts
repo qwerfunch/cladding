@@ -262,7 +262,11 @@ function classifyPromptSuggestion(input: unknown): {readonly kind: string; reado
   const intent = suggestIntent(prompt);
   const hint = intent ? INTENT_HINTS[intent] : undefined;
   if (!intent || !hint) return null;
-  const workLabel = intent === 'init' ? 'project setup' : `${intent} work`;
+  // The returned `kind` stays the frozen classification id (telemetry vocabulary);
+  // only this label is user-facing. `run` is the feature-execution class, and the
+  // CLI verb of the same name retired in 0.10.0 — so the label says "feature work".
+  const workLabel =
+    intent === 'init' ? 'project setup' : intent === 'run' ? 'feature work' : `${intent} work`;
   return {kind: intent, text: `cladding: this looks like ${workLabel} — ${hint}`};
 }
 
