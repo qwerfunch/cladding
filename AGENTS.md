@@ -64,7 +64,7 @@ SDK adapters (Anthropic / OpenAI / Gemini) read their respective environment var
 
 User-facing output uses business language: feature titles ("Login flow"), stage names ("Drift", "UAT"), plain sentences. Internal identifiers (`F-NNN`, `AC-NNN`, `stage_X.Y`, `HUMAN_REQUIRED` and the rest of the halt enum) belong in the audit log and behind `--internal` / `--json` flags.
 
-Convert every internal id at the user surface boundary via `src/ui/softShell.ts`: `featureLabel(featureId, spec)`, `haltMessage(haltReason, spec)`, `gateLabel(stageId)`. Background: `ironclad-design/03-ux-routing.md` §1.2 and `docs/ux-routing-coverage.md`.
+Convert every internal id at the user surface boundary via `src/ui/softShell.ts`: `featureLabel(featureId, spec)` and `gateLabel(stageId)`. Background: `ironclad-design/03-ux-routing.md` §1.2 and `docs/ux-routing-coverage.md`.
 
 ## 9. Where to look
 

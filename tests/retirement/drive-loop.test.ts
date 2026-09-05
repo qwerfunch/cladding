@@ -141,3 +141,55 @@ describe('drive-loop retirement · retained dependency', () => {
     expect(statSync(join(ROOT, 'src/cli/scan/dispatcher.ts')).isFile()).toBe(true);
   });
 });
+
+describe('drive-loop retirement · documentation surfaces', () => {
+  /** Doc trees whose prose is read as current fact by users and auditors. */
+  const DOC_TREES = ['docs', 'plugins', 'skills', 'src/agents'] as const;
+  /** History files: they record what the loop *was*, so they keep the old names. */
+  const HISTORY = [
+    'CHANGELOG.md',
+    'docs/dogfood/',
+    'docs/design/spec-0.2/change-log.md',
+    'docs/design/spec-0.2/decision-log.md',
+  ] as const;
+
+  /** Every current-fact markdown surface: root docs plus the four doc trees. */
+  function markdownSurfaces(): string[] {
+    const found: string[] = [];
+    for (const entry of readdirSync(ROOT, {withFileTypes: true})) {
+      if (entry.isFile() && entry.name.endsWith('.md')) found.push(entry.name);
+    }
+    for (const tree of DOC_TREES) {
+      const base = join(ROOT, tree);
+      if (!existsSync(base)) continue;
+      const stack = [base];
+      while (stack.length > 0) {
+        const current = stack.pop() as string;
+        for (const entry of readdirSync(current, {withFileTypes: true})) {
+          if (entry.name === 'node_modules' || entry.name === 'dist') continue;
+          const full = join(current, entry.name);
+          if (entry.isDirectory()) stack.push(full);
+          else if (entry.name.endsWith('.md')) found.push(full.slice(ROOT.length + 1));
+        }
+      }
+    }
+    return found.filter((rel) => !HISTORY.some((h) => (h.endsWith('/') ? rel.startsWith(h) : rel === h)));
+  }
+
+  test('[covers:F-9fcdd0a0/AC-8752a68c] no current-fact markdown surface still names a retired module, symbol, skill, or verb', () => {
+    const surfaces = markdownSurfaces();
+    // Vacuous-walk guard: a broken walker must not pass by finding nothing.
+    expect(surfaces.length).toBeGreaterThan(100);
+
+    const needles = ['haltMessage', 'runDriveLoop', 'pulseProgress', 'src/adapters/index.ts', 'src/drive/', 'skills/run/'];
+    // Word-bounded so prose like "re-run" or a longer word stays legal.
+    const retiredVerb = new RegExp(`(?<![\\w-])${RETIRED_INVOCATION}(?![\\w-])`);
+    const hits: string[] = [];
+    for (const rel of surfaces) {
+      const body = read(rel);
+      for (const needle of needles) if (body.includes(needle)) hits.push(`${rel} · ${needle}`);
+      if (retiredVerb.test(body)) hits.push(`${rel} · the retired verb`);
+    }
+    expect(hits, `documentation still names the retired loop:\n${hits.join('\n')}`).toEqual([]);
+  });
+});
