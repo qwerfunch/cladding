@@ -1,6 +1,6 @@
 id: F-a0bd9c5a
 title: Completion attestation seals the receipt-inclusive verification closure
-status: in_progress
+status: done
 purpose: "The run authority seals a feature's verification closure without
   receipt identities while the attestation writer and the sibling evaluator
   compute the same seal with them, so any schema 0.2 workspace holding one
