@@ -9,32 +9,34 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 **In one line:** Spec schema 0.2 — purpose-first features, composite criterion addresses, live `[covers:]` test bindings, a compiler-owned GraphIR, assurance profiles with attestation v3, and a reviewed migration path from 0.1.
 
+> Heads-up: a project still on the old spec format should run `clad migrate --to 0.2` to preview the rewrite, apply it once the decisions it lists have been reviewed, and then re-prove the tree with `clad check --tier=pre-push`. The headless `clad run` loop is gone — start the server with `clad serve` and let your AI host work the feature cycle. Moving the generated files into one folder is opt-in through `clad relocate-generated`; leave it alone and the existing layout keeps working. And the pre-push check rewrites the sealed record of what was verified every time it passes, so commit those files along with your change.
+
 ### Added
 
-- Schema 0.2 compiler, registries, parser and migration preview, typed transactional editing, proof and portable-evidence kernel, and assurance profiles (feedback, checkpoint, completion, push, release) with attestation v3.
-- GraphIR v2 query kernel with authored, document, source-reference, and current-gate test observation layers; the gate hands the graph a sealed testcase ledger instead of report bytes.
-- `test-count.mjs --write` also syncs the README feature counts.
-- `clad relocate-generated` previews moving the generated index, document-link, and attestation projections into `spec/generated/`, and with `--apply` performs the move as one recoverable transaction. Relocation is opt-in: the pre-relocation layout stays fully supported.
-- A schema 0.2 workspace projects `spec/generated/README.md` from the artifact registry, naming where each generated artifact lives and where relocation would move it.
-- The Spec 0.2 validation ledger declares which scenarios block the 0.10.0 release, and `npm run validate:spec-0.2:release` refuses with a nonzero exit while any of them lacks discriminating evidence. Reference-host evidence counts only when its recorded receipt is signed by an issuer registered in the trust snapshot recorded alongside it.
+- **Spec schema 0.2.** A feature states its purpose first, every acceptance criterion carries an address you can point at, and a test claims a criterion by naming it in the test title. Behind that: a compiler with typed registries and a typed reader, transactional spec editing, a preview of the migration from 0.1, a kernel that carries proof and portable evidence, and five verification profiles — feedback, checkpoint, completion, push, release — recorded in a third-generation attestation file.
+- **One compiled model answers every graph question,** with layers for what the spec declares, what the documents link, what the source references, and which tests the current gate actually observed. The gate now hands the graph a sealed record of test cases instead of raw report bytes.
+- **The count sync covers feature counts too.** `node scripts/test-count.mjs --write` refreshes the README feature totals alongside the test totals.
+- **`clad relocate-generated` moves the generated files under `spec/generated/`.** It previews the move by default; `--apply` performs it as one recoverable transaction. This is opt-in — the layout you have today stays fully supported.
+- **A schema 0.2 workspace explains its own generated files.** `spec/generated/README.md` is projected from the registry of generated artifacts and names where each one lives now and where relocation would put it.
+- **A release gate for the 0.2 validation work.** The validation ledger declares which scenarios block the 0.10.0 release, and `npm run validate:spec-0.2:release` exits nonzero while any of them lacks discriminating evidence. Evidence produced on a reference host counts only when its recorded receipt is signed by an issuer registered in the trust snapshot stored beside it.
 
 ### Changed
 
-- Scope and closure completeness derive from structural relations only; unresolved evidence or oracle references stay visible negative facts for their own criterion instead of making every profile unresolved.
-- Authoritative 0.2 profiles (completion, push, release) block on warn-class drift findings; `--strict` remains an explicit escalation.
-- An archived feature whose successor is not yet done reports surviving modules as informational until the successor completes.
-- In a schema 0.2 workspace, `clad done` reports the independence label the assurance kernel attested for that completion, and `independence_policy: require` judges that label — so a sign-off by the person who implemented the feature no longer counts as independent review, and a completion whose authors cannot be identified is refused rather than passed. Schema 0.1 keeps its evidence-ledger label unchanged.
+- **Completeness is judged from structure alone.** Scope and closure derive from structural relations; an unresolved piece of evidence or an oracle reference that does not resolve stays a visible negative fact about its own criterion instead of making every verification profile unresolved.
+- **The authoritative profiles block on warnings.** Completion, push and release refuse on warn-level drift findings; `--strict` remains an explicit escalation on top.
+- **An archived feature whose successor is not done yet** reports its surviving modules as information rather than a problem, until that successor completes.
+- **`clad done` reports how independently the work was verified.** In a schema 0.2 workspace it states the independence label recorded for that completion, and a project that requires independence judges that label: a sign-off by the person who implemented the feature no longer counts as independent review, and a completion whose authors cannot be identified is refused rather than passed. The old spec format keeps its previous label unchanged.
 
 ### Removed
 
-- The experimental headless loop and its `run` command. Nothing ever ran it — three and a half months of recorded sessions contain zero runs — and it never learned to write code, so it could only report honest failure. Start the server with `clad serve` and let your AI host work the feature cycle instead; that is the path everything else already used.
-- The agent adapters, the crash-postmortem recorder, and the progress-line renderer that existed only to serve that loop. The host transport the onboarding scan uses is untouched, and so is the Anthropic SDK dependency behind its API-key fallback.
-- The `run` skill, and its copies in the Claude Code, Codex, and Antigravity plugin folders.
+- **The experimental headless loop and its `run` command.** Nothing ever ran it — three and a half months of recorded sessions contain zero runs — and it never learned to write code, so it could only report honest failure. Start the server with `clad serve` and let your AI host work the feature cycle instead; that is the path everything else already used.
+- **The parts that existed only to serve that loop:** the agent adapters, the crash-postmortem recorder, and the progress-line renderer. The host transport the onboarding scan uses is untouched, and so is the Anthropic SDK dependency behind its API-key fallback.
+- **The `run` skill,** and its copies in the Claude Code, Codex, and Antigravity plugin folders.
 
 ### Fixed
 
-- `src/graph` no longer imports stage code (architecture rule AR-cabee171).
-- Migration carry-forward test bindings invalidated by title edits are promoted to live tokens instead of failing silently.
+- **Graph code no longer reaches into gate code,** restoring the architecture rule that keeps the two apart.
+- **A renamed test keeps its binding.** Bindings carried forward by the migration and then invalidated by a title edit are promoted to live tokens instead of failing silently.
 
 ## [0.9.4] — The gate judges the sources on disk (2026-08-26)
 

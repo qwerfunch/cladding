@@ -114,6 +114,18 @@ describe('version-bump.mjs (F-090, v0.3.15)', () => {
     expect(readFileSync(join(dir, '.claude-plugin', 'marketplace.json'), 'utf8')).toContain('"version": "0.3.15"');
   });
 
+  test('an unquoted spec.yaml version bumps and keeps its plain scalar style', () => {
+    seedProject(dir, '0.3.14');
+    // The schema 0.2 writer emits plain scalars; the 0.1 layout quoted them.
+    writeFileSync(
+      join(dir, 'spec.yaml'),
+      'schema: "0.2"\nproject:\n  name: probe\n  version: 0.3.14\n',
+    );
+    const result = runScript(dir, ['0.3.15']);
+    expect(result.status, result.stderr).toBe(0);
+    expect(readFileSync(join(dir, 'spec.yaml'), 'utf8')).toContain('  version: 0.3.15\n');
+  });
+
   test('[covers:F-6d943d/AC-003] idempotent — running with same version is a no-op', () => {
     seedProject(dir, '0.3.15');
     const result = runScript(dir, ['0.3.15']);

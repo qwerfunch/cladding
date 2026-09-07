@@ -28,7 +28,9 @@ const SEMVER_RE = /^\d+\.\d+\.\d+$/;
 /**
  * Each entry describes one place where the version string lives.
  * `find` is a context-anchored substring that contains the version;
- * `formatNew(v)` builds the replacement using the new version.
+ * `formatNew(v, match)` builds the replacement using the new version,
+ * and may consult the matched text when the file's own formatting
+ * (quoted or plain) has to be preserved.
  *
  * The `find` strings are deliberately long enough to be unique in
  * each file — single-line `'version'` would match the wrong field
@@ -96,11 +98,15 @@ const SITES = [
     /expect\(program\.version\(\)\)\.toBe\('(\d+\.\d+\.\d+)'\)/,
     (v) => `expect(program.version()).toBe('${v}')`,
   ),
-  // 10. spec.yaml — project.version (Tier A SSoT must track the binary)
+  // 10. spec.yaml — project.version (Tier A SSoT must track the binary).
+  //     The schema 0.2 writer emits plain scalars, while 0.1 files quoted
+  //     them, so the anchor accepts both and the replacement keeps whichever
+  //     style the file already uses.
   siteFor(
     'spec.yaml',
-    /  version: "(\d+\.\d+\.\d+)"/,
-    (v) => `  version: "${v}"`,
+    /  version: "?(\d+\.\d+\.\d+)"?/,
+    (v, match) =>
+      match?.[0].includes('"') ? `  version: "${v}"` : `  version: ${v}`,
   ),
   // 11. .claude-plugin/marketplace.json — the marketplace CATALOG entry the
   //    Claude Code host reads to detect "update available". Nested under
@@ -157,7 +163,7 @@ function main() {
       changes.push(`${site.file}: ${oldVersion} (already)`);
       continue;
     }
-    const replacement = site.formatNew(newVersion);
+    const replacement = site.formatNew(newVersion, match);
     const next = body.replace(site.anchor, replacement);
     if (next === body) {
       errors.push(`${site.file}: replacement matched anchor but produced no diff — bug in formatNew`);
