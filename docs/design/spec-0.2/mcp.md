@@ -65,7 +65,7 @@ The executable ledger owns the exact IDs; these groups define their intent:
 | MCP08 | graph/context/catalog byte budgets and omission metadata | blocking for hard ceilings; efficiency claim non-blocking |
 | MCP09 | F5 receipt ingestion/offline verification and asserted fallback; F9 registered human/blind production paths | blocking at each owning feature boundary |
 | MCP10 | tools-only host with resources/prompts/subscriptions absent | blocking |
-| MCP11 | Codex and Claude Code full Spec 0.2 L4 cycles | blocking before 0.10.0 release, not before F1 starts |
+| MCP11 | Codex and Claude Code full Spec 0.2 L4 cycles | blocking before 0.10.0 release; recorded for both hosts, decided by that evidence rather than by a test reference |
 | MCP12 | delivery-versus-pull adoption telemetry | measurement; adoption result non-blocking |
 
 An unimplemented operation is `implementation_pending`; an available but unexecuted host scenario is `not_run`; missing discriminating evidence is `inconclusive`. None is serialized as pass.

@@ -36,12 +36,20 @@ acceptance_criteria:
       the flag.
   - id: AC-36842395
     kind: behavior
-    statement: When an MCP scenario row is validation-active, the validator shall
-      require an executable test reference that resolves to an existing test
-      title.
-    notes: The same path#title rule the journey ledger already applies. The three
-      previously promoted rows keep their slice literals; newly promoted rows
-      carry a test reference and no slice.
+    statement: When an MCP scenario row is validation-active without recorded
+      reference-host evidence, the validator shall require an executable test
+      reference that resolves to an existing test title.
+    notes: >-
+      ## Why
+
+
+      A validation-active row without a witness is the vacuous state this
+      criterion forbids. Test-backed rows (MCP01-MCP10) witness through a test
+      reference that must resolve to an existing title. Restated 2026-09-07: the
+      reference-host row (MCP11) witnesses through recorded receipt evidence
+      that the validator verifies offline against the recorded trust snapshot,
+      so it is exempt from the test-reference requirement and its label is held
+      to that evidence in both directions instead.
   - id: AC-2c7b4afa
     kind: behavior
     statement: When the ledger records reference-host evidence for both hosts, the

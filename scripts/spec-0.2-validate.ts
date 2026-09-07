@@ -400,7 +400,7 @@ function checkPreregisteredCases(cwd: string, manifest: ValidationManifest): Val
     id: 'preregistered-case-ledger',
     status: valid ? 'pass' : 'fail',
     evidence: valid
-      ? 'Validation-active fixture IDs: P01-P10, L01-L04, B01-B06, C01-C06, T01-T04, U01-U04, A01-A03. The 37 declared ledger rows are not complete runtime evidence: runtime pass count is not asserted here; F7 scenario contract fixtures and the F9d registered file-key issuer path are validation-active, while F8 graph cutover and host cycles remain pending and the F9 scheduler/cache runtime is deferred to 0.10.x.'
+      ? 'Validation-active fixture IDs: P01-P10, L01-L04, B01-B06, C01-C06, T01-T04, U01-U04, A01-A03. The 37 declared ledger rows are not complete runtime evidence: runtime pass count is not asserted here; F7 scenario contract fixtures, the F8 public GraphIR cutover, and the F9d registered file-key issuer path are validation-active, the two reference-host cycles are decided by recorded receipt evidence (MCP11/J13), and the F9 scheduler/cache runtime is deferred to 0.10.x.'
       : `count=${ids.length}; duplicates=${ids.length - new Set(ids).size}; active=${active.join(',')}; undocumented_groups=${undocumentedGroups.join(',') || 'none'}; unmapped=${unmapped.map((entry) => entry.id).join(',') || 'none'}; missing_test_refs=${missingTestRefs.join(',') || 'none'}; duplicate_test_refs=${duplicateTestRefs}`,
   };
 }
@@ -476,7 +476,7 @@ function checkCompilerRegistry(root: string, manifest: ValidationManifest): Vali
       id: 'compiler-registry-boundary',
       status: valid ? 'pass' : 'fail',
       evidence: valid
-        ? `D05-D14 compiler/proof/attestation inputs, the D09 scenario policy and closure slice, the D17 GraphIR v2 cutover, D20 portable receipt mechanics, and the D21-D23 assurance kernel/profile/verdict slice cover ${snapshot.records.semanticOwners.length} semantic owners, ${snapshot.derived.proofOccurrences} live authored proof records, and ${migrationProofs.length} source-located migration bindings. F8 public GraphIR cutover and the F9d registered file-key issuer path are validation-active; host cycles remain pending or not run and the F9 scheduler/cache runtime is deferred to 0.10.x.`
+        ? `D05-D14 compiler/proof/attestation inputs, the D09 scenario policy and closure slice, the D17 GraphIR v2 cutover, D20 portable receipt mechanics, and the D21-D23 assurance kernel/profile/verdict slice cover ${snapshot.records.semanticOwners.length} semantic owners, ${snapshot.derived.proofOccurrences} live authored proof records, and ${migrationProofs.length} source-located migration bindings. F8 public GraphIR cutover and the F9d registered file-key issuer path are validation-active; the two reference-host cycles are decided by recorded receipt evidence (MCP11/J13) and the F9 scheduler/cache runtime is deferred to 0.10.x.`
         : 'D05-D14 compiler/proof/attestation inputs, the D09 scenario policy, the D17 closure slice, D20 portable receipt mechanics, D21-D23 profiles, region ownership, or authored-only provenance failed.',
     };
   } catch (error) {
@@ -766,18 +766,30 @@ export function checkJourneyLedger(
 /**
  * Holds the MCP scenario ledger to the release boundary and to resolving references.
  *
+ * The reference-host row is the one exception to the test reference rule,
+ * mirroring the journey ledger's `evidence_from` exemption: its discriminating
+ * artifact is the recorded evidence `evaluateReferenceHostEvidence` verifies,
+ * and the `disagreeing` rule below holds its label to exactly that evidence in
+ * both directions. No other row is bought out of its test reference by an
+ * evidence array, because nothing reads that array.
+ *
  * @param root - Repository root.
  * @param manifest - Validation ledger.
+ * @param referenceHosts - Shared reference-host evidence state.
  * @returns The MCP scenario ledger check.
  */
-export function checkMcpScenarioLedger(root: string, manifest: ValidationManifest): ValidationCheck {
+export function checkMcpScenarioLedger(
+  root: string,
+  manifest: ValidationManifest,
+  referenceHosts: ReferenceHostEvidenceResult,
+): ValidationCheck {
   const scenarioIds = manifest.mcp_scenarios.map((scenario) => scenario.id.split('-', 1)[0]);
   const expectedScenarios = Array.from({length: 12}, (_, index) => `MCP${String(index + 1).padStart(2, '0')}`);
   const taskIds = manifest.host_ab_tasks.map((task) => task.id);
   const expectedTasks = Array.from({length: 12}, (_, index) => `AB${String(index + 1).padStart(2, '0')}`);
   const taskProfiles = new Set(Object.keys(TASK_PROFILE_TOOLS));
   const invalidProfiles = manifest.host_ab_tasks.filter((task) => !taskProfiles.has(task.profile));
-  const referenceHosts = stableJson(manifest.mcp_reference_hosts) === stableJson(['codex', 'claude-code']);
+  const declaredReferenceHosts = stableJson(manifest.mcp_reference_hosts) === stableJson(['codex', 'claude-code']);
   const referenceEvidenceCount = (manifest.mcp_scenarios.find((scenario) => scenario.id.startsWith('MCP11-'))?.evidence ?? []).length;
   const codexOnlyAb = manifest.host_ab.host === 'codex'
     && manifest.host_ab.max_calls === 24
@@ -795,21 +807,35 @@ export function checkMcpScenarioLedger(root: string, manifest: ValidationManifes
   const activeIds = manifest.mcp_scenarios
     .filter((scenario) => scenario.implementation === 'validation-active')
     .map((scenario) => scenario.id).sort();
-  const expectedActiveIds = [...(manifest.release_boundary?.blocking ?? [])]
-    .filter((entry) => !entry.startsWith('MCP11-')).sort();
-  // Promotion without a resolving test reference is the vacuous state this row forbids.
-  const unresolvedActive = manifest.mcp_scenarios
-    .filter((scenario) => scenario.implementation === 'validation-active' && !testReferenceResolves(root, scenario.test_ref))
+  const expectedActiveIds = [...(manifest.release_boundary?.blocking ?? [])].sort();
+  // Promotion without a resolving test reference is the vacuous state this row
+  // forbids — except for the reference-host row, whose recorded evidence is
+  // verified elsewhere and decides it instead. The exemption is scoped to that
+  // row alone: an evidence array anywhere else has no verifier behind it.
+  const evidenceDecided = (scenario: McpScenarioRequirement): boolean =>
+    scenario.id.startsWith('MCP11-') && (scenario.evidence ?? []).length > 0;
+  const testBackedActive = manifest.mcp_scenarios
+    .filter((scenario) => scenario.implementation === 'validation-active' && !evidenceDecided(scenario));
+  const unresolvedActive = testBackedActive
+    .filter((scenario) => !testReferenceResolves(root, scenario.test_ref))
     .map((scenario) => scenario.id);
+  // The reference-host row may not narrate a label the recorded evidence does
+  // not support, in either direction.
+  const referenceRow = manifest.mcp_scenarios.find((scenario) => scenario.id.startsWith('MCP11-'));
+  const disagreeing = referenceRow !== undefined
+    && (referenceRow.implementation === 'validation-active') !== referenceHosts.satisfied
+    ? [referenceRow.id]
+    : [];
   const valid = stableJson(scenarioIds) === stableJson(expectedScenarios)
     && unique(manifest.mcp_scenarios.map((scenario) => scenario.id))
     && stableJson(taskIds) === stableJson(expectedTasks)
     && unique(taskIds)
     && invalidProfiles.length === 0
-    && referenceHosts
+    && declaredReferenceHosts
     && codexOnlyAb
     && stableJson(activeIds) === stableJson(expectedActiveIds)
     && unresolvedActive.length === 0
+    && disagreeing.length === 0
     && manifest.mcp_scenarios.find((scenario) => scenario.id.startsWith('MCP04-'))?.slice === 'f5-receipt-operation'
     && manifest.mcp_scenarios.find((scenario) => scenario.id.startsWith('MCP08-'))?.slice === 'graph-v2-focused-projection-and-statistics'
     && manifest.mcp_scenarios.find((scenario) => scenario.id.startsWith('MCP09-'))?.slice === 'f5-receipt-ingestion-and-asserted-fallback'
@@ -818,8 +844,8 @@ export function checkMcpScenarioLedger(root: string, manifest: ValidationManifes
     id: 'mcp-scenario-ledger',
     status: valid ? 'pass' : 'fail',
     evidence: valid
-      ? `${activeIds.length} MCP scenario(s) are validation-active with resolving test references (${activeIds.join(', ')}), matching the declared release boundary; MCP04 receipt-operation parity, MCP09 receipt ingestion/asserted fallback, and the MCP08 F8 graph-v2 focused-projection slice keep their slice literals; the reference-host row carries ${referenceEvidenceCount} recorded evidence record(s), the F9 scheduler/cache runtime is deferred to 0.10.x, and the non-blocking Codex A/B caps at 24 calls.`
-      : `mcp=${scenarioIds.join(',')}; mcp04_artifacts=${mcp04Evidence}; active=${activeIds.join(',')}; expected_active=${expectedActiveIds.join(',')}; unresolved_test_ref=${unresolvedActive.join(',') || 'none'}; ab=${taskIds.join(',')}; hosts=${manifest.mcp_reference_hosts.join(',')}; ab_policy=${JSON.stringify(manifest.host_ab)}; invalid_profiles=${invalidProfiles.map((task) => task.id).join(',') || 'none'}`,
+      ? `${testBackedActive.length} MCP scenario(s) are validation-active with resolving test references (${testBackedActive.map((scenario) => scenario.id).join(', ') || 'none'}) and MCP11 decided by recorded scenario evidence, matching the declared release boundary; MCP04 receipt-operation parity, MCP09 receipt ingestion/asserted fallback, and the MCP08 F8 graph-v2 focused-projection slice keep their slice literals; the reference-host row carries ${referenceEvidenceCount} recorded evidence record(s), the F9 scheduler/cache runtime is deferred to 0.10.x, and the non-blocking Codex A/B caps at 24 calls.`
+      : `mcp=${scenarioIds.join(',')}; mcp04_artifacts=${mcp04Evidence}; active=${activeIds.join(',')}; expected_active=${expectedActiveIds.join(',')}; unresolved_test_ref=${unresolvedActive.join(',') || 'none'}; evidence_status_disagreement=${disagreeing.join(',') || 'none'}; ab=${taskIds.join(',')}; hosts=${manifest.mcp_reference_hosts.join(',')}; ab_policy=${JSON.stringify(manifest.host_ab)}; invalid_profiles=${invalidProfiles.map((task) => task.id).join(',') || 'none'}`,
   };
 }
 
@@ -1144,7 +1170,7 @@ export async function validateSpec02(
     checkDocumentationRatchets(root),
     checkPreregisteredCases(root, manifest),
     checkJourneyLedger(root, manifest, referenceHosts),
-    checkMcpScenarioLedger(root, manifest),
+    checkMcpScenarioLedger(root, manifest, referenceHosts),
     checkReleaseBoundary(root, manifest, referenceHosts, options),
     checkCompilerRegistry(root, manifest),
     simulateWhyAndIdentity(),

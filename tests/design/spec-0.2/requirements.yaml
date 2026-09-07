@@ -78,7 +78,7 @@ integration_journeys:
   - {id: J10, decisions: [D17, D19], status: simulated, scenario: bounded-graph-projection}
   - {id: J11, decisions: [D19, D20], status: validation-active, scenario: topology-invariant-context, test_ref: "tests/optimizer/topology-suite.test.ts#J11 topology-invariant context is validation-active with a resolvable test reference"}
   - {id: J12, decisions: [D21, D22, D23], status: simulated, scenario: cadence-verdict-equivalence}
-  - {id: J13, decisions: [D15, D16, D24], status: not_run, scenario: reference-host-spec-02-cycle, evidence_from: MCP11-reference-host-spec-02-cycle}
+  - {id: J13, decisions: [D15, D16, D24], status: validation-active, scenario: reference-host-spec-02-cycle, evidence_from: MCP11-reference-host-spec-02-cycle}
 
 mcp_scenarios:
   # A validation-active row must carry a test_ref in the same "path#title" form the
@@ -97,10 +97,22 @@ mcp_scenarios:
   - {id: MCP08-graph-context-and-catalog-budgets, implementation: validation-active, slice: graph-v2-focused-projection-and-statistics, test_ref: "tests/serve/server.test.ts#a focused call is a measured, bounded depth-1 projection within the 16 KiB observe ceiling"}
   - {id: MCP09-receipt-and-blindness-boundary, implementation: validation-active, slice: f5-receipt-ingestion-and-asserted-fallback, test_ref: "tests/serve/proof-evidence.test.ts#verifies ingested receipts against the workspace trust registry snapshot"}
   - {id: MCP10-tools-only-host-degradation, implementation: validation-active, test_ref: "tests/serve/release-boundary-wire.test.ts#MCP10 completes a create, begin, and read cycle for a tools-only host with no notification handler"}
-  # MCP11 stays pending until real host cycles are run. Each evidence entry is
-  # {host, receipt_ref, trust_ref, attestation_ref, recorded_at}; every reference is a
-  # committed copy under docs/dogfood/ that carries its host as a path segment.
-  - {id: MCP11-reference-host-spec-02-cycle, implementation: pending, evidence: []}
+  # MCP11 is decided by recorded host evidence, not by a local test reference. It carries
+  # the same `validation-active` label as every other blocking row; the evidence, not a
+  # test reference, is what may move it (see checkMcpScenarioLedger: the reference-host
+  # row alone is exempt from the test reference rule and its label is held to that
+  # evidence in both directions; an evidence array on any other row changes nothing).
+  # Each evidence entry is {host, receipt_ref, trust_ref, attestation_ref, recorded_at};
+  # every reference is a committed copy under docs/dogfood/ that carries its host as a
+  # path segment. `receipt_ref` names the audit receipt; the matching UAT receipt of the
+  # same cycle sits beside it in the same evidence/ directory:
+  #   claude-code UAT: docs/dogfood/mcp11-0.10.0/claude-code/evidence/656c3cd3c35690b9d0e66c15e5ad5b738a25fb2e45a1543fb7d075580dec5238.yaml
+  #   codex UAT:       docs/dogfood/mcp11-0.10.0/codex/evidence/507c59639825394dee9ca51f5ae911e8ee84ac227538181bee7fe5ef7baf47c7.yaml
+  - id: MCP11-reference-host-spec-02-cycle
+    implementation: validation-active
+    evidence:
+      - {host: claude-code, receipt_ref: docs/dogfood/mcp11-0.10.0/claude-code/evidence/b0f8de83282b7c0972baeb21603d6183891d280a5aaadcdf6ae38daf5eb689a2.yaml, trust_ref: docs/dogfood/mcp11-0.10.0/claude-code/issuers.yaml, attestation_ref: docs/dogfood/mcp11-0.10.0/claude-code/attestation.yaml, recorded_at: "2026-09-07T13:06:55Z"}
+      - {host: codex, receipt_ref: docs/dogfood/mcp11-0.10.0/codex/evidence/026211187c93449bd6a7e16de6de2982f5378f09efe843aaaa9bcdb061ba11e2.yaml, trust_ref: docs/dogfood/mcp11-0.10.0/codex/issuers.yaml, attestation_ref: docs/dogfood/mcp11-0.10.0/codex/attestation.yaml, recorded_at: "2026-09-07T13:14:48Z"}
   - {id: MCP12-adoption-versus-delivery-telemetry, implementation: pending}
 
 # The 0.10.0 release boundary. Only these rows block the release; adoption, token

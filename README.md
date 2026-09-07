@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-3777%2F3777-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-3780%2F3780-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -319,7 +319,7 @@ Implement email sign-in, including tests.
 
 There is nothing new to memorize. For host-specific invocation, stricter Git/CI enforcement, and verified host status, see [setup details](docs/setup.md).
 
-<!-- clad:host-claims {"claude":"verified","gemini":"not-run","codex":"verified","antigravity":"verified","cursor":"not-run"} -->
+<!-- clad:host-claims {"claude":"verified","gemini":"not-run","codex":"verified","antigravity":"not-run","cursor":"verified"} -->
 
 <!-- ─────────────── Update ─────────────── -->
 
@@ -360,7 +360,7 @@ Reconcile the drift the update flagged.
 
 | Version | Conformance | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.10.0 (2026-09) | L4 · [self-declared](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 3777 / 3777 | 15 stages · 41 detectors | 301 (286 done) |
+| v0.10.0 (2026-09) | L4 · [self-declared](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 3780 / 3780 | 15 stages · 41 detectors | 301 (286 done) |
 
 <sub>326 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</sub>
 

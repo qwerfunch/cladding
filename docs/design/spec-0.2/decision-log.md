@@ -21,6 +21,7 @@ The graph claim ladder in D17 is cumulative but not substitutable: structural va
 - The current MCP server's declared catalog, in-memory negotiation, and bootstrap list-change path are executable wire facts; D24 makes MCP an optional adapter over shared kernels, not a second authority.
 - GraphIR v2 is structurally valid on the self corpus (rung 1 of the D17 claim ladder); it says nothing about retrieval efficiency or adoption.
 - The 0.10.0 release boundary is a declared, enforced list rather than prose: the executable ledger names the scenarios that block the release, and a release run of the validator fails on any unmet row. Adoption, token advantage, and the host A/B sit outside that list by construction.
+- Both MCP11 reference-host cycles ran and are recorded (2026-09-07): two hosts each drove a complete Spec 0.2 cycle through the MCP tools to a completion at L4, and each receipt verifies offline against its own committed trust registry. The decision taken with them, and the limit of what they claim: the maintainer delegated the signing confirmation to an automated pseudo-terminal driving the `clad signoff` CLI, so **neither host's own signoff elicitation form was exercised** and no claim about that form follows from this evidence. The same day's live host matrix refresh is recorded with it: Claude Code, Codex and Cursor verified, Gemini fail, and Antigravity fail on all three surfaces (every check timed out) where the previous matrix had it verified — the README host claim was lowered for Antigravity and raised for Cursor rather than the matrix explained away.
 
 ### Claims prohibited until new evidence exists
 
@@ -41,7 +42,7 @@ The graph claim ladder in D17 is cumulative but not substitutable: structural va
 - **“A fired hook or background result proves adoption”** — pushed delivery proves that Cladding spoke, not that an agent used the result. Preserve the existing pull/completed-cycle adoption protocol and report background reuse separately.
 - **“The new cadence improves correctness”** — cadence may reduce time-to-finding without changing the authoritative obligation set. Correctness or defect-prevention claims require a preregistered fault corpus or live controlled comparison.
 - **“MCP availability proves efficacy, efficiency, or adoption”** — wire conformance is only the first rung. Require a reference-host Spec 0.2 cycle for efficacy, an equivalent-task A/B for efficiency when used, and voluntary pull telemetry for adoption.
-- **“A fixture signature, legacy L3/L4 history, or host smoke is live human L4 evidence”** — fixtures prove protocol/mechanism only. Require real human-signed receipts in both blocking MCP11 cycles.
+- **“A fixture signature, legacy L3/L4 history, or host smoke is live human L4 evidence”** — fixtures prove protocol/mechanism only. The 0.10.0 MCP11 cycles are real host cycles against a real issuer, but their confirmation step was answered by automation on the maintainer's instruction, so they are not evidence that a person answered a prompt, and not evidence about either host's elicitation form.
 
 ## Rejected decisions
 

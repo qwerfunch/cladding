@@ -163,28 +163,40 @@ describe('Spec 0.2 release boundary', () => {
     for (const id of manifest.release_boundary.blocking) expect(boundary!.evidence).toContain(id);
     expect(manifest.release_boundary.blocking).not.toContain('MCP12-adoption-versus-delivery-telemetry');
     expect(manifest.release_boundary.blocking.some((id) => id.startsWith('AB'))).toBe(false);
-    // The reference-host cycles are the one unmet row today, and the reporting
-    // run says so without failing.
-    expect(boundary!.status).toBe('not_run');
-    expect(boundary!.evidence).toContain('1 unmet');
-    expect(boundary!.evidence).toContain('MCP11-reference-host-spec-02-cycle (codex: no recorded evidence');
+    // Both reference-host cycles are now recorded, so every blocking row of the
+    // declared boundary reports satisfied. The unmet direction of the same check
+    // is held by the fixture ledgers below, which is where it can stay reachable
+    // once the repository itself carries the evidence.
+    expect(boundary!.status).toBe('pass');
+    expect(boundary!.evidence).toContain('every one is satisfied');
+    expect(boundary!.evidence).toContain('MCP11-reference-host-spec-02-cycle');
+    expect(boundary!.evidence).not.toContain('unmet');
     expect(report.checks.some((check) => check.status === 'fail')).toBe(false);
   });
 
   test('[covers:F-c2d7dc78/AC-dcb6081b] fails with a nonzero exit code naming the unmet scenario when the release flag is set', async () => {
+    // The repository now carries both reference-host cycles, so the unmet state
+    // this criterion is about is reached through a fixture ledger instead. The
+    // exit code is derived from any failing check, so a release-flag failure here
+    // is exactly what a nonzero release run reports.
+    const root = temporaryRoot('clad-release-flag-');
+    const unmet = fixtureManifest(root, [], {journeyStatus: 'not_run'});
+    const evidence = evaluateReferenceHostEvidence(root, unmet);
+    const refused = checkReleaseBoundary(root, unmet, evidence, {release: true});
+    expect(refused.status).toBe('fail');
+    expect(refused.evidence).toContain('Release run refused');
+    expect(refused.evidence).toContain('MCP11-reference-host-spec-02-cycle');
+    // Without the flag the identical unmet state is reported, never failed.
+    expect(checkReleaseBoundary(root, unmet, evidence).status).toBe('not_run');
+
+    // Against the real repository the release flag is satisfied, and the CLI maps
+    // "no failing check" to exit 0 the same way it would map a failure to 1.
     const released = await runValidatorCli(['--release'], process.cwd());
-    expect(released.exitCode).toBe(1);
-    const boundary = released.report.checks.find((check) => check.id === 'release-boundary');
-    expect(boundary?.status).toBe('fail');
-    expect(released.output).toContain('MCP11-reference-host-spec-02-cycle');
-    expect(released.output).toContain('Release run refused');
-    // The boundary is the ONLY thing the release flag fails on, so the same
-    // repository state without the flag keeps exit 0 (asserted in AC-d7dddf0c).
-    expect(released.report.checks.filter((check) => check.status === 'fail').map((check) => check.id))
-      .toEqual(['release-boundary']);
+    expect(released.report.checks.filter((check) => check.status === 'fail')).toEqual([]);
+    expect(released.exitCode).toBe(0);
   });
 
-  test('[covers:F-c2d7dc78/AC-36842395] requires a resolving test reference from every validation-active MCP scenario row', () => {
+  test('[covers:F-c2d7dc78/AC-36842395] requires a resolving test reference from every test-backed validation-active MCP scenario row', () => {
     const root = temporaryRoot('clad-release-ledger-');
     const manifest = fixtureManifest(root, []);
     const missing = {
@@ -212,14 +224,82 @@ describe('Spec 0.2 release boundary', () => {
       mcp_scenarios: repositoryLedger.mcp_scenarios.map((scenario) =>
         scenario.id.startsWith('MCP01-') ? {...scenario, test_ref: undefined} : scenario),
     };
-    const ledgerCheck = checkMcpScenarioLedger(process.cwd(), unreferenced);
+    const ledgerCheck = checkMcpScenarioLedger(process.cwd(), unreferenced, evaluateReferenceHostEvidence(process.cwd(), unreferenced));
     expect(ledgerCheck.status).toBe('fail');
     expect(ledgerCheck.evidence).toContain('unresolved_test_ref=MCP01-handshake-and-capabilities');
-    expect(checkMcpScenarioLedger(process.cwd(), repositoryLedger).status).toBe('pass');
+    const repositoryCheck = checkMcpScenarioLedger(process.cwd(), repositoryLedger, evaluateReferenceHostEvidence(process.cwd(), repositoryLedger));
+    expect(repositoryCheck.status).toBe('pass');
+    // The reference-host row is the one exemption: its recorded evidence, not a
+    // local test reference, is what carries it.
+    expect(repositoryCheck.evidence).toContain('MCP11 decided by recorded scenario evidence');
+    expect(repositoryCheck.evidence).not.toContain('MCP11-reference-host-spec-02-cycle,');
 
     // The resolving reference is what makes the same row satisfied.
     expect(checkReleaseBoundary(root, manifest, evaluateReferenceHostEvidence(root, manifest)).evidence)
       .toContain('Satisfied: MCP01-handshake-and-capabilities');
+  });
+
+  test('[covers:F-c2d7dc78/AC-36842395] refuses a non-reference-host row that carries evidence instead of a resolving test reference', () => {
+    // Only the reference-host row is decided by recorded evidence, and only that row
+    // is read by `evaluateReferenceHostEvidence`. An evidence array on any other row
+    // has no verifier behind it, so it may not buy that row out of its test reference.
+    // MCP11 keeps its real evidence here, so the reference-host state stays satisfied
+    // and the unresolved test reference is the only failing term.
+    const repositoryLedger = loadValidationManifest(process.cwd());
+    const shellEvidence = {
+      host: 'codex',
+      receipt_ref: 'docs/dogfood/mcp11-0.10.0/codex/receipt.yaml',
+      trust_ref: 'docs/dogfood/mcp11-0.10.0/codex/issuers.yaml',
+      attestation_ref: 'docs/dogfood/mcp11-0.10.0/codex/attestation.yaml',
+      recorded_at: '2026-09-07T00:00:00.000Z',
+    };
+    const shelled = {
+      ...repositoryLedger,
+      mcp_scenarios: repositoryLedger.mcp_scenarios.map((scenario) =>
+        scenario.id.startsWith('MCP05-')
+          ? {...scenario, evidence: [shellEvidence], test_ref: undefined}
+          : scenario),
+    };
+    const check = checkMcpScenarioLedger(process.cwd(), shelled, evaluateReferenceHostEvidence(process.cwd(), shelled));
+    expect(check.status).toBe('fail');
+    expect(check.evidence).toContain('unresolved_test_ref=MCP05-prepare-apply-replay-and-rollback');
+    expect(check.evidence).toContain('evidence_status_disagreement=none');
+  });
+
+  test('holds the reference-host scenario label to the recorded evidence in both directions', () => {
+    const repositoryLedger = loadValidationManifest(process.cwd());
+    // Each direction is isolated so the evidence invariant is the only failing term:
+    // the promoted row keeps a resolving test reference, and the silent row is taken
+    // out of the declared boundary, so neither can fail for a second reason.
+    const carrier = repositoryLedger.mcp_scenarios
+      .find((scenario) => scenario.id.startsWith('MCP01-'))?.test_ref;
+    // Promoted label, no evidence behind it: the ledger names the row it refuses.
+    const promotedWithoutEvidence = {
+      ...repositoryLedger,
+      mcp_scenarios: repositoryLedger.mcp_scenarios.map((scenario) =>
+        scenario.id.startsWith('MCP11-') ? {...scenario, evidence: [], test_ref: carrier} : scenario),
+    };
+    const promoted = checkMcpScenarioLedger(
+      process.cwd(), promotedWithoutEvidence, evaluateReferenceHostEvidence(process.cwd(), promotedWithoutEvidence),
+    );
+    expect(promoted.status).toBe('fail');
+    expect(promoted.evidence).toContain('evidence_status_disagreement=MCP11-reference-host-spec-02-cycle');
+
+    // The other direction: confirmed evidence the label does not report.
+    const silentAboutEvidence = {
+      ...repositoryLedger,
+      mcp_scenarios: repositoryLedger.mcp_scenarios.map((scenario) =>
+        scenario.id.startsWith('MCP11-') ? {...scenario, implementation: 'pending' as const} : scenario),
+      release_boundary: {
+        release: repositoryLedger.release_boundary?.release ?? '0.10.0',
+        blocking: (repositoryLedger.release_boundary?.blocking ?? []).filter((entry) => !entry.startsWith('MCP11-')),
+      },
+    };
+    const silent = checkMcpScenarioLedger(
+      process.cwd(), silentAboutEvidence, evaluateReferenceHostEvidence(process.cwd(), silentAboutEvidence),
+    );
+    expect(silent.status).toBe('fail');
+    expect(silent.evidence).toContain('evidence_status_disagreement=MCP11-reference-host-spec-02-cycle');
   });
 
   test('[covers:F-c2d7dc78/AC-2c7b4afa] passes the reference-host checks only for receipts signed by a registered issuer in the recorded snapshot', () => {
@@ -343,6 +423,28 @@ describe('Spec 0.2 release boundary', () => {
       .toEqual(['two hosts recorded the same receipt', 'two hosts recorded the same receipt']);
     expect(referenceHostChecks(manifest, result).e2e.status).toBe('not_run');
     expect(checkReleaseBoundary(root, manifest, result).status).toBe('not_run');
+  });
+
+  test('[covers:F-c2d7dc78/AC-2c7b4afa] confirms the committed reference-host cycles of this repository against their own recorded trust snapshots', async () => {
+    const root = process.cwd();
+    const manifest = loadValidationManifest(root);
+    const result = evaluateReferenceHostEvidence(root, manifest);
+    // Every declared host is satisfied by its own committed copies, and the two
+    // receipts are distinct artifacts rather than one cycle filed twice.
+    expect(result.outcomes.map((outcome) => outcome.host)).toEqual(['codex', 'claude-code']);
+    expect(result.outcomes.map((outcome) => outcome.satisfied)).toEqual([true, true]);
+    for (const outcome of result.outcomes) {
+      expect(outcome.reason).toContain('signed by a registered issuer in the recorded snapshot');
+    }
+    expect(new Set(result.outcomes.map((outcome) => outcome.digest)).size).toBe(2);
+    expect(result.satisfied).toBe(true);
+    // The check still refuses to claim the foreign receipts are current.
+    const checks = referenceHostChecks(manifest, result);
+    expect(`${checks.journey.evidence}${checks.e2e.evidence}`).not.toContain('current');
+    // And the release run over the same recorded evidence is satisfied end to end.
+    const released = await runValidatorCli(['--release'], root);
+    expect(released.exitCode).toBe(0);
+    expect(released.report.checks.find((check) => check.id === 'release-boundary')?.status).toBe('pass');
   });
 
   test('[covers:F-c2d7dc78/AC-c5bbd322] refuses a boundary that pulls adoption, token, or host A/B rows inside it', () => {

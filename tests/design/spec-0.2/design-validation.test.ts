@@ -41,6 +41,11 @@ describe('Spec 0.2 validation ledger', () => {
       .toContain('F8 public GraphIR cutover');
     expect(report.checks.find((check) => check.id === 'preregistered-case-ledger')?.evidence)
       .toContain('not complete runtime evidence');
+    // The fixture ledger and the compiler boundary report one F8 state, not two.
+    expect(report.checks.find((check) => check.id === 'preregistered-case-ledger')?.evidence)
+      .toContain('the F8 public GraphIR cutover, and the F9d registered file-key issuer path are validation-active');
+    expect(report.checks.find((check) => check.id === 'preregistered-case-ledger')?.evidence)
+      .not.toContain('remains pending');
     expect(manifest.integration_journeys.find((journey) => journey.id === 'J05')).toMatchObject({
       decisions: ['D09', 'D21'], status: 'simulated', scenario: 'scenario-policy-obligation',
     });
@@ -96,7 +101,9 @@ describe('Spec 0.2 validation ledger', () => {
       'integration-journey-reference-host',
     ].includes(check.id))).toEqual([
       expect.objectContaining({id: 'integration-journey-runtime', status: 'implementation_pending'}),
-      expect.objectContaining({id: 'integration-journey-reference-host', status: 'not_run'}),
+      // The reference-host journey is the one row here that recorded evidence can move.
+      // J04 and J09 still wait on runtime, and eight decisions are still target design only.
+      expect.objectContaining({id: 'integration-journey-reference-host', status: 'pass'}),
       expect.objectContaining({id: 'target-runtime-implementation', status: 'implementation_pending'}),
     ]);
   });
@@ -213,8 +220,12 @@ describe('Spec 0.2 validation ledger', () => {
     expect(governance).toContain('Pre-F6/current shipped releases retain their existing gate command');
     expect(manifest.mcp_reference_hosts).toEqual(['codex', 'claude-code']);
     expect(manifest.host_ab).toEqual({host: 'codex', max_calls: 24, blocking: false});
+    // The rebaseline does not upgrade pending runtime evidence; the reference-host row
+    // moved on recorded host cycles alone, which is the one thing that may move it.
     expect(report.checks.find((check) => check.id === 'mcp-reference-host-spec-02-e2e')?.status)
-      .toBe('not_run');
+      .toBe('pass');
+    expect(report.checks.find((check) => check.id === 'integration-journey-runtime')?.status)
+      .toBe('implementation_pending');
   });
 
   test('[covers:F-9fcdd0a0/AC-7313dbc4] records the F10 loop retirement and the F9c scheduler deferral in the decision log', () => {

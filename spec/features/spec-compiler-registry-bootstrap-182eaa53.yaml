@@ -133,15 +133,25 @@ acceptance_criteria:
       D15 and D16 require an independent oracle so a compiler regression cannot
       approve itself.
   - id: AC-6d69273c
+    kind: behavior
     statement: The validation ledger shall mark D05-D14, D17, and D20-D24
-      validation-active while keeping F8-F11 cutover, reference-host, and
-      preregistered completion claims pending.
+      validation-active and decide the reference-host and preregistered
+      completion claims from recorded evidence and resolving test references
+      instead of narrated status.
     notes: >-
       ## Why
 
-      Validation evidence records the current F7 boundary precisely:
-      deterministic registry and scenario work is active, while F8-F11 cutover,
-      reference-host evidence, and preregistered completion remain pending.
+
+      Restated 2026-09-07 for the 0.10.0 release candidate. At F1 time the
+      ledger kept F8-F11 cutover, reference-host evidence, and preregistered
+      completion pending, and this criterion pinned that boundary. In the
+      release candidate those claims are decided by evidence rather than
+      narrated: the reference-host rows (MCP11 and J13) carry receipt evidence
+      that the validator verifies offline against the recorded trust snapshot,
+      preregistered rows carry test references that must resolve, and runtime
+      journeys that still lack an implementation stay implementation_pending.
+      The bound tests assert the decided states and that runtime journey
+      evidence is not promoted.
 design_impact:
   classification: additive
   rationale: F1 adds a read-only compiler and registries beside the shipped schema

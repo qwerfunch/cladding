@@ -1,0 +1,7 @@
+host: Claude Code 2.1.263
+node: v26.0.0
+cladding engine: 0.10.0 (`clad --version`), run from the RC working tree via `.cladding/host/serve.cjs`
+RC commit: 0578818
+dist/clad.js md5: ba348c9b1bddea5c73c1b90c8d39fbb7
+dist/clad.js sha256: 1bb59b7149663da210d1f74fb57dffdae6f2e3734edf31b20d89c55be2250e3d
+fixture: ~/mcp11-claude-code

@@ -58,9 +58,22 @@ describe('Spec 0.2 MCP validation', () => {
     const report = await validateSpec02(process.cwd());
     const checks = Object.fromEntries(report.checks.map((check) => [check.id, check.status]));
     expect(checks['mcp-wire-catalog']).toBe('pass');
-    expect(checks['mcp-reference-host-spec-02-e2e']).toBe('not_run');
+    // Both reference-host cycles are recorded, so the two evidence-decided checks
+    // and the release boundary read pass. Adoption and the token A/B are separate
+    // questions that recorded conformance evidence may not answer for them.
+    expect(checks['mcp-reference-host-spec-02-e2e']).toBe('pass');
+    expect(checks['integration-journey-reference-host']).toBe('pass');
+    expect(checks['release-boundary']).toBe('pass');
     expect(checks['mcp-adoption']).not.toBe('pass');
     expect(checks['live-host-token-ab']).toBe('not_run');
+    const ledger = loadValidationManifest(process.cwd());
+    expect(ledger.integration_journeys.find((journey) => journey.id === 'J13')?.status)
+      .toBe('validation-active');
+    // MCP11 is decided by recorded evidence rather than by a test reference, and it
+    // carries the same validation-active label as every other blocking row.
+    const reference = ledger.mcp_scenarios.find((scenario) => scenario.id.startsWith('MCP11-'));
+    expect(reference?.implementation).toBe('validation-active');
+    expect(reference?.evidence?.map((record) => record.host).sort()).toEqual(['claude-code', 'codex']);
     if (report.mcp.host_smoke !== null) {
       expect(report.mcp.host_smoke.scope).toBe('legacy-read-surface');
     }

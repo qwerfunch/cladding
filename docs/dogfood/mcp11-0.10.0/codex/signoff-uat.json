@@ -1,0 +1,27 @@
+{
+  "ok": true,
+  "code": "OK",
+  "message": "The signed receipt was stored and verified offline. Signed by registered issuer qwerfunch; a signature proves that issuer's assertion, not universal human identity.",
+  "evidence": {
+    "featureId": "F-032b6453",
+    "stage": "stage_4.2",
+    "identity": {
+      "author": "human",
+      "name": "local-asserted-signoff",
+      "timestamp": "2026-09-07T13:14:22.393Z"
+    },
+    "kind": "pass",
+    "assurance": "asserted",
+    "content": "Local asserted UAT signoff.",
+    "id": "ev-mtr9igje-e97vjc"
+  },
+  "path": "spec/evidence/F-032b6453/507c59639825394dee9ca51f5ae911e8ee84ac227538181bee7fe5ef7baf47c7.yaml",
+  "digest": "507c59639825394dee9ca51f5ae911e8ee84ac227538181bee7fe5ef7baf47c7",
+  "issuerKeyId": "a237dda876e9159e8bc9106684206f6cde5639369b967c9b943b305d301ee5f3",
+  "verification": {
+    "assurance": "verified",
+    "currentness": "current",
+    "reason": "verified",
+    "trustSnapshotDigest": "b6d1d70675d772aa109d52c52f594a8127490f5d6d0c5e8fcbb30c6f7b28e77d"
+  }
+}

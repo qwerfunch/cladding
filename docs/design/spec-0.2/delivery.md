@@ -140,7 +140,7 @@ These are new test obligations, not evidence that an earlier session ran “37/3
 - **T01–T04 transaction:** different shards, same-shard stale, BUSY no-write, crash recovery.
 - **U01–U04 upgrade:** unresolved no-write, `L = N`, atomic apply/zero-diff, interrupted restore-or-finish.
 
-At the F6 boundary, the active fixture ledger names P01–P10, L01–L04, B01–B06, C01–C06, T01–T04, U01–U04, and A01–A03. These are executable obligations, not a runtime pass count; F7 scenarios, F8 public GraphIR cutover, relocation, and reference-host cycles remain pending, the F9 scheduler/cache paths are deferred to 0.10.x; the F9d issuer path is validation-active.
+At the F6 boundary, the active fixture ledger names P01–P10, L01–L04, B01–B06, C01–C06, T01–T04, U01–U04, and A01–A03. These are executable obligations, not a runtime pass count; F7 scenarios, F8 public GraphIR cutover, relocation, and reference-host cycles were pending, the F9 scheduler/cache paths are deferred to 0.10.x; the F9d issuer path is validation-active.
 - **A01–A03 attestation:** selective contract stale, proof-input stale, target-versus-sibling receipt freshness.
 
 ### Repository gates
