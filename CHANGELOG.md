@@ -5,7 +5,7 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — 0.10.0
+## [0.10.0] — Every acceptance criterion has an address a test can claim (2026-09-08)
 
 **In one line:** Spec schema 0.2 — a feature says what it is for before what it does, every acceptance criterion has an address you can point at, a test claims a criterion by naming it in its own title, one compiled model answers questions about how the pieces relate, each level of assurance has a named check profile recorded in a new attestation format, and a reviewed path carries an old project across.
 
