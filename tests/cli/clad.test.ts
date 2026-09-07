@@ -682,6 +682,7 @@ describe('cli/clad — createProgram', () => {
       'init',
       'sync',
       'migrate',
+      'relocate-generated',
       'begin',
       'signoff',
       'key',

@@ -49,6 +49,7 @@
 | `init` | stable | Scaffold a cladding workspace (intent-aware onboarding). | 작업공간 생성 |
 | `sync` | stable | Validate spec + refresh generated state (inventory, deliverable, index). | 스펙 동기화 |
 | `migrate` | stable (0.10.0) | Preview a schema 0.1 → 0.2 migration, or apply explicit human-confirmed choices as one recoverable transaction. | 스키마 마이그레이션 미리보기 |
+| `relocate-generated` | stable (0.10.0) | Preview moving the generated index, document-link, and attestation projections into `spec/generated/`, or apply that move as one recoverable transaction. Opt-in: the pre-relocation layout stays fully supported. | 생성물 위치 이전 |
 | `begin` | stable (0.10.0) | Start a schema 0.2 implementation cycle, saving its pre-cycle checkpoint with the status update. | 구현 사이클 시작 |
 | `check` | stable | Run the Iron Law stages; `--tier` aliases or `--profile`, optional bounded `--assurance-level`, `--strict`, `--json`. | 게이트 검사 |
 | `done` | stable | Gated completion flip: schema 0.2 invokes the completion profile; schema 0.1 retains strict pre-push compatibility. | 검증된 완료 처리 |

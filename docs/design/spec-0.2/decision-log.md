@@ -58,6 +58,7 @@ Do not reopen these without new evidence that invalidates the stated reason.
 | Allow multiple `shall` modals | Violates atomic AC and case-level binding granularity. Split the AC. |
 | Automatically write inferred dependencies | Current candidate graph can introduce large cyclic components. `dependency.promote` remains explicit and cycle-checked. |
 | ~~Move existing generated files in 0.10~~ — superseded 2026-08-29 | Original rationale: registry and aliases must land before movement. F11 now satisfies that condition, then relocates only the three projections separately from schema migration with D14 state/recovery fixtures. |
+| Enforce `relocation_required` in 0.10.0 — deferred 2026-09-05 (F11-lite) | 0.10.0 ships alias-aware resolution, the generated-directory notice, and opt-in `clad relocate-generated [--apply]` only. Forcing adopters off the pre-relocation layout has no measured need yet; entry condition for enforcement is adopters relocating in practice. `clad init` scaffolding of the relocated layout follows the same condition. |
 | Generic filesystem/JSON-Patch MCP editor | Cannot provide domain invariants or honest write-set calculation. |
 | Automatically classify legacy ACs as behavior | Converts meaning without evidence. Use `legacy_unclassified` until the node changes. |
 | Guess test selectors for path-only refs | Manufactures proof. Use the accepted node-level baseline fallback. |

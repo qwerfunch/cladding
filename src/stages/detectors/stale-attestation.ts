@@ -21,6 +21,7 @@ import {compileSpecWorkspace} from '../../spec/compiler/compile.js';
 import type {Spec} from '../../spec/types.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
 import {withSpec} from './with-spec.js';
+import {resolveGeneratedArtifact} from '../../spec/layout.js';
 
 const NAME = 'STALE_ATTESTATION';
 
@@ -30,25 +31,37 @@ function run(opts: CommandStageOptions): readonly DriftFinding[] {
 }
 
 function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
+  const location = resolveGeneratedArtifact(cwd, 'generated-attestation');
+  const attestationPath = location.resolvedPath ?? location.oldPath;
+  // A receipt at both homes is reported, never silently resolved.
+  const conflict: DriftFinding[] = location.presence !== 'both' ? [] : [{
+    detector: NAME,
+    severity: 'error',
+    path: location.newPath,
+    message:
+      `a verification attestation exists at both ${location.oldPath} and ${location.newPath}` +
+      ' — remove the copy you do not keep (`clad relocate-generated` reports the same conflict).',
+  }];
   const done = (spec.features ?? []).filter((f) => f.status === 'done' && (spec.schema === '0.2' || (f.modules ?? []).length > 0));
-  if (done.length === 0) return [];
+  if (done.length === 0) return conflict;
 
   const attested = readAttestation(cwd);
   if (attested === null) {
     return [
+      ...conflict,
       {
         detector: NAME,
         severity: 'info',
-        path: 'spec/attestation.yaml',
+        path: attestationPath,
         message:
           'no verification attestation — when this tree was last verified is unknown. ' +
-          'Run `clad check --tier=pre-push --strict` GREEN once to attest (the gate writes spec/attestation.yaml).',
+          `Run \`clad check --tier=pre-push --strict\` GREEN once to attest (the gate writes ${attestationPath}).`,
       },
     ];
   }
 
   const currentV3Seals = attested.v3 !== null && spec.schema === '0.2' ? currentV3ClosureSeals(cwd) : undefined;
-  const findings: DriftFinding[] = [];
+  const findings: DriftFinding[] = [...conflict];
   for (const f of done) {
     // v3 precedence is feature-local.  A mixed transition keeps an untouched
     // sibling's v2 marker/module map authoritative until that feature earns a
@@ -74,7 +87,7 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
     findings.push({
       detector: NAME,
       severity: 'warn',
-      path: 'spec/attestation.yaml',
+      path: attestationPath,
       message:
         state.state === 'unattested'
           ? `${f.id} is done but has no attestation entry — its modules were never verified by an attested gate. Run \`clad check --tier=pre-push --strict\` to attest.`

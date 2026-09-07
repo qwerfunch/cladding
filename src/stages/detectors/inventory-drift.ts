@@ -19,6 +19,7 @@ import {computeInventory} from '../../spec/inventory.js';
 import {join} from 'node:path';
 import {loadSpec} from '../../spec/load.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
+import {resolveGeneratedArtifact} from '../../spec/layout.js';
 
 const NAME = 'INVENTORY_DRIFT';
 
@@ -94,9 +95,21 @@ function run(opts: CommandStageOptions): readonly DriftFinding[] {
  * whose status LIES silently misleads them. Same cure as count drift: clad sync.
  */
 function indexStaleness(cwd: string): readonly DriftFinding[] {
-  const indexPath = join(cwd, 'spec', 'index.yaml');
+  const index = resolveGeneratedArtifact(cwd, 'generated-index');
+  const indexRelative = index.resolvedPath ?? index.oldPath;
+  const indexPath = join(cwd, indexRelative);
   const featuresDir = join(cwd, 'spec', 'features');
-  if (!existsSync(indexPath) || !existsSync(featuresDir)) return [];
+  // Both homes holding a generated index is never a silent pick: the reader
+  // keeps the pre-relocation copy and the conflict is reported here.
+  const conflict: DriftFinding[] = index.presence !== 'both' ? [] : [{
+    detector: NAME,
+    severity: 'error',
+    path: index.newPath,
+    message:
+      `a generated feature index exists at both ${index.oldPath} and ${index.newPath}` +
+      ' — remove the copy you do not keep (`clad relocate-generated` reports the same conflict).',
+  }];
+  if (!existsSync(indexPath) || !existsSync(featuresDir)) return conflict;
   // Index row format (src/spec/inventory.ts): `  <id>: {slug: …, status: X, modules: N}`.
   // Capture each row's status too (default 'planned' for a malformed/legacy row) so the
   // detector also catches a row whose STATUS lies, not just a missing/extra id.
@@ -112,7 +125,7 @@ function indexStaleness(cwd: string): readonly DriftFinding[] {
       if (idOnly) inIndex.set(idOnly[1], 'planned');
     }
   } catch {
-    return [];
+    return conflict;
   }
   // Shard side: id + status, defaulting to 'planned' to MIRROR writeFeatureIndex
   // (inventory.ts) — else a status-less shard would false-mismatch its 'planned' row.
@@ -127,10 +140,10 @@ function indexStaleness(cwd: string): readonly DriftFinding[] {
       onDisk.set(idMatch[1], statusMatch ? statusMatch[1] : 'planned');
     }
   } catch {
-    return [];
+    return conflict;
   }
 
-  const findings: DriftFinding[] = [];
+  const findings: DriftFinding[] = [...conflict];
 
   // (1) id-set drift — the original F-37b4a8 contract (AC-f1a3f5), unchanged.
   const missing = [...onDisk.keys()].filter((id) => !inIndex.has(id)).sort();
@@ -142,9 +155,9 @@ function indexStaleness(cwd: string): readonly DriftFinding[] {
     findings.push({
       detector: NAME,
       severity: 'error',
-      path: 'spec/index.yaml',
+      path: indexRelative,
       message:
-        `spec/index.yaml disagrees with spec/features/ (${parts.join('; ')})` +
+        `${indexRelative} disagrees with spec/features/ (${parts.join('; ')})` +
         ' — run `clad sync` to regenerate (a stale index silently misleads agents that trust it for lookup).',
     });
   }
@@ -159,9 +172,9 @@ function indexStaleness(cwd: string): readonly DriftFinding[] {
     findings.push({
       detector: NAME,
       severity: 'error',
-      path: 'spec/index.yaml',
+      path: indexRelative,
       message:
-        `spec/index.yaml status disagrees with spec/features/ for ${statusDrift.join('; ')}` +
+        `${indexRelative} status disagrees with spec/features/ for ${statusDrift.join('; ')}` +
         ' — run `clad sync` to regenerate (a stale status silently misleads agents that trust the index).',
     });
   }

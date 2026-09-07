@@ -26,7 +26,7 @@ F1 uses an independent sorted source-YAML snapshot oracle, without production lo
 8. **F8:** atomically cut graph CLI/JSON, exporters/viewer, and `clad_get_graph` to GraphIR v2; retain no v1 adapter.
 9. **F9:** ship `CycleContextEnvelope`, task projections, a registered file-key human issuer, and A–E; the persistent scheduler defers to 0.10.x.
 10. **F10:** retired. 0.10.0 removes the unused headless loop instead of dispatching from it. Viewer polish/broader retrieval remain tail work.
-11. **F11:** add aliases/`clad relocate-generated [--apply]`, transition self before final enforcement, and prove D14 state/recovery.
+11. **F11 (lite):** add aliases and opt-in `clad relocate-generated [--apply]`; self keeps old paths; prove D14 state/recovery.
 
 There is no F7.5 context-wire migration; F8 is the graph-v2 cutover. F11 does not retroactively block F7–F10 completion, but 0.10.0 needs applicable F1–F11 evidence. Standards, docs, glossary, and generated mirrors update in their owner feature.
 
@@ -70,7 +70,7 @@ Corpus gates compare sorted semantic records, not hand-maintained totals. The in
 - Unresolved preview and normal failure write zero bytes.
 - Before F11, migration keeps old paths canonical so F7–F10 complete. The final F11 engine leaves adopters 0.2+old and names separate relocation.
 - Dirty planned paths refuse either apply while unrelated dirt remains allowed; receipts bind preflight HEAD and sorted paths.
-- In the final F11 engine, 0.2+old is `relocation_required`: only read/diagnose/relocate is available, authoritative profiles are unresolved, both paths conflict, and an active journal is recovery-only.
+- In the final F11 engine, 0.2+old is `relocation_required`: read/diagnose/relocate only, profiles unresolved. 0.10.0 defers that enforcement and keeps 0.2+old supported. Both paths conflict; an active journal is recovery-only.
 - Crash recovery is byte-exact or finishes the recorded transaction; exact-path VCS restore is the escape, and a second successful apply is zero-diff.
 - The F7 self-migration proves preview-on-0.1, human resolution, one atomic apply, post-switch `clad done`, and pure-0.2 v3 output; F8 begins from that real 0.2 tree.
 

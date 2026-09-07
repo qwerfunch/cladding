@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/ironclad-L4%20conformant-brightgreen" alt="ironclad"/></a>
   <a href="https://github.com/qwerfunch/ironclad"><img src="https://img.shields.io/badge/spec-v0.0.23-blue" alt="spec"/></a>
-  <img src="https://img.shields.io/badge/tests-3719%2F3719-brightgreen" alt="tests"/>
+  <img src="https://img.shields.io/badge/tests-3745%2F3745-brightgreen" alt="tests"/>
   <img src="https://img.shields.io/badge/detectors-41-brightgreen" alt="detectors"/>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-lightgrey" alt="license"/></a>
 </p>
@@ -31,7 +31,7 @@ So you can ship AI-written code held to **the same standard as human-written cod
 - **Traced** — **What shipped is on the record**: what was verified is stamped into committed content, who and when land in the local session ledger, and the why lives in the spec — so handoff and review skip the archaeology.
 - **Scales** — adding people and AIs would normally multiply conflicts and drift; because everyone works from one shared spec, those get caught automatically — so you can grow without it breaking down.
 
-cladding builds **itself** with cladding too — 282 of its 297 features cleared this same gate, the first L4 implementation of the [Ironclad](https://github.com/qwerfunch/ironclad) standard.
+cladding builds **itself** with cladding too — 282 of its 298 features cleared this same gate, the first L4 implementation of the [Ironclad](https://github.com/qwerfunch/ironclad) standard.
 
 <!-- ─────────────── What changes ─────────────── -->
 
@@ -360,9 +360,9 @@ Reconcile the drift the update flagged.
 
 | Version | Conformance | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.9.4 worktree (2026-08) | L4 · [self-declared](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 3719 / 3719 | 15 stages · 41 detectors | 297 (282 done) |
+| v0.9.4 worktree (2026-08) | L4 · [self-declared](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 3745 / 3745 | 15 stages · 41 detectors | 298 (282 done) |
 
-<sub>319 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</sub>
+<sub>322 test files · 6 capabilities · coverage drop blocked by the COVERAGE_DROP detector</sub>
 
 > **Road to Ironclad 1.0** — 1.0 locks only when *two independent implementations pass the L4 conformance fixtures* ([GOVERNANCE § 1](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md)). cladding is the first.
 

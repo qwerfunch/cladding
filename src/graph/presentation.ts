@@ -105,6 +105,8 @@ const KNOWN_DOC_TIERS = new Map<string, Tier>([
   ['docs/glossary.md', 'C'],
   ['spec/index.yaml', 'C'],
   ['spec/_doc-links.yaml', 'C'],
+  ['spec/generated/index.yaml', 'C'],
+  ['spec/generated/_doc-links.yaml', 'C'],
 ]);
 
 /**

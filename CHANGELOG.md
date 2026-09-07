@@ -14,6 +14,8 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 - Schema 0.2 compiler, registries, parser and migration preview, typed transactional editing, proof and portable-evidence kernel, and assurance profiles (feedback, checkpoint, completion, push, release) with attestation v3.
 - GraphIR v2 query kernel with authored, document, source-reference, and current-gate test observation layers; the gate hands the graph a sealed testcase ledger instead of report bytes.
 - `test-count.mjs --write` also syncs the README feature counts.
+- `clad relocate-generated` previews moving the generated index, document-link, and attestation projections into `spec/generated/`, and with `--apply` performs the move as one recoverable transaction. Relocation is opt-in: the pre-relocation layout stays fully supported.
+- A schema 0.2 workspace projects `spec/generated/README.md` from the artifact registry, naming where each generated artifact lives and where relocation would move it.
 
 ### Changed
 

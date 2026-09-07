@@ -236,7 +236,10 @@ export function commitSpecTransactionFiles(
   errorAfter?: number,
   beforeReplacement?: (path: string) => void,
 ): void {
-  const ordered = [...files].sort((left, right) => left.path.localeCompare(right.path));
+  // Code-unit order, never locale collation: the journal validator requires a
+  // strictly increasing path manifest, and a locale collator disagrees with it
+  // on case and punctuation (`spec/generated/README.md` vs `.../index.yaml`).
+  const ordered = [...files].sort((left, right) => (left.path < right.path ? -1 : left.path > right.path ? 1 : 0));
   for (const file of ordered) validateWriteTarget(file);
   const transactionId = randomBytes(16).toString('hex');
   const journal: TransactionJournal = {
@@ -774,6 +777,13 @@ function isManagedTransactionPath(path: string): boolean {
     || path === 'spec/index.yaml'
     || path === 'spec/_doc-links.yaml'
     || path === 'spec/attestation.yaml'
+    // Relocated (schema 0.2 final) homes of the same three projections, plus
+    // the projected generated-directory notice. Literals on purpose: the
+    // layout probe reads this module, so it may never read the probe.
+    || path === 'spec/generated/index.yaml'
+    || path === 'spec/generated/_doc-links.yaml'
+    || path === 'spec/generated/attestation.yaml'
+    || path === 'spec/generated/README.md'
     || path === 'spec/trust/issuers.yaml'
     || path === 'docs/project-context.md'
     || path === 'spec/generated/migration-baseline-0.1-to-0.2.yaml'

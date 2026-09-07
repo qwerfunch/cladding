@@ -60,8 +60,7 @@ import {
 import {loadSpec, loadSpecFromDiskUnlocked} from './load.js';
 import {compileSpecWorkspaceWithLockHeld} from './compiler/compile.js';
 import {prospectiveDoneCompilation, prospectiveDoneSpec} from './prospective.js';
-
-const ATTESTATION_PATH = ['spec', 'attestation.yaml'] as const;
+import {generatedArtifactPath, generatedArtifactReadPath} from './layout.js';
 
 /**
  * Identity of the verification policy that earned an attestation.
@@ -211,7 +210,7 @@ export function captureAttestationInputSnapshot(cwd: string, spec: Spec = loadSp
  * lines last-win). Returns `null` only when the file is absent (verification
  * state unknown — never a blanket failure). */
 export function readAttestation(cwd: string): AttestationFile | null {
-  const path = join(cwd, ...ATTESTATION_PATH);
+  const path = join(cwd, generatedArtifactReadPath(cwd, 'generated-attestation'));
   if (!existsSync(path)) return null;
   let text: string;
   try {
@@ -470,7 +469,7 @@ export function writeAttestation(
   if (done.length === 0 && (v3?.length ?? 0) === 0) return false;
 
   const rootPath = join(cwd, 'spec.yaml');
-  const attestationPath = join(cwd, ...ATTESTATION_PATH);
+  const attestationPath = join(cwd, generatedArtifactPath(cwd, 'generated-attestation'));
   if (!existsSync(rootPath)) {
     throw new SpecEditError('INVALID_OPERATION', 'An initialized specification needs spec.yaml with an exact supported schema before writing an attestation.');
   }

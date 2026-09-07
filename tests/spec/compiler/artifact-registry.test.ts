@@ -40,12 +40,30 @@ describe('Spec 0.2 artifact registry', () => {
     expect(() => resolveManagedWrite({path: baseline, operation: 'update'})).toThrow(/does not permit update/);
   });
 
+  test('[covers:F-0dafcf9d/AC-8d616512] resolves a compatibility alias to the same descriptor as the canonical path', () => {
+    for (const [canonical, alias] of [
+      ['spec/index.yaml', 'spec/generated/index.yaml'],
+      ['spec/_doc-links.yaml', 'spec/generated/_doc-links.yaml'],
+      ['spec/attestation.yaml', 'spec/generated/attestation.yaml'],
+    ]) {
+      expect(resolveArtifactDescriptors(alias)).toEqual(resolveArtifactDescriptors(canonical));
+      expect(resolveManagedWrite({path: alias, operation: 'update'}).id).toBe(resolveManagedWrite({path: canonical, operation: 'update'}).id);
+      // A relocated projection is still a mutable generated artifact, so the
+      // journal admits both halves of a delete-plus-create move.
+      expect(resolveManagedWrite({path: alias, operation: 'create'}).mutability).toBe('mutable');
+      expect(resolveManagedWrite({path: canonical, operation: 'delete'}).mutability).toBe('mutable');
+    }
+  });
+
   test('projects artifact prose and generated-directory notice from registry data', () => {
     const table = renderArtifactRegistryTable();
     const notice = renderGeneratedDirectoryNotice();
     expect(table).toContain('| evidence-receipt | `spec/evidence/<F-id>/<sha256>.yaml` | evidence |');
     expect(notice).toContain('This notice is projected from the executable artifact registry.');
-    expect(notice).toContain('`spec/generated/index.yaml` — generated-index; on sync.');
+    expect(notice).toContain('`spec/index.yaml` — generated-index; on sync. Current location; relocation target `spec/generated/index.yaml`.');
+    const relocated = renderGeneratedDirectoryNotice(new Map([['generated-index', 'spec/generated/index.yaml']]));
+    expect(relocated).toContain('`spec/generated/index.yaml` — generated-index; on sync. Relocated.');
+    expect(notice).not.toContain('plugin-persona-skill-mirrors');
     expect(notice).toContain('`spec/generated/migration-baseline-0.1-to-0.2.yaml` — migration-baseline; one immutable upgrade receipt.');
     expect(table).toContain('| generated-directory-notice | `spec/generated/README.md` | generated | on artifact registry change |');
     expect(notice).toContain('`spec/generated/README.md` — generated-directory-notice; on artifact registry change.');

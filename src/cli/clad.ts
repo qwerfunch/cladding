@@ -42,6 +42,7 @@ import {runSessionsMeasure, runTrendMeasure} from './measure.js';
 import {runGraphExportCommand, runGraphStatsCommand} from './graph.js';
 import {runGraphServeCommand} from './graph-serve.js';
 import {runMigrateCommand} from './migrate.js';
+import {runRelocateGeneratedCommand} from './relocate-generated.js';
 import {runBeginCommand} from './begin.js';
 import {runKeyCreateCommand, runKeyListCommand} from './key.js';
 import {runSignoffCommand, runVerifiedSignoffCommand} from './signoff.js';
@@ -1934,6 +1935,16 @@ export function createProgram(): Command {
     .option('--cwd <path>', 'target project directory (default cwd)')
     .action((opts: {to?: string; apply?: boolean; resolutions?: string; json?: boolean; cwd?: string}) => {
       void runMigrateCommand(opts);
+    });
+
+  program
+    .command('relocate-generated')
+    .description('Preview moving the generated projections into spec/generated/, or apply the move as one recoverable transaction')
+    .option('--apply', 'perform the move; without it the command only previews')
+    .option('--json', 'emit the deterministic relocation plan for tooling')
+    .option('--cwd <path>', 'target project directory (default cwd)')
+    .action((opts: {apply?: boolean; json?: boolean; cwd?: string}) => {
+      void runRelocateGeneratedCommand(opts);
     });
 
   program

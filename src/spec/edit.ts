@@ -17,7 +17,8 @@ import {z} from 'zod';
 import {enrichEventPayload, newEvent, type EventType} from '../events/log.js';
 import type {IndependenceLabel} from '../hitl/independence.js';
 import {computeSpecDigest, readGitHead} from '../core/checkpoint.js';
-import {normalizeArtifactPath, resolveArtifactDescriptors} from './compiler/artifact-registry.js';
+import {normalizeArtifactPath, renderGeneratedDirectoryNotice, resolveArtifactDescriptors} from './compiler/artifact-registry.js';
+import {generatedArtifactLayout, generatedArtifactPath, generatedArtifactPathMap} from './layout.js';
 import {assertNewShardFilename, isNewId, isReadableId, isReadableShardFilename, shardFilenameSlug} from './compiler/id-policy.js';
 import {
   previewSchema02Migration,
@@ -896,12 +897,13 @@ export function commitGeneratedAttestation(
     // concurrent writer created between the gate and this final F4 lock.
     const rootBefore = completion === undefined ? expectedRoot : completion.rootBefore;
     const attestationBefore = completion === undefined ? expectedAttestation : completion.attestationBefore;
-    if (rootBefore === null || readBytes(root, 'spec.yaml') !== rootBefore || readBytes(root, 'spec/attestation.yaml') !== attestationBefore) {
+    const attestationPath = generatedArtifactPath(root, 'generated-attestation');
+    if (rootBefore === null || readBytes(root, 'spec.yaml') !== rootBefore || readBytes(root, attestationPath) !== attestationBefore) {
       throw new SpecEditError('STALE_INPUT', 'The workspace changed while the verification receipt was being prepared.');
     }
     if (!completion) {
       const nextAttestation = renderCurrentAttestation();
-      commitSpecTransactionFiles(root, [{path: 'spec/attestation.yaml', before: attestationBefore, after: nextAttestation}]);
+      commitSpecTransactionFiles(root, [{path: attestationPath, before: attestationBefore, after: nextAttestation}]);
       return;
     }
     if (!completionTarget) throw invalid('A generated completion receipt needs a validated target.');
@@ -924,7 +926,7 @@ export function commitGeneratedAttestation(
       after: completion.targetBytes,
     }], true);
     const byPath = new Map(files.map((file) => [file.path, file]));
-    byPath.set('spec/attestation.yaml', {path: 'spec/attestation.yaml', before: attestationBefore, after: nextAttestation});
+    byPath.set(attestationPath, {path: attestationPath, before: attestationBefore, after: nextAttestation});
     const path = '.cladding/events.log.jsonl';
     const before = readBytes(root, path);
     const event = JSON.stringify(newEvent(completion.event.type, enrichEventPayload(root, {...completion.event.payload})));
@@ -949,8 +951,9 @@ export function refreshDerivedSpecProjections(cwd: string = '.'): boolean {
     const byPath = new Map(addDerivedProjectionWrites(root, [], true).map((file) => [file.path, file]));
     const docLinks = renderDocLinksYaml(root);
     if (docLinks !== null) {
-      const before = readBytes(root, 'spec/_doc-links.yaml');
-      if (before !== docLinks) byPath.set('spec/_doc-links.yaml', {path: 'spec/_doc-links.yaml', before, after: docLinks});
+      const docLinksPath = generatedArtifactPath(root, 'generated-doc-links');
+      const before = readBytes(root, docLinksPath);
+      if (before !== docLinks) byPath.set(docLinksPath, {path: docLinksPath, before, after: docLinks});
     }
     const files = [...byPath.values()].sort((left, right) => left.path.localeCompare(right.path));
     if (files.length === 0) return false;
@@ -968,7 +971,7 @@ export function markFeatureDoneForGate(cwd: string, featureId: string): DoneGate
     const found = findFeature(root, featureId, false)!;
     const before = readBytes(root, found.path);
     const rootBefore = readBytes(root, 'spec.yaml');
-    const attestationBefore = readBytes(root, 'spec/attestation.yaml');
+    const attestationBefore = readBytes(root, generatedArtifactPath(root, 'generated-attestation'));
     if (before === null) throw lifecycle(`Feature ${featureId} disappeared before it could be completed.`);
     if (rootBefore === null) throw invalid('An initialized specification needs spec.yaml before it can be completed.');
     const designImpactStatus = text(record(found.value.design_impact).status) || undefined;
@@ -1496,9 +1499,43 @@ function addDerivedProjectionWrites(cwd: string, files: PlannedFile[], inventory
     rootRegions.add('inventory');
     byPath.set('spec.yaml', {path: 'spec.yaml', before: rootBefore, after: revised, rootRegions: [...rootRegions].sort() as RootWriteRegion[]});
   }
-  const index = renderFeatureIndex(cwd, files);
-  if (index !== null) byPath.set('spec/index.yaml', {path: 'spec/index.yaml', before: readBytes(cwd, 'spec/index.yaml'), after: index});
+  const indexPath = generatedArtifactPath(cwd, 'generated-index');
+  const index = renderFeatureIndex(cwd, files, indexPath);
+  if (index !== null) byPath.set(indexPath, {path: indexPath, before: readBytes(cwd, indexPath), after: index});
+  for (const notice of generatedDirectoryNoticeWrite(cwd)) byPath.set(notice.path, notice);
   return [...byPath.values()].filter((file) => file.before !== file.after).sort((left, right) => left.path.localeCompare(right.path));
+}
+
+/**
+ * Projects `spec/generated/README.md` from the artifact registry.
+ *
+ * The notice is a schema 0.2 projection only, and it is written solely when
+ * its bytes change, so a refresh on an unchanged workspace stays a no-op.
+ *
+ * @see spec/features/spec-02-relocate-generated-0dafcf9d.yaml AC-0d45a5c2
+ */
+export function generatedDirectoryNoticeWrite(cwd: string, resolvedPaths?: ReadonlyMap<string, string>): readonly PlannedFile[] {
+  let schema: '0.1' | '0.2';
+  try {
+    schema = requiredRootSchema(cwd);
+  } catch {
+    return [];
+  }
+  if (schema !== '0.2') return [];
+  const path = 'spec/generated/README.md';
+  let projected = resolvedPaths;
+  if (projected === undefined) {
+    const layout = generatedArtifactLayout(cwd);
+    // A derived projection may never state one side of a conflict as the
+    // artifact's location; the conflict is diagnosed instead.
+    if (layout.artifacts.some((artifact) => artifact.presence === 'both')) {
+      throw new SpecEditError('INVALID_OPERATION', 'A generated projection exists at both of its known locations; resolve the conflict before refreshing the generated-directory notice.');
+    }
+    projected = generatedArtifactPathMap(layout);
+  }
+  const after = renderGeneratedDirectoryNotice(projected);
+  const before = readBytes(cwd, path);
+  return before === after ? [] : [{path, before, after}];
 }
 
 /** Derives root ownership from operations; generated inventory is added separately. */
@@ -2519,4 +2556,6 @@ function countCapabilitiesOrInline(cwd: string, inline: unknown, files: readonly
   const candidate = files.find((file) => file.path === 'spec/capabilities.yaml')?.after ?? readBytes(cwd, 'spec/capabilities.yaml');
   return candidate ? arrayRecords(record(yaml.parse(candidate)).capabilities).length : 0;
 }
-function renderFeatureIndex(cwd: string, files: readonly PlannedFile[]): string | null { const records = allFeatures(cwd, new Map(files.filter((file) => file.path.startsWith('spec/features/') && file.after !== null).map((file) => [file.path, record(yaml.parse(file.after!))]))); if (records.length === 0 && !existsSync(join(cwd, 'spec', 'features'))) return null; const rows = records.sort((a, b) => a.id.localeCompare(b.id)).map((feature) => `  ${feature.id}: {slug: ${shardFilenameSlug(feature.path, feature.id)}, status: ${text(feature.value.status) || 'planned'}, modules: ${arrayStrings(feature.value.modules).length}}`); return '# Cladding · Tier C — generated feature index (`clad sync`). Do not edit by hand.\n# One line per feature → 1-file lookup + line-independent merges\n# (suggested .gitattributes: `spec/index.yaml merge=union`).\nfeatures:\n' + rows.join('\n') + '\n'; }
+function renderFeatureIndex(cwd: string, files: readonly PlannedFile[], indexPath: string = 'spec/index.yaml'): string | null { const records = allFeatures(cwd, new Map(files.filter((file) => file.path.startsWith('spec/features/') && file.after !== null).map((file) => [file.path, record(yaml.parse(file.after!))]))); if (records.length === 0 && !existsSync(join(cwd, 'spec', 'features'))) return null; const rows = records.sort((a, b) => a.id.localeCompare(b.id)).map((feature) => `  ${feature.id}: {slug: ${shardFilenameSlug(feature.path, feature.id)}, status: ${text(feature.value.status) || 'planned'}, modules: ${arrayStrings(feature.value.modules).length}}`); return '# Cladding · Tier C — generated feature index (`clad sync`). Do not edit by hand.\n# One line per feature → 1-file lookup + line-independent merges\n'
+    + `# (suggested .gitattributes: \`${indexPath} merge=union\`).\n`
+    + 'features:\n' + rows.join('\n') + '\n'; }

@@ -322,7 +322,7 @@ Before F11, the F4/F7 engine treats old paths as the then-canonical transitional
 | Detected state | Permitted operation | Result |
 |---|---|---|
 | 0.1 + old | normal | Ordinary 0.1 operation. |
-| 0.2 + old | `relocation_required` | Read, diagnose, and relocate only. Other mutations and authoritative profiles are unresolved. |
+| 0.2 + old | `relocation_required` | Deferred in 0.10.0: this state stays fully supported and `clad relocate-generated` is opt-in. Enforcement — read/diagnose/relocate only, other mutations and authoritative profiles unresolved — waits until adopters have relocated. |
 | 0.2 + new | normal | Ordinary 0.2 operation. |
 | both paths | conflict | Refuse mutation until the conflict is resolved. |
 | active migration/relocation journal | recovery-only | Finish or restore the recorded transaction before every other operation. |
@@ -347,7 +347,7 @@ Reviewed strict carry-forward is immutable history, not relaxed exemption: it bi
 
 - Abort for unresolved items; recheck preview before journaling, so a selected-byte change is `STALE_INPUT`. Prove feature/criterion identity/count, statement transfer, and `L = N`.
 - `spec.yaml#schema` is the sole selector; child/shard markers are forbidden and receipt-local `receipt_schema` only versions its protocol.
-- Before F11, one journal writes baseline, conversion, old-path projections, and root switch; final F11 names `clad relocate-generated --apply`. Relocation moves three projections only and changes neither schema nor F7–F10 acceptance.
+- Before F11, one journal writes baseline, conversion, old-path projections, and root switch; 0.10.0 ships `clad relocate-generated --apply` as the separate opt-in move. Relocation moves three projections only and changes neither schema nor F7–F10 acceptance.
 - Apply plans exact paths, rejects dirt there, records `HEAD`/sorted paths, and is zero-diff on second success. Failure writes nothing; recovery finishes/restores byte-identical originals or supports exact-path `git restore --source=<HEAD> -- <paths...>`.
 - Continue reading 0.1; reject old 0.2 spellings/unknown versions. Upgrade: install 0.10+, close/rebase branches, preview, resolve, apply once on integration.
 
@@ -364,4 +364,4 @@ F3 proves candidate capability/architecture edges in memory without byte cutover
 The F7 preview separately resolves `PROJECT_ASSURANCE_LEVEL_CONFIRMATION` and
 `PROJECT_LEGACY_L2_BASELINE`; F7 is ineligible for the latter while incomplete.
 For self, the self release attestation remains L2; legacy L3/L4 is no waiver.
-F9–F11 signed fixtures are mechanism/protocol evidence. Only real human-signed Codex and Claude Code MCP11 cycles prove L4. A stronger bounded-closure self completion is optional. F11 relocates self before final enforcement without invalidating F7–F10.
+F9–F11 signed fixtures are mechanism/protocol evidence. Only real human-signed Codex and Claude Code MCP11 cycles prove L4. A stronger bounded-closure self completion is optional. Self stays on the pre-relocation layout in 0.10.0; relocation is opt-in and invalidates no F7–F10 work.

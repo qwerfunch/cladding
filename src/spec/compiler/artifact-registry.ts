@@ -218,9 +218,13 @@ export function normalizeArtifactPath(path: string): string {
 export function resolveArtifactDescriptors(path: string, region?: string): readonly ArtifactDescriptor[] {
   const normalized = normalizeArtifactPath(path);
   return ARTIFACT_DESCRIPTORS.filter((descriptor) => {
-    const pathMatches = descriptor.matcher.kind === 'exact'
-      ? descriptor.matcher.value === normalized
-      : (descriptor.matcher.value as RegExp).test(normalized);
+    // A compatibility alias is the same logical artifact at another location,
+    // so it must resolve to the same owner. Without this, a relocated
+    // projection has no descriptor and every managed write to it is refused.
+    const pathMatches = descriptor.compatibilityAliases.includes(normalized)
+      || (descriptor.matcher.kind === 'exact'
+        ? descriptor.matcher.value === normalized
+        : (descriptor.matcher.value as RegExp).test(normalized));
     if (!pathMatches) return false;
     return region === undefined || descriptor.ownership.region === region;
   });
@@ -260,11 +264,42 @@ export function renderArtifactRegistryTable(): string {
   return ['| Artifact | Current path | Authority | Refresh |', '| --- | --- | --- | --- |', ...rows].join('\n');
 }
 
-/** Renders the prospective generated-directory notice from registry metadata. */
-export function renderGeneratedDirectoryNotice(): string {
+/** Returns whether a descriptor's own or relocated home is the generated directory. */
+function livesInGeneratedDirectory(descriptor: ArtifactDescriptor): boolean {
+  return [descriptor.currentPath, ...descriptor.compatibilityAliases]
+    .some((path) => path.startsWith('spec/generated/'));
+}
+
+/**
+ * Renders the generated-directory notice from registry metadata alone.
+ *
+ * The bytes depend only on the registry and on where each artifact currently
+ * lives, so re-rendering an unchanged workspace is a byte-for-byte no-op.
+ *
+ * @param resolvedPaths - Current location per artifact id; an absent id keeps
+ *     its registry current path.
+ * @see spec/features/spec-02-relocate-generated-0dafcf9d.yaml AC-0d45a5c2
+ */
+export function renderGeneratedDirectoryNotice(resolvedPaths: ReadonlyMap<string, string> = new Map()): string {
   const rows = ARTIFACT_DESCRIPTORS
-    .filter((descriptor) => descriptor.authority === 'generated' || descriptor.authority === 'migration')
+    .filter((descriptor) => (descriptor.authority === 'generated' || descriptor.authority === 'migration') && livesInGeneratedDirectory(descriptor))
     .sort((left, right) => left.id.localeCompare(right.id))
-    .map((descriptor) => `- \`${descriptor.compatibilityAliases[0] ?? descriptor.currentPath}\` — ${descriptor.id}; ${descriptor.refresh}.`);
-  return ['# Generated artifacts', '', 'This notice is projected from the executable artifact registry.', '', ...rows, ''].join('\n');
+    .map((descriptor) => {
+      const target = descriptor.compatibilityAliases[0];
+      const current = resolvedPaths.get(descriptor.id) ?? descriptor.currentPath;
+      const location = target === undefined
+        ? ''
+        : target === current
+          ? ' Relocated.'
+          : ` Current location; relocation target \`${target}\`.`;
+      return `- \`${current}\` — ${descriptor.id}; ${descriptor.refresh}.${location}`;
+    });
+  return [
+    '# Generated artifacts',
+    '',
+    'This notice is projected from the executable artifact registry. Do not edit.',
+    '',
+    ...rows,
+    '',
+  ].join('\n');
 }

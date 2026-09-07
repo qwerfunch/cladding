@@ -130,6 +130,14 @@ Existing features (`F-001` through `F-083` at the time v0.3.9 shipped) keep thei
 
 There is no migration tool because there is no migration need. The legacy ids are stable identifiers in audit logs and external references; rewriting them would break that trail.
 
+## Moving the generated files into spec/generated/ (optional)
+
+Three files under `spec/` are written for you, never by hand: the feature index, the document-link list, and the verification signature. Newer projects can keep them together in a `spec/generated/` folder instead of loose in `spec/`. Nothing forces you to move — both arrangements are fully supported, and cladding reads whichever one your project actually has.
+
+If you want the tidier arrangement, run `clad relocate-generated`. On its own it only shows you the plan and changes nothing. Add `--apply` and it performs the move in a single step that can be undone if it is interrupted, then updates the merge setting in `.gitattributes` to point at the new location of the index. A second run afterwards does nothing, because there is nothing left to move. If a file somehow exists in both places, the command stops and tells you which two copies to reconcile rather than picking one for you.
+
+The move only rearranges files; it does not change your specification, and it does not re-run any verification. This repository itself still uses the original arrangement.
+
 ## When to override the auto-generated id
 
 You shouldn't. The internal `createFeature` accepts a slug only; the host LLM gives you no way to pin a specific `F-<hash8>`. The hash is built from inputs (slug + user + hostname + ms + hrtime) specifically so two developers cannot collude on the same hash by accident or design — that property is what makes git merges safe by construction.
