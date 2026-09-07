@@ -1,6 +1,6 @@
 id: F-0dafcf9d
 title: Alias-aware generated artifacts and opt-in relocation
-status: in_progress
+status: done
 purpose: Schema 0.2 declares spec/generated/ as the final home of the three
   generated projections, but every reader and writer still hard-codes the
   pre-relocation paths and the registry never consults its compatibility
