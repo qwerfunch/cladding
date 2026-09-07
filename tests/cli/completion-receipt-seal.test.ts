@@ -33,6 +33,7 @@ const [
   {runCheckStages}, {runDone}, {explainAttestationMintRefusal},
   {assuranceClosureInputFromWorkspace, featureClosureSeals, workspaceExpectedDigestProducer, workspaceIndependenceInputs},
   {workspaceReceiptCensus}, {compileSpecWorkspace}, {prospectiveDoneCompilation},
+  {createWorkspaceAttestations}, {detectorCatalogSha256}, {allDetectors}, {getCurrentCladdingVersion}, {emptyTrustSnapshot},
   {markFeatureDoneForGate, prepareSchema02DoneEvent}, {readAttestation}, {staleAttestation},
   {createIssuerKey, loadIssuerPrivateKey, signPortableReceipt},
   {serializePortableReceipt, receiptDigest}, {serializeTrustRegistry},
@@ -44,6 +45,11 @@ const [
   import('../../src/assurance/receipt-census.js'),
   import('../../src/spec/compiler/compile.js'),
   import('../../src/spec/prospective.js'),
+  import('../../src/assurance/workspace.js'),
+  import('../../src/spec/attestation.js'),
+  import('../../src/stages/detectors/index.js'),
+  import('../../src/init/host-setup.js'),
+  import('../../src/proof/receipt.js'),
   import('../../src/spec/edit.js'),
   import('../../src/spec/attestation.js'),
   import('../../src/stages/detectors/stale-attestation.js'),
@@ -307,32 +313,58 @@ describe('completion and staleness seal one verification closure', () => {
     }
   });
 
-  test('[covers:F-a0bd9c5a/AC-aced61ad] a green gate that records nothing says which guard refused', () => {
+  test('[covers:F-a0bd9c5a/AC-aced61ad] a feature that is owed an attestation row and does not get one is named', () => {
     const cwd = workspace();
     const cwdBefore = process.cwd();
     const stdout = captureStdout();
     try {
       process.chdir(cwd);
-      // Nothing is done here, so a green push gate has no row to record: the
-      // path that used to finish green and silent.
+      const sealed = runCheckStages({profile: 'push', silent: false});
+      expect(sealed.assurance).toMatchObject({state: 'green', profile_complete: true});
+
+      // The module the gate sealed is edited after it sealed it, so the row the
+      // writer would record no longer describes what was verified. The done
+      // feature is owed a row and cannot be given one; the in-progress feature
+      // is owed none.
+      writeFileSync(join(cwd, 'src', 'a.ts'), 'export const a = false;\n');
+      const refusals: {feature: string; guard: string; detail: string}[] = [];
+      const entries = createWorkspaceAttestations({
+        cwd, compilation: compileSpecWorkspace(cwd), verdict: sealed.assurance!,
+        featureIds: [FEATURE_A, TARGET],
+        detectorCatalogSha256: detectorCatalogSha256(allDetectors),
+        toolIdentity: getCurrentCladdingVersion() ?? 'unknown', environmentClass: 'foreground',
+        trustSnapshotSha256: emptyTrustSnapshot().digest,
+        receiptContext: {candidates: [], trustSnapshot: emptyTrustSnapshot()},
+        onRefusal: (feature, refusal) => refusals.push({feature, ...refusal}),
+      });
+      expect(entries).toEqual([]);
+      expect(refusals.find((refusal) => refusal.feature === FEATURE_A)).toMatchObject({guard: 'verification seal'});
+      expect(refusals.find((refusal) => refusal.feature === FEATURE_A)?.detail).toContain('the gate sealed');
+      expect(refusals.find((refusal) => refusal.feature === TARGET)).toMatchObject({guard: 'feature status'});
+    } finally {
+      process.chdir(cwdBefore);
+      stdout.restore();
+    }
+  });
+
+  test('[covers:F-a0bd9c5a/AC-aced61ad] a workspace that has completed nothing yet gets no unrecorded-row note', () => {
+    const cwd = workspace();
+    const cwdBefore = process.cwd();
+    const stdout = captureStdout();
+    try {
+      process.chdir(cwd);
+      // Nothing is done, so no feature is owed a row. A note here would appear
+      // on every push gate of a workspace that has completed nothing yet.
       writeFileSync(
         join(cwd, 'spec', 'features', 'a-a0a0a0a0.yaml'),
         readFileSync(join(cwd, 'spec', 'features', 'a-a0a0a0a0.yaml'), 'utf8').replace('status: done', 'status: in_progress'),
       );
-      const outcome = runCheckStages({profile: 'push', silent: false});
-      expect(outcome).toMatchObject({worst: 0, anyFailed: false});
-      expect(outcome.attestationRefusal?.guard).toBe('feature status');
-      const attestationNotes = stdout.lines.filter((note) => note.includes('attestation'));
-      expect(attestationNotes.join('')).toContain('not refreshed');
-      expect(attestationNotes.join('')).toContain('feature status');
-
-      // `--strict` is the command every gate message names, and it enters the
-      // legacy stamp branch first: the note has to survive that path too.
-      stdout.lines.length = 0;
-      const strict = runCheckStages({profile: 'push', tier: 'pre-push', strict: true, silent: false});
-      expect(strict).toMatchObject({worst: 0, anyFailed: false});
-      expect(strict.attestationRefusal?.guard).toBe('feature status');
-      expect(stdout.lines.filter((note) => note.includes('attestation')).join('')).toContain('not refreshed');
+      for (const strict of [false, true]) {
+        stdout.lines.length = 0;
+        const outcome = runCheckStages({profile: 'push', tier: 'pre-push', strict, silent: false});
+        expect(outcome).toMatchObject({worst: 0, anyFailed: false});
+        expect(stdout.lines.join('')).not.toContain('not refreshed');
+      }
     } finally {
       process.chdir(cwdBefore);
       stdout.restore();

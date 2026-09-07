@@ -603,6 +603,9 @@ export interface CheckStageOptions {
 }
 
 /** Runs stages, refusing public completion transport flags without a prepared capability. */
+/** How many unrecorded done features are named before the note summarizes the rest. */
+const ATTESTATION_REFUSAL_NOTE_LIMIT = 5;
+
 export function runCheckStages(opts: CheckStageOptions): CheckOutcome {
   const requestsCompletion = opts.deferAttestation === true
     || opts.prospectiveFeatureId !== undefined
@@ -919,6 +922,11 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
   let attestationError: string | undefined;
   let deferredAttestation: CheckOutcome['commitAttestation'];
   let attestationRefusal: CheckOutcome['attestationRefusal'];
+  // Only a DONE feature is owed an attestation row, so only a done feature's
+  // refusal is worth reporting: an in-progress or planned feature having no row
+  // is the design, not a fault, and reporting it would put a line on every push
+  // gate of a workspace that has not completed anything yet.
+  const doneRefusals: {readonly feature: string; readonly guard: string; readonly detail: string}[] = [];
   if (requestedProfile) {
     try {
       const compilation = profileCompilation ?? compileSpecWorkspace('.');
@@ -1114,14 +1122,16 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
               toolIdentity: getCurrentCladdingVersion() ?? 'unknown', environmentClass: 'foreground',
               trustSnapshotSha256: receiptContext.trustSnapshot.digest,
               receiptContext,
-              // A completion reports only its own target. A broad push/release
-              // profile has no single target, so it reports the first feature
-              // it could not record — most often an in-progress sibling, which
-              // it refuses by design.
               onRefusal: (feature, refusal) => {
+                // `clad done` reports its own target; a broad push/release
+                // profile has no single target and reports each done feature
+                // it could not record.
                 if (attestationRefusal === undefined && replacementFeatureIds.includes(feature)
                   && (opts.prospectiveFeatureId === undefined || feature === opts.prospectiveFeatureId)) {
                   attestationRefusal = refusal;
+                }
+                if (attestationCompilation.contract?.features.find((candidate) => candidate.id === feature)?.status === 'done') {
+                  doneRefusals.push({feature, ...refusal});
                 }
               },
             });
@@ -1209,9 +1219,16 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
   // standalone check, not an `else`: under `--strict` the legacy stamp branch
   // above is entered and then falls through without writing a schema 0.2 row,
   // and `--strict` is the command every gate message names.
-  if (assuranceSchema === '0.2' && !schema02MayStamp && !anyFailed && !silent && !opts.json
-    && assurance?.state === 'green' && assurance.profile_complete && attestationRefusal) {
-    pulse('note', 'attestation', `not refreshed — ${attestationRefusal.guard}: ${attestationRefusal.detail}.`);
+  if (assuranceSchema === '0.2' && !anyFailed && !silent && !opts.json
+    && assurance?.state === 'green' && assurance.profile_complete && doneRefusals.length > 0) {
+    // Naming the feature is the point: a row that was owed and not written is
+    // only actionable if the reader knows which feature is missing one.
+    for (const refusal of doneRefusals.slice(0, ATTESTATION_REFUSAL_NOTE_LIMIT)) {
+      pulse('note', 'attestation', `not refreshed for ${refusal.feature} — ${refusal.guard}: ${refusal.detail}.`);
+    }
+    if (doneRefusals.length > ATTESTATION_REFUSAL_NOTE_LIMIT) {
+      pulse('note', 'attestation', `… and ${doneRefusals.length - ATTESTATION_REFUSAL_NOTE_LIMIT} more feature(s) whose verification was not recorded.`);
+    }
   }
   if (opts.json && !silent) {
     // Machine-readable, UNTRUNCATED — findings carry file/line/suggestion so an
