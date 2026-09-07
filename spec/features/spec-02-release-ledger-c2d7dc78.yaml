@@ -1,6 +1,6 @@
 id: F-c2d7dc78
 title: Release boundary in the validation ledger
-status: in_progress
+status: done
 purpose: The Spec 0.2 validation ledger names every scenario but never says
   which ones gate a release, so a simulated journey and an MCP row the design
   calls blocking read as either honest or evasive depending on the reader;
