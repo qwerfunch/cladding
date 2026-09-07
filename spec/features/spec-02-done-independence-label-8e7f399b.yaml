@@ -1,6 +1,6 @@
 id: F-8e7f399b
 title: Schema 0.2 completion reports the kernel independence label
-status: in_progress
+status: done
 purpose: In a schema 0.2 workspace clad done prints the evidence-ledger
   independence label that a signoff alone can flip to independent, while the
   assurance kernel that attested the completion reports a scope label derived
