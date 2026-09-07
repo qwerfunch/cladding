@@ -16,6 +16,7 @@
 //                            stale findings and re-attests (see clad.ts).
 
 import {featureAttestation, featureAttestationV3Closure, readAttestation} from '../../spec/attestation.js';
+import {workspaceReceiptCensus} from '../../assurance/receipt-census.js';
 import {assuranceClosureInputFromWorkspace, featureClosureSeals, type FeatureClosureSeals} from '../../assurance/workspace.js';
 import {compileSpecWorkspace} from '../../spec/compiler/compile.js';
 import type {Spec} from '../../spec/types.js';
@@ -60,9 +61,24 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
     ];
   }
 
-  const currentV3Seals = attested.v3 !== null && spec.schema === '0.2' ? currentV3ClosureSeals(cwd) : undefined;
+  const current = attested.v3 !== null && spec.schema === '0.2' ? currentV3ClosureSeals(cwd) : undefined;
+  const currentV3Seals = current?.kind === 'seals' ? current.seals : undefined;
   const findings: DriftFinding[] = [...conflict];
   for (const f of done) {
+    // An unprovable receipt census leaves this row unknown, not stale: say
+    // which one and stop, rather than comparing against a substituted set.
+    if (current?.kind === 'census-unsafe' && attested.v3?.has(f.id) === true) {
+      findings.push({
+        detector: NAME,
+        severity: 'warn',
+        path: attestationPath,
+        message:
+          `${f.id}'s verification could not be checked — the evidence files under spec/evidence could not all be read safely, `
+          + 'so whether its shipped code still matches its last attested verification is unknown. '
+          + 'Remove any link or non-receipt file placed under spec/evidence, then run `clad check --tier=pre-push --strict`.',
+      });
+      continue;
+    }
     // v3 precedence is feature-local.  A mixed transition keeps an untouched
     // sibling's v2 marker/module map authoritative until that feature earns a
     // valid v3 row of its own.
@@ -99,13 +115,34 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
   return findings;
 }
 
-/** Compiles only the D17 closure inputs; no stage, scheduler, or issuer runs here. */
-function currentV3ClosureSeals(cwd: string): ReadonlyMap<string, FeatureClosureSeals> | undefined {
+/**
+ * Compiles only the D17 closure inputs; no stage, scheduler, or issuer runs here.
+ *
+ * The seal is computed over the SAME receipt-carrying closure the gate sealed
+ * when it wrote the row. Reading a receipt-free closure here would report every
+ * attested feature of a workspace that holds receipts as stale.
+ *
+ * `census-unsafe` is not a comparison result: when the receipt walk cannot be
+ * proved complete, this detector knows neither that the row is fresh nor that
+ * it is stale, and must say so rather than compare against an empty receipt set.
+ */
+function currentV3ClosureSeals(cwd: string):
+  | {readonly kind: 'seals'; readonly seals: ReadonlyMap<string, FeatureClosureSeals>}
+  | {readonly kind: 'census-unsafe'}
+  | undefined {
   try {
     const compilation = compileSpecWorkspace(cwd);
     if (compilation.schemaVersion !== '0.2') return undefined;
-    const input = assuranceClosureInputFromWorkspace(cwd, compilation);
-    return new Map((compilation.contract?.features ?? []).map((feature) => [feature.id, featureClosureSeals(input, feature.id)]));
+    const base = assuranceClosureInputFromWorkspace(cwd, compilation);
+    const {receiptContext} = workspaceReceiptCensus(cwd, base);
+    if (receiptContext === undefined) return {kind: 'census-unsafe'};
+    const input = receiptContext.candidates.length === 0
+      ? base
+      : assuranceClosureInputFromWorkspace(cwd, compilation, receiptContext);
+    return {
+      kind: 'seals',
+      seals: new Map((compilation.contract?.features ?? []).map((feature) => [feature.id, featureClosureSeals(input, feature.id)])),
+    };
   } catch {
     return undefined;
   }

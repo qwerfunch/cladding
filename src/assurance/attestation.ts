@@ -3,7 +3,7 @@
 import {createHash} from 'node:crypto';
 
 import {canonicalClosureJson} from './closures.js';
-import {hasRunCheckStagesAuthority} from './run-authority.js';
+import {explainRunCheckStagesAuthority, hasRunCheckStagesAuthority} from './run-authority.js';
 import type {AssuranceVerdict} from './kernel.js';
 import {compareCodeUnits, type AssuranceLevel} from './registry.js';
 import type {PersistedReceiptCandidate} from './receipt-adapter.js';
@@ -225,6 +225,68 @@ export function mintWorkspaceAttestationV3(input: AttestationV3Input): Authorita
   });
   AUTHORITATIVE_V3_ROWS.add(entry);
   return entry;
+}
+
+/**
+ * Names why an otherwise-eligible feature could not be given an attestation row.
+ *
+ * `mintWorkspaceAttestationV3` returns `undefined` for six different reasons,
+ * and a refusal that says nothing leaves the completion command reporting only
+ * that no claim was written. This re-runs the same conditions in the same order
+ * and reports the first one that refused, so the person reading the gate output
+ * learns which guard to answer.
+ *
+ * @param input - The exact candidate row `mintWorkspaceAttestationV3` refused.
+ * @returns The refusing guard and its detail, or undefined when the row is mintable.
+ * @throws Never.
+ * @example
+ * ```ts
+ * const refusal = explainAttestationMintRefusal(candidate);
+ * ```
+ * @since 0.10.0
+ * @internal
+ */
+export function explainAttestationMintRefusal(
+  input: AttestationV3Input,
+): {readonly guard: string; readonly detail: string} | undefined {
+  const verdict = input.verdict;
+  if (verdict.results.length === 0) return {guard: 'gate result', detail: 'the gate recorded no checks to attest'};
+  if (verdict.profile !== 'completion' && verdict.profile !== 'push' && verdict.profile !== 'release') {
+    return {guard: 'gate result', detail: `the ${verdict.profile} gate does not carry authority to record a verification`};
+  }
+  if (!verdict.profile_complete) return {guard: 'gate result', detail: 'the gate could not prove every required check applied'};
+  if (verdict.state !== 'green') return {guard: 'gate result', detail: 'the gate did not finish green'};
+  if (hasDuplicateResultKeys(verdict)) return {guard: 'observations', detail: 'one check reported two results for the same subject'};
+  if (verdict.results.some((result) => result.state === 'unobserved')) {
+    return {guard: 'observations', detail: 'a required check produced no observation of its own'};
+  }
+  if (verdict.results.some((result) => result.state === 'fail' && result.blocking !== 'report')) {
+    return {guard: 'observations', detail: 'a blocking check failed'};
+  }
+  const authority = explainRunCheckStagesAuthority(verdict, input.feature, verdict.input_sha256, {
+    contractSha256: input.contractSha256,
+    subjectSha256: input.subjectSha256,
+    verificationSha256: input.verificationSha256,
+    runtimeDependencySha256: input.runtimeDependencySha256,
+  }, {
+    registrySha256: input.registrySha256,
+    detectorCatalogSha256: input.detectorCatalogSha256,
+    toolIdentity: input.toolIdentity,
+    environmentClass: input.environmentClass,
+    trustSnapshotSha256: input.trustSnapshotSha256,
+  });
+  if (authority !== undefined) return authority;
+  if (compactMigrationBaselineRows(verdict.results) === undefined) {
+    return {guard: 'migration baseline', detail: 'a carried-forward baseline row was not anchored by this run'};
+  }
+  const observationIdentities = new Set(verdict.results.flatMap((result) => result.observation_identities));
+  const required = verdict.results.filter((result) => result.state !== 'na').length;
+  const migrationBaseline = verdict.results.filter((result) => result.state === 'migration_baseline').length;
+  if (required === 0) return {guard: 'observations', detail: 'no check in this run applied to the feature'};
+  if (observationIdentities.size < required - migrationBaseline) {
+    return {guard: 'observations', detail: 'fewer observations were recorded than the checks that required them'};
+  }
+  return undefined;
 }
 
 /**

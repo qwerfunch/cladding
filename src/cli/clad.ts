@@ -85,7 +85,7 @@ import {
 import {requiredRootSchema} from '../spec/transaction.js';
 import {writeSpecDrivenAgentsMd} from '../init/agents-md.js';
 import {repairTestRefs} from '../spec/test-ref-repair.js';
-import {captureAttestationInputSnapshot, detectorCatalogSha256, featureAttestationV3, readAttestation, receiptFileCensus, writeAttestation} from '../spec/attestation.js';
+import {captureAttestationInputSnapshot, detectorCatalogSha256, featureAttestationV3, readAttestation, writeAttestation} from '../spec/attestation.js';
 import {compileSpecWorkspace, compileSpecWorkspaceWithLockHeld} from '../spec/compiler/compile.js';
 import type {SpecCompilation} from '../spec/compiler/types.js';
 import {
@@ -98,11 +98,12 @@ import {reduceLegacyStageAdapter} from '../assurance/adapters.js';
 import {createAttestationV3RetentionContext} from '../assurance/attestation.js';
 import {canonicalClosureJson, type AssuranceClosureInput} from '../assurance/closures.js';
 import {currentReceiptIdentities} from '../assurance/receipt-adapter.js';
+import {workspaceReceiptCensus} from '../assurance/receipt-census.js';
 import {mintRunCheckStagesAuthority} from '../assurance/run-authority.js';
-import {assuranceClosureInputFromWorkspace, createWorkspaceAttestations, currentProofViewsFromWorkspace, effectiveFeatureScope, featureClosureSeals, hasApplicableSchema02TestCriteria, runnerConfigurationResolver, workspaceClosureSeals, workspaceExpectedDigestProducer, workspaceIndependenceInputs, workspaceProfileSnapshot, type BoundCriteriaCollector, type WorkspaceProfileSnapshot, type WorkspaceReceiptContext} from '../assurance/workspace.js';
+import {assuranceClosureInputFromWorkspace, createWorkspaceAttestations, currentProofViewsFromWorkspace, effectiveFeatureScope, featureClosureSeals, hasApplicableSchema02TestCriteria, runnerConfigurationResolver, workspaceClosureSeals, workspaceIndependenceInputs, workspaceProfileSnapshot, type BoundCriteriaCollector, type WorkspaceProfileSnapshot, type WorkspaceReceiptContext} from '../assurance/workspace.js';
 import {liveCriterionReportsFromCurrentRun, staticCriterionReportsFromWorkspace, staticCriterionScopeFromWorkspace} from '../assurance/criterion-observations.js';
-import {emptyTrustSnapshot, parsePortableReceiptYaml, type PortableReceipt, type ReceiptExpectedDigestContext, type TrustSnapshot} from '../proof/receipt.js';
-import {evidenceOperations, loadTrustSnapshot} from '../proof/trust.js';
+import {emptyTrustSnapshot, type TrustSnapshot} from '../proof/receipt.js';
+import {evidenceOperations} from '../proof/trust.js';
 import {assuranceProfile, invalidateAssuranceVerdict, resolveRequestedAssuranceLevel, type AssuranceProfile, type AssuranceVerdict} from '../assurance/kernel.js';
 import {normalizeProfile, OBLIGATION_DESCRIPTORS, profileBlocksWarnClass, type AssuranceLevel, type AssuranceProfileId} from '../assurance/registry.js';
 import {buildBlindPayload, renderBlindBrief} from '../oracle/payload.js';
@@ -531,6 +532,12 @@ export interface CheckOutcome {
   readonly error?: string;
   /** Deferred only for schema-0.2 `done`, then committed under its F4 target lock. */
   readonly commitAttestation?: (completion: GeneratedAttestationCompletion) => void;
+  /**
+   * Present only when a GREEN schema 0.2 gate could not record a verification
+   * for the feature it was scoped to. It names the guard that refused, so the
+   * caller reports a cause instead of an unexplained missing claim.
+   */
+  readonly attestationRefusal?: {readonly guard: string; readonly detail: string};
 }
 
 /**
@@ -911,6 +918,7 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
   let v3Freshness: readonly {readonly feature: string; readonly state: 'fresh' | 'stale' | 'unattested'; readonly field?: string}[] = [];
   let attestationError: string | undefined;
   let deferredAttestation: CheckOutcome['commitAttestation'];
+  let attestationRefusal: CheckOutcome['attestationRefusal'];
   if (requestedProfile) {
     try {
       const compilation = profileCompilation ?? compileSpecWorkspace('.');
@@ -1049,7 +1057,11 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
           ? prospectiveDoneCompilation(compilation, opts.prospectiveFeatureId)
           : compilation;
         if (compilation.schemaVersion === '0.2' && plan && closureStable) {
-          const closures = assuranceClosureInputFromWorkspace('.', attestationCompilation);
+          // The authority seals exactly what the writer will seal below:
+          // same compilation, same receipt context. A verified receipt is a
+          // closure input, so sealing a receipt-free closure here would make
+          // the writer's row unmintable in every workspace that holds one.
+          const closures = assuranceClosureInputFromWorkspace('.', attestationCompilation, plan.receiptContext);
           const featureSeals = plan.scopeAddresses.flatMap((address) => {
             if (!address.startsWith('feature:')) return [];
             const feature = address.slice('feature:'.length);
@@ -1102,6 +1114,16 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
               toolIdentity: getCurrentCladdingVersion() ?? 'unknown', environmentClass: 'foreground',
               trustSnapshotSha256: receiptContext.trustSnapshot.digest,
               receiptContext,
+              // A completion reports only its own target. A broad push/release
+              // profile has no single target, so it reports the first feature
+              // it could not record — most often an in-progress sibling, which
+              // it refuses by design.
+              onRefusal: (feature, refusal) => {
+                if (attestationRefusal === undefined && replacementFeatureIds.includes(feature)
+                  && (opts.prospectiveFeatureId === undefined || feature === opts.prospectiveFeatureId)) {
+                  attestationRefusal = refusal;
+                }
+              },
             });
             v3Retention = createAttestationV3RetentionContext(v3Entries, receiptContext);
             const previous = readAttestation('.');
@@ -1182,6 +1204,15 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
       }
     }
   }
+  // A green gate that records nothing used to say nothing at all, which is how
+  // a verification that could never be recorded stayed invisible. This is a
+  // standalone check, not an `else`: under `--strict` the legacy stamp branch
+  // above is entered and then falls through without writing a schema 0.2 row,
+  // and `--strict` is the command every gate message names.
+  if (assuranceSchema === '0.2' && !schema02MayStamp && !anyFailed && !silent && !opts.json
+    && assurance?.state === 'green' && assurance.profile_complete && attestationRefusal) {
+    pulse('note', 'attestation', `not refreshed — ${attestationRefusal.guard}: ${attestationRefusal.detail}.`);
+  }
   if (opts.json && !silent) {
     // Machine-readable, UNTRUNCATED — findings carry file/line/suggestion so an
     // agent fixes in one pass instead of re-running to discover where + what.
@@ -1237,7 +1268,7 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
     blockers: blockingDetectorNames(collected),
     stopFingerprint: gateStopFingerprint(collected),
   });
-  return {worst, anyFailed, stages: collected, ...(assurance ? {assurance} : {}), ...(deferredAttestation ? {commitAttestation: deferredAttestation} : {})};
+  return {worst, anyFailed, stages: collected, ...(assurance ? {assurance} : {}), ...(deferredAttestation ? {commitAttestation: deferredAttestation} : {}), ...(attestationRefusal ? {attestationRefusal} : {})};
 }
 
 /** Refuses caller-supplied completion transport before any stage or writer side effect. */
@@ -1347,22 +1378,10 @@ function schema02AssurancePlan(
   // Deriving expected digests from a receipt-carrying closure would make each
   // receipt's `reviewed_inputs_sha256` depend on itself and on its siblings.
   const controlResolver = runnerConfigurationResolver('.');
-  const trustSnapshot = loadTrustSnapshot('.');
-  const census = receiptFileCensus('.');
   const baseClosures = assuranceClosureInputFromWorkspace('.', compilation, undefined, undefined, controlResolver);
-  const expectedFor = workspaceExpectedDigestProducer('.', baseClosures);
-  // One expected-digest resolution per census file feeds both the candidate
-  // snapshot and the writer's location census, which must agree exactly.
-  const resolved = (census ?? []).map((file) => ({
-    path: file.path, bytes: file.bytes, expected: expectedDigestsForReceiptFile(file, expectedFor),
-  }));
-  const receiptContext: WorkspaceReceiptContext | undefined = census === undefined ? undefined : {
-    candidates: resolved.map((file) => ({bytes: file.bytes, expected: file.expected})),
-    trustSnapshot,
-    // The writer rereads these exact paths under the F4 lock; without the
-    // census a non-empty candidate set can never retain a sibling row.
-    currentLocations: resolved.map((file) => ({path: file.path, expected: file.expected})),
-  };
+  // One shared assembly, so the gate, the attestation writer, and the
+  // staleness detector can never seal three different receipt sets.
+  const {trustSnapshot, receiptContext} = workspaceReceiptCensus('.', baseClosures);
   // Receipt identities are the ONLY receipt-derived closure input, so they are
   // spread onto the one assembled closure rather than paying for a second
   // module/binding walk that would otherwise run on every gate.
@@ -1378,7 +1397,7 @@ function schema02AssurancePlan(
     scopeComplete,
     closureInput: gateClosures,
     controlResolver,
-    ...(census === undefined ? {receiptCensusComplete: false} : {}),
+    ...(receiptContext === undefined ? {receiptCensusComplete: false} : {}),
   });
   let snapshot = buildSnapshot(effectiveScope.complete);
   const selectScope = (scopeAddresses: readonly string[]): void => {
@@ -1425,19 +1444,6 @@ function schema02AssurancePlan(
   };
 }
 
-/**
- * Resolves one census file's expected digests without trusting its stored bytes.
- *
- * A file the census already proved canonical still gets reparsed here: the
- * expected context belongs to the CURRENT closure, and an unresolvable subject
- * must leave the context empty rather than borrowing a neighbour's digests.
- */
-function expectedDigestsForReceiptFile(
-  file: {readonly bytes: string},
-  expectedFor: (receipt: PortableReceipt) => ReceiptExpectedDigestContext | undefined,
-): ReceiptExpectedDigestContext {
-  try { return expectedFor(parsePortableReceiptYaml(file.bytes)) ?? {}; } catch { return {}; }
-}
 
 /** Handler for `clad check`. Runs the tier's Iron Law stages; exits with worst code. */
 /** Handler for `clad context <query>` (F-d2c806) — print the context slice. */

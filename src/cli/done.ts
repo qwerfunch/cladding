@@ -77,6 +77,8 @@ export interface DoneDeps {
      */
     assurance?: {readonly independence: DoneIndependenceLabel};
     commitAttestation?: (completion: GeneratedAttestationCompletion) => void;
+    /** Names the guard that refused to record a verification, when one did. */
+    attestationRefusal?: {readonly guard: string; readonly detail: string};
   };
   /**
    * Regenerate the committed feature index after a status flip (on BOTH the
@@ -295,6 +297,8 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
     stages?: readonly TelemetryStage[];
     assurance?: {readonly independence: DoneIndependenceLabel};
     commitAttestation?: (completion: GeneratedAttestationCompletion) => void;
+    /** Names the guard that refused to record a verification, when one did. */
+    attestationRefusal?: {readonly guard: string; readonly detail: string};
   };
   const schemaVersion = marked.schemaVersion;
   try {
@@ -374,7 +378,9 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
       prevStatus: marked.previousStatus,
       shardPath: marked.path,
       ...reported,
-      reason: 'completion receipt was not prepared, so no completion claim was written.',
+      reason: gate.attestationRefusal
+        ? `completion receipt was not prepared (${gate.attestationRefusal.guard}: ${gate.attestationRefusal.detail}), so no completion claim was written.`
+        : 'completion receipt was not prepared, so no completion claim was written.',
     };
   }
   if (worst === 0 && !selfCertBlocked) {

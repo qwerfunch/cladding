@@ -7,7 +7,7 @@ import {dirname, extname, isAbsolute, join, relative, resolve} from 'node:path';
 import {parse} from '@babel/parser';
 import {parse as parseYaml} from 'yaml';
 
-import {mintWorkspaceAttestationV3, type AttestationReceiptContext, type AuthoritativeAttestationV3} from './attestation.js';
+import {explainAttestationMintRefusal, mintWorkspaceAttestationV3, type AttestationReceiptContext, type AttestationV3Input, type AuthoritativeAttestationV3} from './attestation.js';
 import {currentReceiptIdentities} from './receipt-adapter.js';
 import {
   contractClosure,
@@ -1073,6 +1073,12 @@ export function createWorkspaceAttestations(input: {
   readonly trustSnapshotSha256: string;
   /** Current F5-verified receipt/trust inputs; F6 supplies an empty snapshot. */
   readonly receiptContext?: WorkspaceReceiptContext;
+  /**
+   * Receives the guard that refused each feature that could not be attested,
+   * so a caller can say WHY no verification was recorded instead of only that
+   * none was. Reporting only; it can never turn a refusal into a row.
+   */
+  readonly onRefusal?: (feature: string, refusal: {readonly guard: string; readonly detail: string}) => void;
 }): readonly AuthoritativeAttestationV3[] {
   // The compiler records an existing managed baseline artifact even when its
   // contents are invalid. Such a receipt is a closure input, never an absent
@@ -1080,7 +1086,12 @@ export function createWorkspaceAttestations(input: {
   if (input.compilation.schemaVersion === '0.2'
     && input.compilation.nodes.some((node) => node.nodeType === 'artifact'
       && node.address === artifactAddress('spec/generated/migration-baseline-0.1-to-0.2.yaml'))
-    && validatedMigrationBaselineReceiptSha256(input.compilation) === null) return Object.freeze([]);
+    && validatedMigrationBaselineReceiptSha256(input.compilation) === null) {
+    for (const feature of new Set(input.featureIds)) {
+      input.onRefusal?.(feature, {guard: 'migration baseline', detail: 'the recorded migration baseline artifact is not valid'});
+    }
+    return Object.freeze([]);
+  }
   const closures = assuranceClosureInputFromWorkspace(input.cwd, input.compilation, input.receiptContext);
   const registrySha256 = createHash('sha256').update(canonicalClosureJson(OBLIGATION_DESCRIPTORS), 'utf8').digest('hex');
   const entries: AuthoritativeAttestationV3[] = [];
@@ -1089,13 +1100,16 @@ export function createWorkspaceAttestations(input: {
     // push/release profile can observe all contract features, but it must not
     // stamp an in-progress sibling merely because its closures happen to load.
     const compiledFeature = input.compilation.contract?.features.find((candidate) => candidate.id === feature);
-    if (input.compilation.schemaVersion === '0.2' && compiledFeature?.status !== 'done') continue;
+    if (input.compilation.schemaVersion === '0.2' && compiledFeature?.status !== 'done') {
+      input.onRefusal?.(feature, {guard: 'feature status', detail: 'the feature is not marked done in the compiled spec'});
+      continue;
+    }
     const seals = featureClosureSeals(closures, feature);
     // `featureClosureSeals.complete` describes every possible L2/L4 proof
     // input.  A profile-aware snapshot has already rejected a missing closure
     // that this profile actually requires; an L1 completion must not pretend
     // the absent optional proof is a reason to suppress its authoritative row.
-    const entry = mintWorkspaceAttestationV3({
+    const candidate: AttestationV3Input = {
       verdict: input.verdict,
       feature,
       contractSha256: seals.contractSha256,
@@ -1107,8 +1121,13 @@ export function createWorkspaceAttestations(input: {
       toolIdentity: input.toolIdentity,
       environmentClass: input.environmentClass,
       trustSnapshotSha256: input.trustSnapshotSha256,
-    });
+    };
+    const entry = mintWorkspaceAttestationV3(candidate);
     if (entry) entries.push(entry);
+    else if (input.onRefusal) {
+      const refusal = explainAttestationMintRefusal(candidate);
+      if (refusal) input.onRefusal(feature, refusal);
+    }
   }
   return entries;
 }

@@ -1,0 +1,54 @@
+id: F-a0bd9c5a
+title: Completion attestation seals the receipt-inclusive verification closure
+status: in_progress
+purpose: "The run authority seals a feature's verification closure without
+  receipt identities while the attestation writer and the sibling evaluator
+  compute the same seal with them, so any schema 0.2 workspace holding one
+  verified receipt can never mint an attestation row: clad done refuses with an
+  unexplained missing receipt and the push gate silently stops stamping, which
+  blocks exactly the L4 evidence path this release ships."
+modules:
+  - src/cli/clad.ts
+  - src/cli/done.ts
+  - src/assurance/workspace.ts
+  - src/assurance/attestation.ts
+  - src/assurance/receipt-census.ts
+  - src/assurance/run-authority.ts
+  - src/stages/detectors/stale-attestation.ts
+  - tests/cli/completion-receipt-seal.test.ts
+depends_on: []
+capability_refs: []
+acceptance_criteria:
+  - id: AC-3e76a5ce
+    kind: behavior
+    statement: When a schema 0.2 workspace holds a verified receipt for the feature
+      being completed, the completion gate shall mint that feature's attestation
+      row from the same receipt-inclusive verification closure the run authority
+      sealed.
+  - id: AC-615ccc2a
+    kind: behavior
+    statement: When an attested schema 0.2 feature has receipts on disk, the
+      stale-attestation detector shall compute its verification seal over the
+      same receipt-inclusive closure the writer used.
+  - id: AC-aced61ad
+    kind: behavior
+    statement: When the completion gate refuses to mint an attestation row, the done
+      command and the push gate shall name the guard that refused.
+  - id: AC-4a2db746
+    kind: behavior
+    statement: When the receipt census cannot be enumerated safely, the
+      stale-attestation detector shall report that the row cannot be checked
+      instead of computing over an empty receipt set.
+  - id: AC-3df52e18
+    kind: constraint
+    statement: The expected-digest producer and the independence inputs shall keep
+      computing over the receipt-free closure.
+    rationale: A receipt's reviewed-inputs digest must not depend on itself or on
+      its sibling receipts, so the closure those two consumers read stays
+      receipt-free by design.
+design_impact:
+  classification: none
+  rationale: The fix aligns two callers with the verification closure the design
+    and the kernel already define as receipt-inclusive; no design-document
+    statement, capability, or scenario changes.
+  status: resolved

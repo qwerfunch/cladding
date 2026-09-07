@@ -99,26 +99,62 @@ export function hasRunCheckStagesAuthority(
   seal: Omit<AttestationFeatureSeal, 'feature'>,
   profileIdentity: AttestationProfileIdentity,
 ): boolean {
+  return explainRunCheckStagesAuthority(verdict, feature, inputSha256, seal, profileIdentity) === undefined;
+}
+
+/**
+ * Names the first authority condition a candidate row fails, in plain words.
+ *
+ * The predicate above is the decision; this is its diagnosis, and both read the
+ * same list so a refusal can never be explained by a condition the gate does
+ * not actually apply. A silent refusal is what made the receipt/attestation
+ * seal split invisible for a whole release.
+ *
+ * @param verdict - The in-process reducer verdict the authority was minted for.
+ * @param feature - Feature whose row is being minted.
+ * @param inputSha256 - Compiler snapshot identity the caller sealed.
+ * @param seal - Candidate closure seals for this feature.
+ * @param profileIdentity - Candidate registry/tool/environment/trust identities.
+ * @returns The failing condition and its detail, or undefined when authority holds.
+ * @throws Never.
+ * @since 0.10.0
+ * @internal
+ */
+export function explainRunCheckStagesAuthority(
+  verdict: AssuranceVerdict,
+  feature: string,
+  inputSha256: string,
+  seal: Omit<AttestationFeatureSeal, 'feature'>,
+  profileIdentity: AttestationProfileIdentity,
+): {readonly guard: string; readonly detail: string} | undefined {
   const authority = RUN_CHECK_STAGES_AUTHORITIES.get(verdict);
-  const expectedSeal = authority?.featureSeals.get(feature);
-  return authority !== undefined
-    && authority.inputSha256 === inputSha256
-    && authority.inputSha256 === verdict.input_sha256
-    && authority.scopeSha256 === verdict.scope_sha256
-    && authority.featureIds.has(feature)
-    && expectedSeal !== undefined
-    && expectedSeal.contractSha256 === seal.contractSha256
-    && expectedSeal.subjectSha256 === seal.subjectSha256
-    && expectedSeal.verificationSha256 === seal.verificationSha256
-    && expectedSeal.runtimeDependencySha256 === seal.runtimeDependencySha256
-    && authority.profileIdentity.registrySha256 === profileIdentity.registrySha256
-    && authority.profileIdentity.detectorCatalogSha256 === profileIdentity.detectorCatalogSha256
-    && authority.profileIdentity.toolIdentity === profileIdentity.toolIdentity
-    && authority.profileIdentity.environmentClass === profileIdentity.environmentClass
-    && authority.profileIdentity.trustSnapshotSha256 === profileIdentity.trustSnapshotSha256
-    && verdict.state === 'green'
-    && verdict.profile_complete
-    && authority.observationSeal === verdictObservationSeal(verdict);
+  if (authority === undefined) return {guard: 'run authority', detail: 'this verdict was not sealed by the gate that ran the stages'};
+  if (authority.inputSha256 !== inputSha256 || authority.inputSha256 !== verdict.input_sha256) {
+    return {guard: 'compiler snapshot', detail: 'the spec compiled to a different snapshot than the one the gate sealed'};
+  }
+  if (authority.scopeSha256 !== verdict.scope_sha256) return {guard: 'scope', detail: 'the verdict covers a different scope than the gate sealed'};
+  if (!authority.featureIds.has(feature)) return {guard: 'scope', detail: `${feature} is outside the scope this run sealed`};
+  const expectedSeal = authority.featureSeals.get(feature);
+  if (expectedSeal === undefined) return {guard: 'verification seal', detail: `the gate sealed no closure for ${feature}`};
+  const sealField = expectedSeal.contractSha256 !== seal.contractSha256 ? 'contract'
+    : expectedSeal.subjectSha256 !== seal.subjectSha256 ? 'subject'
+      : expectedSeal.verificationSha256 !== seal.verificationSha256 ? 'verification'
+        : expectedSeal.runtimeDependencySha256 !== seal.runtimeDependencySha256 ? 'runtime dependency' : undefined;
+  if (sealField !== undefined) {
+    return {guard: 'verification seal', detail: `the ${sealField} closure being recorded differs from the one the gate sealed`};
+  }
+  const identityField = authority.profileIdentity.registrySha256 !== profileIdentity.registrySha256 ? 'obligation registry'
+    : authority.profileIdentity.detectorCatalogSha256 !== profileIdentity.detectorCatalogSha256 ? 'detector catalog'
+      : authority.profileIdentity.toolIdentity !== profileIdentity.toolIdentity ? 'tool version'
+        : authority.profileIdentity.environmentClass !== profileIdentity.environmentClass ? 'environment'
+          : authority.profileIdentity.trustSnapshotSha256 !== profileIdentity.trustSnapshotSha256 ? 'trust registry' : undefined;
+  if (identityField !== undefined) return {guard: 'run identity', detail: `the ${identityField} changed during this run`};
+  if (verdict.state !== 'green') return {guard: 'gate result', detail: 'the gate did not finish green'};
+  if (!verdict.profile_complete) return {guard: 'gate result', detail: 'the gate could not prove every required check applied'};
+  if (authority.observationSeal !== verdictObservationSeal(verdict)) {
+    return {guard: 'observations', detail: 'the recorded stage results changed after the gate sealed them'};
+  }
+  return undefined;
 }
 
 function verdictObservationIdentities(verdict: AssuranceVerdict): string[] {
