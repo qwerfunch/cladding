@@ -16,6 +16,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 - `test-count.mjs --write` also syncs the README feature counts.
 - `clad relocate-generated` previews moving the generated index, document-link, and attestation projections into `spec/generated/`, and with `--apply` performs the move as one recoverable transaction. Relocation is opt-in: the pre-relocation layout stays fully supported.
 - A schema 0.2 workspace projects `spec/generated/README.md` from the artifact registry, naming where each generated artifact lives and where relocation would move it.
+- The Spec 0.2 validation ledger declares which scenarios block the 0.10.0 release, and `npm run validate:spec-0.2:release` refuses with a nonzero exit while any of them lacks discriminating evidence. Reference-host evidence counts only when its recorded receipt is signed by an issuer registered in the trust snapshot recorded alongside it.
 
 ### Changed
 

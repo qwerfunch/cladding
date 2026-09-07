@@ -1,0 +1,85 @@
+id: F-c2d7dc78
+title: Release boundary in the validation ledger
+status: in_progress
+purpose: The Spec 0.2 validation ledger names every scenario but never says
+  which ones gate a release, so a simulated journey and an MCP row the design
+  calls blocking read as either honest or evasive depending on the reader;
+  declaring the 0.10.0 release boundary in the ledger, giving MCP rows
+  executable test references, and letting the validator fail a release run on
+  any unmet blocking row makes the release claim checkable instead of narrated.
+modules:
+  - tests/design/spec-0.2/requirements.yaml
+  - scripts/spec-0.2-validate.ts
+  - tests/design/spec-0.2/release-boundary.test.ts
+  - tests/serve/release-boundary-wire.test.ts
+depends_on: []
+capability_refs: []
+acceptance_criteria:
+  - id: AC-d7dddf0c
+    kind: behavior
+    statement: When the validation ledger declares a release boundary, the validator
+      shall report every blocking scenario with its evidence state in one
+      release-boundary check.
+    notes: "The ledger gains release_boundary: {release, blocking: [scenario ids]}.
+      The check lists each blocking scenario as satisfied or unmet: an MCP
+      scenario is satisfied when it is validation-active with a resolving test
+      reference; the reference-host scenario is satisfied when both hosts have
+      confirmed evidence. Adoption, token, and host A/B rows stay outside the
+      boundary."
+  - id: AC-dcb6081b
+    kind: behavior
+    statement: When the validator runs with the release flag and a blocking scenario
+      lacks discriminating evidence, the validator shall fail with a nonzero
+      exit code that names the unmet scenarios.
+    notes: Without the release flag the same state is reported as not_run so
+      ordinary validation keeps exit 0; the release ritual is the only caller of
+      the flag.
+  - id: AC-36842395
+    kind: behavior
+    statement: When an MCP scenario row is validation-active, the validator shall
+      require an executable test reference that resolves to an existing test
+      title.
+    notes: The same path#title rule the journey ledger already applies. The three
+      previously promoted rows keep their slice literals; newly promoted rows
+      carry a test reference and no slice.
+  - id: AC-2c7b4afa
+    kind: behavior
+    statement: When the ledger records reference-host evidence for both hosts, the
+      validator shall confirm each receipt is signed by a registered issuer in
+      its recorded trust snapshot before marking the reference-host checks
+      passed.
+    notes: The evidence record names the host, a copied receipt, a copied trust
+      registry snapshot, and a copied attestation row under docs/dogfood/. The
+      check verifies signature validity against that snapshot, issuer
+      membership, receipt schema and protocol identity, the host field, and that
+      the attestation row names the same feature. It cannot recompute the
+      fixture workspace digests and never claims the receipt is current.
+  - id: AC-f50ef520
+    kind: behavior
+    statement: When the reference-host journey status disagrees with the recorded
+      reference-host evidence, the validator shall fail the journey ledger
+      check.
+    notes: "J13 stays a literal status: validation-active only when two confirmed
+      evidence records exist and not_run otherwise. The two reference-host
+      checks read the same evidence."
+  - id: AC-c5bbd322
+    kind: constraint
+    statement: The release ledger shall keep adoption and token measurements outside
+      the release boundary.
+    rationale: The MCP boundary document defines the 0.10.0 gate as deterministic
+      conformance, semantic and mutation parity, and both reference-host cycles;
+      adoption and token advantage are reported but never block a release.
+design_impact:
+  classification: structural
+  rationale: The validation protocol and the MCP boundary documents describe the
+    0.10.0 gate in prose; once the ledger carries an explicit release_boundary
+    list and the validator enforces it with a release flag, validation.md and
+    mcp.md must point at that list as the authority and state what counts as
+    discriminating evidence for the reference-host cycles.
+  status: resolved
+  artifacts:
+    - docs/design/spec-0.2/validation.md
+    - docs/design/spec-0.2/mcp.md
+  baseline_digests:
+    docs/design/spec-0.2/validation.md: fe9403539bd57882486b13ae3a995d2496ece6c6a48a11b4dc25b047baed3de6
+    docs/design/spec-0.2/mcp.md: 752e02ba9d15712920be2a64f599d848b594505e52a954ff4d5b07d776fc749a

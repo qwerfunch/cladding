@@ -34,7 +34,7 @@ The initial harness validates:
   matching router navigation heading, and no normative heading in another
   routed document;
 - the P/L/B/C/T/U/A matrix contains 37 unique preregistered IDs documented by D16;
-- J01–J13 preserve model-simulated, validation-active, implementation-pending, and reference-host-not-run journeys as different states, and a validation-active journey must name a test reference whose file and title the validator resolves;
+- J01–J13 preserve model-simulated, validation-active, implementation-pending, and reference-host-not-run journeys as different states, and a validation-active journey must name a test reference whose file and title the validator resolves, unless a named `evidence_from` scenario decides its state instead;
 - preregistration is not presented as 37 passing runtime cases;
 - current MCP identifiers equal the live in-memory tool/resource/prompt catalog;
 - dynamic tool discovery is negotiated and the real initialization path emits list-changed;
@@ -80,3 +80,7 @@ V0 is an additive pre-F1 safety boundary. Each later feature:
 6. completes through the ordinary contributor and `clad done` gates.
 
 The complete target is not one global “simulation passed” badge. It is a ledger in which every release-required scenario has discriminating evidence and no pending/not-run state remains inside that release boundary.
+
+That boundary is declared rather than narrated: `release_boundary` in the executable ledger names the release and the scenarios it blocks on, `npm run validate:spec-0.2` reports each blocking row as satisfied or unmet, and `npm run validate:spec-0.2:release` turns any unmet row into a failure and a nonzero exit. A reference-host row is satisfied only when each declared host has a recorded cycle under `docs/dogfood/mcp11-0.10.0/<host>/` — a copied receipt, the trust registry snapshot it was checked against, and the attestation row naming its feature — and the copied receipt is signed by an issuer registered in that recorded snapshot. The validator cannot recompute a foreign workspace's digests, so it never calls such a receipt current.
+
+A journey that names `evidence_from` is discriminated by that scenario's evidence instead of a test reference. Its promotion to validation-active is bound to that recorded evidence in both directions — active only when the named scenario is satisfied, and never silent when it is — so a second, weaker local witness would add no discrimination. Every other validation-active journey still has to name a test whose file and title the validator resolves.

@@ -251,6 +251,7 @@ features:
   F-c037ae: {slug: test-refs-repair, status: done, modules: 4}
   F-c17e1edc: {slug: skip-exit-guidance, status: done, modules: 7}
   F-c2c996: {slug: checkpoint-events, status: done, modules: 3}
+  F-c2d7dc78: {slug: spec-02-release-ledger, status: in_progress, modules: 4}
   F-c3747d7d: {slug: spec-first-window-complete, status: done, modules: 5}
   F-c48eb2: {slug: scan-source-roots, status: done, modules: 5}
   F-c4c5ae: {slug: spec-conformance-oracle-stage, status: done, modules: 11}

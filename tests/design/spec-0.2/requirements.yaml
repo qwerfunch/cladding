@@ -78,21 +78,47 @@ integration_journeys:
   - {id: J10, decisions: [D17, D19], status: simulated, scenario: bounded-graph-projection}
   - {id: J11, decisions: [D19, D20], status: validation-active, scenario: topology-invariant-context, test_ref: "tests/optimizer/topology-suite.test.ts#J11 topology-invariant context is validation-active with a resolvable test reference"}
   - {id: J12, decisions: [D21, D22, D23], status: simulated, scenario: cadence-verdict-equivalence}
-  - {id: J13, decisions: [D15, D16, D24], status: not_run, scenario: reference-host-spec-02-cycle}
+  - {id: J13, decisions: [D15, D16, D24], status: not_run, scenario: reference-host-spec-02-cycle, evidence_from: MCP11-reference-host-spec-02-cycle}
 
 mcp_scenarios:
-  - {id: MCP01-handshake-and-capabilities, implementation: pending}
-  - {id: MCP02-bootstrap-and-list-changed, implementation: pending}
-  - {id: MCP03-text-and-structured-content-parity, implementation: pending}
-  - {id: MCP04-cli-and-kernel-semantic-parity, implementation: validation-active, slice: f5-receipt-operation}
-  - {id: MCP05-prepare-apply-replay-and-rollback, implementation: pending}
-  - {id: MCP06-concurrent-write-and-stale-revision, implementation: pending}
-  - {id: MCP07-malformed-oversized-and-path-inputs, implementation: pending}
-  - {id: MCP08-graph-context-and-catalog-budgets, implementation: validation-active, slice: graph-v2-focused-projection-and-statistics}
-  - {id: MCP09-receipt-and-blindness-boundary, implementation: validation-active, slice: f5-receipt-ingestion-and-asserted-fallback}
-  - {id: MCP10-tools-only-host-degradation, implementation: pending}
-  - {id: MCP11-reference-host-spec-02-cycle, implementation: pending}
+  # A validation-active row must carry a test_ref in the same "path#title" form the
+  # journey ledger uses. The three F5/F8 rows promoted earlier keep their slice
+  # literals; the rows promoted here name their wire test instead.
+  - {id: MCP01-handshake-and-capabilities, implementation: validation-active, test_ref: "tests/serve/release-boundary-wire.test.ts#MCP01 negotiates a named server with dynamic tool listing over the wire"}
+  - {id: MCP02-bootstrap-and-list-changed, implementation: validation-active, test_ref: "tests/design/spec-0.2/mcp-validation.test.ts#negotiates dynamic tool discovery and emits list-changed after bootstrap"}
+  # MCP03 parity holds for every tool that emits structuredContent; read tools emit
+  # text only in 0.10.0 — outputSchema for read tools is a 0.10.x candidate because
+  # it moves the catalog byte pin.
+  - {id: MCP03-text-and-structured-content-parity, implementation: validation-active, test_ref: "tests/serve/release-boundary-wire.test.ts#MCP03 returns identical text and structured content validated by the declared output schema"}
+  - {id: MCP04-cli-and-kernel-semantic-parity, implementation: validation-active, slice: f5-receipt-operation, test_ref: "tests/serve/proof-evidence.test.ts#MCP04/MCP09 inject trust outside the tool, preserve text parity, and replay an exact receipt"}
+  - {id: MCP05-prepare-apply-replay-and-rollback, implementation: validation-active, test_ref: "tests/serve/release-boundary-wire.test.ts#MCP05 rejects a replayed apply with stale input revisions and leaves every workspace byte unchanged"}
+  - {id: MCP06-concurrent-write-and-stale-revision, implementation: validation-active, test_ref: "tests/serve/release-boundary-wire.test.ts#MCP06 applies two separately prepared different-shard edits over two clients"}
+  - {id: MCP07-malformed-oversized-and-path-inputs, implementation: validation-active, test_ref: "tests/serve/release-boundary-wire.test.ts#MCP07 refuses traversal, absolute, and path-shaped identifiers without writing to the workspace"}
+  - {id: MCP08-graph-context-and-catalog-budgets, implementation: validation-active, slice: graph-v2-focused-projection-and-statistics, test_ref: "tests/serve/server.test.ts#a focused call is a measured, bounded depth-1 projection within the 16 KiB observe ceiling"}
+  - {id: MCP09-receipt-and-blindness-boundary, implementation: validation-active, slice: f5-receipt-ingestion-and-asserted-fallback, test_ref: "tests/serve/proof-evidence.test.ts#verifies ingested receipts against the workspace trust registry snapshot"}
+  - {id: MCP10-tools-only-host-degradation, implementation: validation-active, test_ref: "tests/serve/release-boundary-wire.test.ts#MCP10 completes a create, begin, and read cycle for a tools-only host with no notification handler"}
+  # MCP11 stays pending until real host cycles are run. Each evidence entry is
+  # {host, receipt_ref, trust_ref, attestation_ref, recorded_at}; every reference is a
+  # committed copy under docs/dogfood/ that carries its host as a path segment.
+  - {id: MCP11-reference-host-spec-02-cycle, implementation: pending, evidence: []}
   - {id: MCP12-adoption-versus-delivery-telemetry, implementation: pending}
+
+# The 0.10.0 release boundary. Only these rows block the release; adoption, token
+# advantage, and the host A/B are reported and never blocking.
+release_boundary:
+  release: "0.10.0"
+  blocking:
+    - MCP01-handshake-and-capabilities
+    - MCP02-bootstrap-and-list-changed
+    - MCP03-text-and-structured-content-parity
+    - MCP04-cli-and-kernel-semantic-parity
+    - MCP05-prepare-apply-replay-and-rollback
+    - MCP06-concurrent-write-and-stale-revision
+    - MCP07-malformed-oversized-and-path-inputs
+    - MCP08-graph-context-and-catalog-budgets
+    - MCP09-receipt-and-blindness-boundary
+    - MCP10-tools-only-host-degradation
+    - MCP11-reference-host-spec-02-cycle
 
 mcp_reference_hosts: [codex, claude-code]
 host_ab: {host: codex, max_calls: 24, blocking: false}

@@ -47,7 +47,7 @@ The validation suite separates claims that are often conflated:
 5. **Efficiency when used:** an equivalent successful task uses fewer measured input/output tokens or less active time without worse correctness, retries, or omissions.
 6. **Observed adoption:** agents voluntarily pull the surface across completed cycles under the existing B1 telemetry thresholds.
 
-Each rung requires its own evidence. Wire success does not prove efficacy; efficacy does not prove efficiency; forced efficiency does not prove adoption. The 0.10.0 gate is deterministic conformance, semantic/mutation parity, and both MCP11 reference-host cycles. Adoption and token advantage remain reported but non-blocking.
+Each rung requires its own evidence. Wire success does not prove efficacy; efficacy does not prove efficiency; forced efficiency does not prove adoption. The 0.10.0 gate is deterministic conformance, semantic/mutation parity, and both MCP11 reference-host cycles. Adoption and token advantage remain reported but non-blocking. The `0.10.0 role` column below states intent; the executable ledger's `release_boundary` list is the authority the validator enforces, and MCP12 and the host A/B stay outside it.
 
 ### Preregistered MCP scenarios
 

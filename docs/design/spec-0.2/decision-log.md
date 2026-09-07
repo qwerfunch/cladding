@@ -20,6 +20,7 @@ The graph claim ladder in D17 is cumulative but not substitutable: structural va
 - Bounded background checking may provide speculative observations in 0.10, but only a foreground profile-complete reduction may change lifecycle state or write attestation.
 - The current MCP server's declared catalog, in-memory negotiation, and bootstrap list-change path are executable wire facts; D24 makes MCP an optional adapter over shared kernels, not a second authority.
 - GraphIR v2 is structurally valid on the self corpus (rung 1 of the D17 claim ladder); it says nothing about retrieval efficiency or adoption.
+- The 0.10.0 release boundary is a declared, enforced list rather than prose: the executable ledger names the scenarios that block the release, and a release run of the validator fails on any unmet row. Adoption, token advantage, and the host A/B sit outside that list by construction.
 
 ### Claims prohibited until new evidence exists
 
