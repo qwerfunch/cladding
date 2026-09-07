@@ -41,7 +41,7 @@ The initial harness validates:
 - every shipped tool belongs to at least one candidate task profile;
 - exact catalog and document bytes use a named estimator and unknown cache by default;
 - legacy host-smoke evidence is labelled legacy read-surface evidence;
-- the live token A/B and unconfirmed adoption remain visibly unproven, and the reference-host Spec 0.2 E2E is decided by recorded host evidence rather than by a local test.
+- the live token A/B and unconfirmed adoption remain visibly unproven, and the reference-host Spec 0.2 E2E is decided by recorded host evidence rather than by a local test. The 0.10.0 records were produced through the CLI signing path with the confirmation entered by automation on the maintainer's instruction, so they are registered-issuer wire evidence for both hosts; neither host's confirmation form was exercised, and that remains unverified.
 
 The model simulations currently compare composite versus bare criterion identity, shared versus feature-local capability writes, proof provenance versus persona topology, directed versus undirected graph projection, required versus advisory scenario freshness, upstream report strictness versus Cladding blocking, and every-edit versus tiered/background assurance cadence. These establish design mechanics and expose token/merge trade-offs; they are not substitutes for the pending production adapters.
 

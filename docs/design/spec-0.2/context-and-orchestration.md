@@ -227,7 +227,11 @@ proof channel exists. Fixture trust snapshots prove protocol or mechanism only,
 never live human evidence; F9 evidence for this path is L4 mechanism evidence
 until real signing runs through MCP11. The issuer calls F5 ingestion and emits
 portable receipts for offline verification. Only real human-signed MCP11
-receipts count as live human evidence. F10's task-state loop is retired rather
+receipts count as live human evidence. The 0.10.0 MCP11 records are signed
+by the maintainer's registered key with the confirmation entered by automation
+on the maintainer's instruction; they prove the wire and the offline
+verification on two hosts, not live human evidence, and the host forms remain
+unverified. F10's task-state loop is retired rather
 than introduced: measurement on 2026-09-02 found zero loop runs across 5,176
 recorded events over 3.5 months, no README mention, and no automatic
 invocation, so 0.10.0 removes the headless loop with its loop-only adapters and
