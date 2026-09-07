@@ -18,8 +18,13 @@ acceptance_criteria:
       has no evidence at all."
     kind: behavior
   - id: AC-d5210389
-    statement: When clad done runs, the DoneResult and the recorded done_attempted
-      event shall carry the feature's computed independence label.
+    kind: behavior
+    statement: When clad done runs in a schema 0.1 workspace, the DoneResult and the
+      recorded done_attempted event shall carry the feature's evidence-ledger
+      independence label.
+    notes: "Restated for 0.10.0: a schema 0.2 completion reports the assurance
+      kernel's scope label instead and seals no evidence-ledger label into its
+      completion event (F-8e7f399b)."
   - id: AC-6f228987
     statement: The CLI wrapper shall include per-done-feature independence labels in
       clad verdict --json output based on the evidence ledger while the pure

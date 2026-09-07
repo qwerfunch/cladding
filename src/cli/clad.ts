@@ -20,7 +20,7 @@ import {buildBundleHtml, type BundleChanges} from '../report/bundle.js';
 import {runReportCommand} from './report.js';
 import {runDoctorCommand} from './doctor.js';
 import {runDoctorHosts} from './doctor-hosts.js';
-import {runDone, type DoneResult} from './done.js';
+import {runDone, type DoneIndependenceLabel, type DoneIndependenceSource, type DoneResult} from './done.js';
 import {featureCycleAdvisory} from './enforcement-advisory.js';
 import {runHookCommand} from './hook.js';
 import {runVerdictCommand} from './verdict.js';
@@ -1639,6 +1639,40 @@ export function doneCompletionGuidance(result: Pick<DoneResult, 'ok' | 'schemaVe
 }
 
 /**
+ * Renders the one plain line that says how independently a completion was reviewed.
+ *
+ * WHY the source matters: a schema 0.1 completion reports the evidence-ledger
+ * label, where any human-authored evidence entry reads as independent, while a
+ * schema 0.2 completion reports the label its own assurance receipt attested,
+ * which separates a signature by the implementation's own author from a review
+ * by someone else. Saying the same two words for both would hide that
+ * difference from the reader who has to trust it.
+ *
+ * @param label - The label the completion reported.
+ * @param source - Which authority produced it.
+ * @returns One plain sentence for the `done` note line.
+ * @see spec/features/spec-02-done-independence-label-8e7f399b.yaml AC-73e0401d
+ * @since 0.10.0
+ */
+export function independenceNote(label: DoneIndependenceLabel, source?: DoneIndependenceSource): string {
+  if (source === 'evidence-ledger') {
+    return label === 'independent'
+      ? 'independence: independent — backed by human or independent review'
+      : 'independence: self-certified — no independent or human review yet';
+  }
+  switch (label) {
+    case 'independent':
+      return 'independence: independent — a registered issuer other than the implementation authors reviewed it';
+    case 'not-applicable':
+      return 'independence: not applicable — this assurance profile asks for no human review';
+    case 'unobserved':
+      return 'independence: unobserved — the implementation authors are not fully mapped, so independence could not be observed';
+    default:
+      return 'independence: self-certified — the implementation author signed, or no verified review exists yet';
+  }
+}
+
+/**
  * Handler for `clad done <featureId>`. Gates the `status: done` transition on a
  * GREEN `clad check --tier=pre-push --strict` (flip → gate → keep-or-revert),
  * so `done` cannot claim more than the gate verifies. @see cli/done.ts
@@ -1664,11 +1698,7 @@ export function runDoneCommand(featureId: string): void {
   // Surface the independence label as a concise plain note (only once the gate
   // actually ran — the early refusals carry no label). Soft-shell wording.
   if (r.independence) {
-    const line =
-      r.independence === 'independent'
-        ? 'independence: independent — backed by human or independent review'
-        : 'independence: self-certified — no independent or human review yet';
-    pulse('note', `done · ${featureId}`, line);
+    pulse('note', `done · ${featureId}`, independenceNote(r.independence, r.independence_source));
   }
   const guidance = doneCompletionGuidance(r);
   if (guidance) pulse('note', `done · ${featureId}`, guidance);

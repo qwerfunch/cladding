@@ -1,0 +1,48 @@
+id: F-8e7f399b
+title: Schema 0.2 completion reports the kernel independence label
+status: in_progress
+purpose: In a schema 0.2 workspace clad done prints the evidence-ledger
+  independence label that a signoff alone can flip to independent, while the
+  assurance kernel that attested the completion reports a scope label derived
+  from author mapping and verified audit receipts; the two disagree exactly when
+  the same person implemented and signed, so completion must report and enforce
+  the kernel label.
+modules:
+  - src/cli/done.ts
+  - src/cli/clad.ts
+  - tests/cli/done-independence-schema02.test.ts
+depends_on: []
+capability_refs: []
+acceptance_criteria:
+  - id: AC-73e0401d
+    kind: behavior
+    statement: When clad done completes a schema 0.2 feature, the completion result
+      shall report the independence label the assurance kernel attested for that
+      completion.
+  - id: AC-c426d070
+    kind: behavior
+    statement: When the independence policy is require in a schema 0.2 workspace and
+      the kernel label is self-certified or unobserved, the done command shall
+      refuse the completion and leave the shard bytes unchanged.
+  - id: AC-dc3547cf
+    kind: behavior
+    statement: When the independence policy is require in a schema 0.2 workspace and
+      the kernel label is independent or not-applicable, the done command shall
+      keep the completion.
+  - id: AC-fb17bfcd
+    kind: behavior
+    statement: When clad done completes a schema 0.1 feature, the completion result
+      shall keep the evidence-ledger independence label.
+  - id: AC-64feb2ea
+    kind: constraint
+    statement: The schema 0.2 completion event shall carry no evidence-ledger
+      independence label.
+    rationale: The kernel label is known only after the gate that consumes the
+      sealed completion event, so sealing the evidence-ledger label would record
+      a value the completion does not enforce.
+design_impact:
+  classification: none
+  rationale: The change narrows which label clad done reports and enforces in
+    schema 0.2; it adds no module, capability, scenario, or design-document
+    statement.
+  status: resolved

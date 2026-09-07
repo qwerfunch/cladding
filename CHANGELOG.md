@@ -23,6 +23,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 - Scope and closure completeness derive from structural relations only; unresolved evidence or oracle references stay visible negative facts for their own criterion instead of making every profile unresolved.
 - Authoritative 0.2 profiles (completion, push, release) block on warn-class drift findings; `--strict` remains an explicit escalation.
 - An archived feature whose successor is not yet done reports surviving modules as informational until the successor completes.
+- In a schema 0.2 workspace, `clad done` reports the independence label the assurance kernel attested for that completion, and `independence_policy: require` judges that label — so a sign-off by the person who implemented the feature no longer counts as independent review, and a completion whose authors cannot be identified is refused rather than passed. Schema 0.1 keeps its evidence-ledger label unchanged.
 
 ### Removed
 

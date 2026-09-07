@@ -39,6 +39,19 @@ import {computeIndependence, type IndependenceLabel} from '../hitl/independence.
 import type {Evidence} from '../hitl/identity.js';
 import type {GitOperation} from '../core/git-ops.js';
 
+/**
+ * The independence label a completion can report.
+ *
+ * Schema 0.1 reports the two-valued evidence-ledger label. Schema 0.2 reports
+ * the assurance kernel's scope label, which adds `not-applicable` (the profile
+ * asks for no human review) and `unobserved` (the implementation authors are
+ * not fully mapped, so no reviewer can be told apart from them).
+ */
+export type DoneIndependenceLabel = IndependenceLabel | 'not-applicable' | 'unobserved';
+
+/** Where a reported independence label came from. */
+export type DoneIndependenceSource = 'evidence-ledger' | 'assurance-kernel';
+
 /** Gate runner injected so tests can drive `runDone` without spawning tsc/vitest. */
 export interface DoneDeps {
   /** Runs a tier's stages; returns the worst exit code (0 = GREEN). */
@@ -56,6 +69,13 @@ export interface DoneDeps {
     worst: number;
     anyFailed?: boolean;
     stages?: readonly TelemetryStage[];
+    /**
+     * The canonical assurance projection of this run (schema 0.2). Only the
+     * scope independence label is read here: it is the label the receipt that
+     * attests the completion carries, so it — not the evidence ledger — is what
+     * a schema 0.2 completion reports and enforces (F-8e7f399b).
+     */
+    assurance?: {readonly independence: DoneIndependenceLabel};
     commitAttestation?: (completion: GeneratedAttestationCompletion) => void;
   };
   /**
@@ -75,7 +95,7 @@ export interface DoneDeps {
    */
   readonly gitOpInProgress?: (cwd: string) => GitOperation | null;
   /**
-   * OPTIONAL independence seam (F-c566f590). When present, runDone computes the
+   * OPTIONAL independence seam (F-c566f590). On schema 0.1, runDone computes the
    * feature's evidence-based independence label from `evidence` and threads it
    * into the DoneResult + the done_attempted event. Under `policy: 'require'` it
    * additionally REFUSES to keep a self-certified feature done (revert + re-sync,
@@ -83,9 +103,17 @@ export interface DoneDeps {
    * loadSpec / readEvidence inside; an omitted dep behaves exactly as before
    * (label absent). Wired to project.independence_policy + readEvidence in
    * runDoneCommand.
+   *
+   * Schema 0.2 reads the attested label from the gate instead (F-8e7f399b), so
+   * there this dep supplies only the policy and its `evidence` is unread.
    */
   readonly independence?: {
-    /** 'label' = annotate only (default); 'require' = block a self-certified done. */
+    /**
+     * 'label' = annotate only (default); 'require' = block a done the project's
+     * policy will not accept. Schema 0.1 blocks a self-certified feature; schema
+     * 0.2 blocks the kernel labels `self-certified` and `unobserved`, and lets
+     * `independent` and `not-applicable` through (F-8e7f399b).
+     */
     readonly policy: 'label' | 'require';
     /** The evidence ledger slice runDone weighs the feature against. */
     readonly evidence: readonly Evidence[];
@@ -100,12 +128,20 @@ export interface DoneResult {
   readonly prevStatus?: string;
   readonly shardPath?: string;
   /**
-   * The feature's evidence-based independence label (F-c566f590). Present only
-   * once the gate has run with an injected `independence` dep; absent on the
-   * early refusals (git-op / missing shard / design impact) and when no dep was
-   * supplied.
+   * The feature's independence label. Present only once the gate has run;
+   * absent on the early refusals (git-op / missing shard / design impact).
+   *
+   * Schema 0.1 keeps the evidence-based label (F-c566f590) and reports it only
+   * when the optional `independence` dep was supplied. Schema 0.2 reports the
+   * label the assurance kernel attested for this completion (F-8e7f399b), with
+   * or without that dep — the dep only decides whether the label is enforced.
    */
-  readonly independence?: IndependenceLabel;
+  readonly independence?: DoneIndependenceLabel;
+  /**
+   * Which authority produced `independence`, so a reader never mistakes the
+   * ledger label for the attested one. Absent exactly when no label is present.
+   */
+  readonly independence_source?: DoneIndependenceSource;
   /**
    * Schema of the workspace the transition ran against. Present once the gate
    * has run, so the CLI can say what a schema 0.2 completion leaves to do.
@@ -211,12 +247,6 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
         'then resolve the design impact before marking this feature done.',
     };
   }
-  // This evidence decision is immutable for the whole completion attempt. Its
-  // exact label is sealed into the private success-event binding before any
-  // stage can issue a writer callback.
-  const independence = deps.independence
-    ? computeIndependence(featureId, deps.independence.evidence).label
-    : undefined;
   let marked: DoneGateMark;
   // Schema 0.1 flips before gating for compatibility. Schema 0.2 only
   // prepares a byte-bound prospective target here. `runCheckStages` consumes
@@ -234,10 +264,18 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
       reason: (error as Error).message,
     };
   }
+  // Schema 0.1's evidence decision is immutable for the whole completion
+  // attempt: its exact label is sealed into the private success-event binding
+  // before any stage can issue a writer callback. Schema 0.2 seals no such
+  // label — the label it reports and enforces is the kernel's, which exists
+  // only once the gate that consumes the sealed event has run (F-8e7f399b).
+  const ledgerIndependence = marked.schemaVersion === '0.1' && deps.independence
+    ? computeIndependence(featureId, deps.independence.evidence).label
+    : undefined;
   let completionEvent: PreparedSchema02DoneEvent | undefined;
   if (marked.schemaVersion === '0.2') {
     try {
-      completionEvent = prepareSchema02DoneEvent(cwd, marked, independence);
+      completionEvent = prepareSchema02DoneEvent(cwd, marked, undefined);
     } catch (error) {
       return {
         ok: false,
@@ -245,14 +283,19 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
         featureId,
         prevStatus: marked.previousStatus,
         shardPath: marked.path,
-        independence,
         reason: (error as Error).message,
       };
     }
   }
   // Scope the gate to THIS feature's modules (Gradle monorepos). Empty → the
   // gate runs whole-repo, exactly as before. @see toolchain/scoped-command.ts
-  let gate: {worst: number; anyFailed?: boolean; stages?: readonly TelemetryStage[]; commitAttestation?: (completion: GeneratedAttestationCompletion) => void};
+  let gate: {
+    worst: number;
+    anyFailed?: boolean;
+    stages?: readonly TelemetryStage[];
+    assurance?: {readonly independence: DoneIndependenceLabel};
+    commitAttestation?: (completion: GeneratedAttestationCompletion) => void;
+  };
   const schemaVersion = marked.schemaVersion;
   try {
     const runGate = () => deps.checkStages({
@@ -296,12 +339,28 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
   }
   const {worst, anyFailed, stages} = gate;
   const blockers = blockingDetectorNames(stages ?? []);
+  // A schema 0.2 completion reports what its own receipt attested. A kernel that
+  // published no label at all is reported as `unobserved` rather than silently
+  // dropped: absence of the fact is exactly what that value names.
+  const independence: DoneIndependenceLabel | undefined = schemaVersion === '0.2'
+    ? gate.assurance?.independence ?? 'unobserved'
+    : ledgerIndependence;
+  const reported: Pick<DoneResult, 'independence' | 'independence_source'> = independence === undefined
+    ? {}
+    : {
+      independence,
+      independence_source: schemaVersion === '0.2' ? 'assurance-kernel' : 'evidence-ledger',
+    };
   // Under the opt-in `require` policy a GREEN gate is necessary but NOT
-  // sufficient: a self-certified feature must earn independent or human review
-  // before it keeps done. This refusal reverts exactly like a red gate — but a
-  // genuinely red gate takes precedence (its message stays unchanged).
-  const selfCertBlocked =
-    worst === 0 && deps.independence?.policy === 'require' && independence === 'self-certified';
+  // sufficient: the completion must earn the independent or human review the
+  // project asks for before it keeps done. Schema 0.1 weighs its evidence-ledger
+  // label; schema 0.2 weighs the attested one, where `not-applicable` (this
+  // profile asks for no human review) is nothing to withhold and `unobserved`
+  // (the authors are not fully mapped) is not a review that happened. This
+  // refusal reverts exactly like a red gate — but a genuinely red gate takes
+  // precedence (its message stays unchanged).
+  const selfCertBlocked = worst === 0 && deps.independence?.policy === 'require'
+    && (independence === 'self-certified' || (schemaVersion === '0.2' && independence === 'unobserved'));
   // A schema 0.2 completion is one combined status-and-receipt authority
   // action.  A green compatibility gate without the prepared F6 commit seam
   // cannot leave a new `done` status behind.
@@ -314,7 +373,7 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
       featureId,
       prevStatus: marked.previousStatus,
       shardPath: marked.path,
-      independence,
+      ...reported,
       reason: 'completion receipt was not prepared, so no completion claim was written.',
     };
   }
@@ -338,7 +397,9 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
               anyFailed: false,
               kept: true,
               blockers: [],
-              ...(independence ? {independence} : {}),
+              // No independence key: the ledger label is not what this
+              // completion enforces, and the label that is exists only after
+              // this event was sealed (F-8e7f399b AC-64feb2ea).
             },
           },
         });
@@ -349,7 +410,7 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
           featureId,
           prevStatus: marked.previousStatus,
           shardPath: marked.path,
-          independence,
+          ...reported,
           reason: `completion receipt could not be recorded; no completion claim was written: ${(error as Error).message}`,
         };
       }
@@ -366,7 +427,7 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
         featureId,
         prevStatus: marked.previousStatus,
         shardPath: marked.path,
-        independence,
+        ...reported,
         reason: `strict gate GREEN but final status verification failed: ${(error as Error).message}`,
       };
     }
@@ -377,7 +438,7 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
         anyFailed: anyFailed ?? false,
         kept: false,
         blockers,
-        ...(independence ? {independence} : {}),
+        ...(ledgerIndependence ? {independence: ledgerIndependence} : {}),
       });
       return {
         ok: false,
@@ -385,7 +446,7 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
         featureId,
         prevStatus: marked.previousStatus,
         shardPath: marked.path,
-        independence,
+        ...reported,
         reason:
           'The feature changed while its verification ran, so the GREEN gate result is stale and status was not kept as done. ' +
           'Review the latest feature state, then re-run `clad done`.',
@@ -406,7 +467,7 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
         anyFailed: anyFailed ?? worst > 0,
         kept,
         blockers,
-        ...(independence ? {independence} : {}),
+        ...(ledgerIndependence ? {independence: ledgerIndependence} : {}),
       });
     }
     return {
@@ -415,7 +476,7 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
       featureId,
       prevStatus: marked.previousStatus,
       shardPath: marked.path,
-      independence,
+      ...reported,
       schemaVersion,
       reason: `strict gate GREEN — status: ${marked.previousStatus || 'unset'} → done`,
     };
@@ -433,7 +494,7 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
         featureId,
         prevStatus: marked.previousStatus,
         shardPath: marked.path,
-        independence,
+        ...reported,
         reason: `strict gate not GREEN and automatic compensation failed: ${(error as Error).message}`,
       };
     }
@@ -445,7 +506,7 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
       anyFailed: anyFailed ?? worst > 0,
       kept,
       blockers,
-      ...(independence ? {independence} : {}),
+      ...(ledgerIndependence ? {independence: ledgerIndependence} : {}),
     });
   }
   // Plain-first (F-dd8dc994): a plain English lead first; the machine sentence
@@ -454,17 +515,31 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
   if (selfCertBlocked) {
     // GREEN gate, but the project requires the independent review this feature
     // lacks (AC-ad5ea48b). Schema 0.1 reverts; schema 0.2 has not written.
+    // An unobserved label is a third state: the review may exist, but the run
+    // could not tell its author apart from the implementation's, so it says so
+    // instead of reading the gap as either answer (AC-c426d070).
+    const unobservedNote = independence === 'unobserved'
+      ? ' independence could not be observed here because the implementation authors are not fully mapped,'
+        + ' so no reviewer can be told apart from them.'
+      : '';
+    // What actually clears the refusal differs by schema: the ledger accepts a
+    // human sign-off from anyone, while the attested label only moves when the
+    // reviewer is someone other than the implementation's own authors.
+    const remedy = schemaVersion === '0.2'
+      ? ' Ask a registered issuer other than the implementation authors for a verified review, then re-run `clad done`.'
+      : ' Add a human sign-off or an independent (blind) review, then re-run `clad done`.';
     return {
       ok: false,
       code: 1,
       featureId,
       prevStatus: marked.previousStatus,
       shardPath: marked.path,
-      independence,
+      ...reported,
       reason:
         `${doneSelfCertRefusalLead()}. ` +
         `no independent or human review backs this feature — status left at '${marked.previousStatus || 'unset'}'.` +
-        ' Add a human sign-off or an independent (blind) review, then re-run `clad done`.',
+        unobservedNote +
+        remedy,
     };
   }
   // Red gate: the feature has not earned done. Contract pins ('not GREEN',
@@ -475,7 +550,7 @@ export function runDone(cwd: string, featureId: string, deps: DoneDeps): DoneRes
     featureId,
     prevStatus: marked.previousStatus,
     shardPath: marked.path,
-    independence,
+    ...reported,
     reason:
       `${doneRefusalLead()}. ` +
       `strict gate not GREEN — status left at '${marked.previousStatus || 'unset'}'.` +
