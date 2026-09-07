@@ -37,6 +37,7 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
 - **Graph code no longer reaches into gate code,** restoring the architecture rule that keeps the two apart.
 - **A renamed test keeps its binding.** Bindings carried forward by the migration and then invalidated by a title edit are promoted to live tokens instead of failing silently.
+- **Patched dependencies.** The MCP SDK's transitive `fast-uri`, `qs`, and `side-channel` packages move to their patched releases, so `npm audit` reports no known vulnerabilities.
 
 ## [0.9.4] — The gate judges the sources on disk (2026-08-26)
 
