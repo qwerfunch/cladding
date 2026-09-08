@@ -279,10 +279,12 @@ Wall-clock times are reported only from cells that ran under the lock.
 
 ## Results
 
-The deterministic rows are measured and locked. One live cell has run, as an
-instrumentation check with no counterpart; it is recorded below and counts for
-nothing. The comparison itself — the pilot and any n = 3 that follows — is not
-run yet, and every table under "Live cells" is empty.
+The deterministic rows are measured and locked, and the comparison ran on
+2026-09-08 at n = 3 per arm on the shared single-feature task: arm C's three
+counted cells are `L1-r2`, `L1-r3` and `L1-r4`, the earlier instrumentation check
+being excluded as pre-registered. Three further live cells cover the trap on both
+engines and the continuation on C. Thirteen live cells ran in all, of which
+twelve are counted.
 
 ### Deterministic side-tables (locked 2026-09-08)
 
@@ -368,10 +370,11 @@ wall clock, 144 s of it in the API, an estimated $1.10 at the host's list price
 for an OAuth session, a first gate that came back red and a later one green, a
 completion the judge re-ran and agreed with, and the hidden oracle at 14 of 14
 — the oracle copied in afterwards, run once, and deleted, exactly as the scoring
-section describes. Two verdict-bearing measures were **not** exercised by this
-check: `scorer_reproducible` was not run at all (the cell was scored once), and
-the worktree was left dirty at the end, which the score records rather than
-interprets.
+section describes. One verdict-bearing measure was **not**
+exercised by this check: the worktree was left dirty at the end, which the score
+records rather than interprets. `scorer_reproducible` was not run when the cell
+first ran; it was re-scored afterwards with the same driver every other cell
+used, and came back true, as all thirteen cells did.
 
 None of those numbers argues for or against the candidate. A single cell with no
 counterpart cannot, and quoting it as though it could is exactly the move this
@@ -379,34 +382,199 @@ document's decision rules exist to prevent.
 
 ### Live cells · what each arm produced (reported only)
 
+Twelve counted cells. The instrumentation check above is not among them.
+
 | Arm | Cell | src LoC | tsc | complexity max/mean | API conformance | comment/code | tests | assertions | criteria named | negative test | coverage % | oracle |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| | | | | | | | | | | | |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| A | L1-pilot-r1 | 18 | yes | 2 / 1.3 | export/sig/err/named | 0.50 | 3 | 8 | 3/3 | yes | 100.0 | 14/14 |
+| A | L1-r2 | 18 | yes | 2 / 1.3 | export/sig/err/named | 0.50 | 4 | 8 | 3/3 | yes | 100.0 | 14/14 |
+| A | L1-r3 | 18 | yes | 2 / 1.3 | export/sig/err/named | 0.44 | 4 | 8 | 3/3 | yes | 100.0 | 14/14 |
+| B | L1-pilot-r1 | 20 | yes | 2 / 1.3 | export/sig/err/named | 0.95 | 11 | 12 | 3/3 | yes | 100.0 | 14/14 |
+| B | L1-r2 | 19 | yes | 2 / 1.3 | export/sig/err/named | 0.90 | 6 | 6 | 3/3 | yes | 100.0 | 14/14 |
+| B | L1-r3 | 20 | yes | 2 / 1.3 | export/sig/err/named | 1.00 | 4 | 13 | 3/3 | yes | 100.0 | 14/14 |
+| B | L2a-trap-r1 | 16 | yes | 2 / 1.5 | export/sig/err/named | 0.19 | 3 | 3 | 3/3 | yes | 100.0 | 14/14 |
+| C | L1-r2 | 18 | yes | 2 / 1.3 | export/sig/err/named | 0.78 | 3 | 13 | 3/3 | yes | 100.0 | 14/14 |
+| C | L1-r3 | 18 | yes | 2 / 1.3 | export/sig/err/named | 0.78 | 3 | 12 | 3/3 | yes | 100.0 | 14/14 |
+| C | L1-r4 | 17 | yes | 2 / 1.3 | export/sig/err/named | 1.24 | 8 | 8 | 3/3 | yes | 100.0 | 14/14 |
+| C | L2a-trap-r1 | 16 | yes | 2 / 1.5 | export/sig/err/named | 0.19 | 3 | 3 | 3/3 | yes | 100.0 | 14/14 |
+| C | L2b-migrate-r1 | 22 | yes | 4 / 2.3 | export/sig/err/named | 0.68 | 12 | 14 | 3/3 | yes | 100.0 | 14/14 |
+
+Every cell in every arm: type check clean, no lint findings, full API conformance,
+100% line coverage, and 14 of 14 on the hidden oracle. Pre-registered as
+reported-only, and published as the null it is.
 
 ### Live cells · time, tokens, cost
 
 | Arm | Cell | Wall s | API s | Turns | To first edit s | Output tok | Total tok | Cache ratio | Cost (est.) | Static instruction tok |
 |---|---|---|---|---|---|---|---|---|---|---|
-| | | | | | | | | | | |
+| A | L1-pilot-r1 | 30 | 27 | 11 | 16 | 2 153 | 103 768 | 0.88 | $0.21 | 60 |
+| A | L1-r2 | 28 | 26 | 7 | 14 | 1 914 | 102 610 | 0.88 | $0.20 | 60 |
+| A | L1-r3 | 32 | 29 | 11 | 15 | 2 269 | 124 991 | 0.90 | $0.22 | 60 |
+| B | L1-pilot-r1 | 279 | 258 | 27 | 46 | 9 644 | 858 768 | 0.95 | $1.52 | 1 393 |
+| B | L1-r2 | 196 | 175 | 31 | 69 | 11 079 | 1 010 077 | 0.95 | $1.23 | 1 392 |
+| B | L1-r3 | 131 | 118 | 21 | 47 | 6 760 | 541 545 | 0.94 | $0.89 | 1 392 |
+| B | L2a-trap-r1 | 96 | 80 | 22 | 68 | 5 302 | 586 195 | 0.95 | $0.68 | 1 381 |
+| C | L1-r2 | 131 | 119 | 21 | 44 | 6 267 | 605 202 | 0.93 | $0.95 | 1 468 |
+| C | L1-r3 | 139 | 124 | 24 | 45 | 7 509 | 686 726 | 0.94 | $1.00 | 1 468 |
+| C | L1-r4 | 147 | 132 | 21 | 50 | 7 442 | 596 737 | 0.93 | $1.05 | 1 468 |
+| C | L2a-trap-r1 | 148 | 117 | 30 | 38 | 7 256 | 905 063 | 0.96 | $0.91 | 1 459 |
+| C | L2b-migrate-r1 | 178 | 150 | 27 | 68 | 8 562 | 845 126 | 0.95 | $1.17 | 1 456 |
+
+Every cost figure is the host's list-price estimate for an OAuth session, not an
+amount billed. Sessions were cold and cache reads were recorded rather than
+controlled, so the cache ratios and the wall times describe these runs and
+nothing beyond them.
 
 ### Live cells · gates, friction, spec artifacts
 
 | Arm | Cell | Engaged | Honest done | Hand-flip | Binding | Gate runs | Red→green | Judge exit | Tool errors | Denials | Commits | Shards | Criteria | Disqualifiers |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| | | | | | | | | | | | | | | |
+| A | L1-pilot-r1 | n/a | yes | n/a | n/a | n/a | n/a | n/a | 0 | 0 | 0 | n/a | n/a | none |
+| A | L1-r2 | n/a | yes | n/a | n/a | n/a | n/a | n/a | 0 | 0 | 0 | n/a | n/a | none |
+| A | L1-r3 | n/a | yes | n/a | n/a | n/a | n/a | n/a | 0 | 0 | 0 | n/a | n/a | none |
+| B | L1-pilot-r1 | yes | yes | no | `test_refs` | 4 | yes | 0 | 2 | 0 | 0 | 1 | 3 | none |
+| B | L1-r2 | yes | yes | no | `test_refs` | 2 | yes | 0 | 4 | 0 | 0 | 1 | 3 | none |
+| B | L1-r3 | yes | yes | no | `test_refs` | 2 | yes | 0 | 2 | 0 | 0 | 1 | 3 | none |
+| B | L2a-trap-r1 | yes | yes | no | `test_refs` | 6 | yes | 0 | 0 | 0 | 1 | 1 | 3 | none |
+| C | L1-r2 | yes | yes | no | covers token | 4 | yes | 0 | 3 | 0 | 0 | 1 | 3 | none |
+| C | L1-r3 | yes | yes | no | covers token | 4 | yes | 0 | 3 | 0 | 1 | 1 | 3 | none |
+| C | L1-r4 | yes | yes | no | covers token | 4 | yes | 0 | 3 | 0 | 0 | 1 | 3 | none |
+| C | L2a-trap-r1 | yes | yes | no | covers token | 6 | yes | 0 | 0 | 0 | 3 | 1 | 3 | none |
+| C | L2b-migrate-r1 | yes | yes | no | covers token | 7 | yes | 0 | 2 | 0 | 0 | 2 | 5 | none |
 
-### Medians per arm
+Arm A has no engine to engage, no binding to choose and no gate to run, so those
+columns read `n/a` rather than zero. Its `honest done` is the fixture's own
+`npm test`, `tsc --noEmit` and the criteria named in test titles, as the scoring
+section defines for an arm with no engine.
 
-| Arm | n | Honest done | Engaged | Median cost (est.) | Median turns | Median wall s | Median output tok | Median total tok |
-|---|---|---|---|---|---|---|---|---|
-| | | | | | | | | |
+### Medians per arm — the shared single-feature task, n = 3 each
+
+This is the primary basis. It is the only one where the three arms did the same
+work the same number of times, and it is the basis every hypothesis below reads.
+
+| Arm | Cells | n | Honest done | Engaged | Median cost (est.) | Median turns | Median wall s | Median output tok | Median total tok |
+|---|---|---|---|---|---|---|---|---|---|
+| A | `L1-pilot-r1`, `L1-r2`, `L1-r3` | 3 | 3/3 | n/a | $0.21 | 11 | 30 | 2 153 | 103 768 |
+| B | `L1-pilot-r1`, `L1-r2`, `L1-r3` | 3 | 3/3 | 3/3 | $1.23 | 27 | 196 | 9 644 | 858 768 |
+| C | `L1-r2`, `L1-r3`, `L1-r4` | 3 | 3/3 | 3/3 | $1.00 | 21 | 139 | 7 442 | 605 202 |
+
+C against B on that basis: **0.81× the estimated cost, 0.78× the turns, 0.71× the
+wall time, 0.71× the total tokens.** A fourth C cell was run precisely so this
+table could hold three counted C cells with the instrumentation check excluded,
+as the pre-registration requires.
+
+Median test counts on the same three cells are 4 on A, 6 on B and 3 on C, at 100%
+line coverage and 14 of 14 on the hidden oracle in all three arms. The candidate
+reached the same coverage and the same oracle score with fewer tests. That is
+recorded because it was observed; it is on the reported-only axis, no hypothesis
+reads it, and nothing here interprets it.
+
+### Medians per arm — every live cell
+
+Published alongside the primary table so that neither basis can be said to have
+been picked after the numbers were seen. This one mixes tasks and arm sizes: B's
+four cells include the trap, C's six include the trap, the continuation **and the
+instrumentation check** — the one cell the pre-registration excludes elsewhere,
+counted here only because "every live cell" means every one.
+
+| Arm | Cells included | n | Honest done | Engaged | Median cost (est.) | Median turns | Median wall s | Median output tok | Median total tok |
+|---|---|---|---|---|---|---|---|---|---|
+| A | three L1 | 3 | 3/3 | n/a | $0.21 | 11 | 30 | 2 153 | 103 768 |
+| B | three L1 + trap | 4 | 4/4 | 4/4 | $1.06 | 25 | 163 | 8 202 | 722 482 |
+| C | three counted L1 + instrumentation check + trap + continuation | 6 | 6/6 | 6/6 | $1.02 | 23 | 147 | 7 349 | 645 964 |
+
+C against B here: 0.97× cost and 0.92× turns. G3 clears on either basis; it is
+decided on the primary one.
 
 ### Verdicts against the pre-registered rules
 
-| | Verdict | Consequence |
+| | Verdict | Evidence |
 |---|---|---|
-| G1–G6 | | |
-| R1–R6 | | |
+| **G1** honesty delta | **holds** | Three states green on B and red on C, all from rows where both engines ran: **L0-1**, where a warn-severity drift finding exits 0 on B's non-strict gate and 1 on C's; **L0-3**, where B accepts an acceptance criterion with no statement and stores the old binding field, and C refuses both and says what to write instead; **L0-4**, where B answers a depth-5 graph request — inside the ceiling of 6 that 0.9.4 advertises — while this release lowers the ceiling to 3 and answers anything above it with a refusal naming the bound. Supporting, on surfaces B does not have: **L0-2** (a trailing token is not a binding), **L0-8** (a stale typed edit is refused), **L0-6b** (a self-signed L4 completion is refused). Reverse direction: **L0-6** only, the designed relaxation, and it is bounded by L0-6b |
+| **G2** completion at L2 | **holds** | All six C cells reached achieved level L2 with the independence label `not-applicable`, no unbound criteria, judge exit 0, and the completion kept. No signature was asked for anywhere |
+| **G3** cost non-regression | **holds** | On the primary n = 3 basis, C is 0.81× B's estimated cost and 0.78× its turns — both well inside the 1.25 ceiling. Reported, not read: on every live cell, 0.97× and 0.92×. Wall time 0.71× and total tokens 0.71× are reported, not gating |
+| **G4** migration | **holds** | Row **L0-11**'s accept path exits 0 through `migration_baseline`, and the live continuation cell on the migrated tree finished a second feature with both features `done`, the migration baseline still on disk, no unbound criteria, and an independent strict pre-push at exit 0 |
+| **G5** context parity | **holds** | Row **L3-2**: the context payload is 488 B on both engines, byte-identical; the working set is 1 483 B on B and 1 510 B on C, adding one key and staying a subset |
+| **G6** default path | **holds** | Row **L3-1**: `sync` exits 0 on both, `check` exits 1 on both, and both fail the same set of stages. Row **L3-3**: the catalogue measures as recorded — 27 tools and 158 700 B on C against 22 and 60 526 B on B, the harness's pretty-printed counts. The release pin is the 140 498 B compact serialisation, which `validate:spec-0.2` measures and this row does not |
+
+| | Fired? | Evidence |
+|---|---|---|
+| **R1** gate friction prevents finishing | **no** | C finished 3 of 3 on the shared task and 6 of 6 across every cell it ran |
+| **R2** honest-red loop | **no** | `honest_red_loop` false on all thirteen cells; the highest gate count anywhere is 7, under the threshold of 8; no cell hit its budget cap |
+| **R3** cost blow-up | **no** | 0.81× on the primary basis, far under 1.5× |
+| **R4** migration accept path red | **no** | The accept path's strict pre-push exits 0, and so does the independent one on the live migrated tree |
+| **R5** hand-flipped completion | **no** | `hand_flip` false on all thirteen; every `done` has a kept completion event behind it |
+| **R6** guidance gap still open | **no** | Every counted C cell produced leading covers tokens — 3, 3 and 7 on the shared task, 3 on the trap, 9 on the continuation; the excluded instrumentation cell produced 8 |
+
+**Overall: GO.** All six claims hold, none of the six stop conditions fired, and
+the quality axis tied as pre-registered.
+
+### The trap, and the continuation
+
+- **The trap on B.** The emptied bindings were the only thing broken; the module
+  and its tests were already in place. The gate named the missing-tests finding
+  nineteen times across the session stream, the bindings were repaired, and the
+  cell finished with one commit and a clean tree.
+- **The trap on C.** The covers tokens sat at the end of each test title. The
+  gate's guidance named the leading-token form 42 times across the stream — that
+  is occurrences in the session stream, not a count of distinct guidance
+  surfaces — the tokens moved to the front of all three titles, and the cell
+  finished with three commits, a clean tree, and three leading tokens counted.
+- **Neither arm completed without repairing the binding.** That is the sharpest
+  question this campaign asked, and both engines answered it.
+- **The continuation.** A finished 0.9.4-shaped project, migrated with every
+  decision accepted, then given a second, smaller feature by an agent. Final
+  state: two features, five criteria, both `done`, the migration baseline still
+  on disk, no unbound criteria, and an independent strict pre-push at exit 0.
+
+### Release-claim implications
+
+**May be claimed.** The deterministic table, every row pinned and re-run once
+after locking. The three-arm live result at n = 3 per arm on the shared task,
+reported as medians with the basis named. The cost and turn figures explicitly as
+the host's list-price estimate for an OAuth session, never as an amount billed.
+The model that produced them, `claude-opus-5`, which every cell's own score
+and session stream record. The host CLI version is **not** in the artifacts — Claude Code
+2.1.263 is stated on the operator's record and must be labelled as such, not as a
+measured fact.
+
+**May not be claimed.** Any quality, correctness or oracle advantage: those tied,
+and were pre-registered to tie. Any generalisation of the wall-clock numbers —
+cold sessions, one machine, cache reads uncontrolled. Anything about Codex or
+another host, or about another model: neither was run live here.
+
+### What this campaign does not establish
+
+- n = 3 per arm on the shared task; n = 1 on the trap and n = 1 on the
+  continuation. Medians over three runs are a weak statistic and are reported as
+  such.
+- One host, one model, one machine, one operator.
+- The task is small — a single function with three criteria. Nothing here speaks
+  to a large or long-lived codebase.
+- The hidden oracle was written by the harness's author, who is also the engine's
+  author. It reaches past the stated brief on purpose, but it is not an
+  independent conformance suite.
+- **The instrumentation cell was first reused as arm C's `L1-pilot-r1`, and the
+  pre-registration says it is "excluded from every table below and from every
+  hypothesis."** That reuse was a deviation, and it is named here rather than
+  quietly absorbed: the cell had no A or B counterpart when it ran. It was
+  resolved by running a fourth C cell, `L1-r4`, so that the primary table holds
+  three counted C cells with the pilot excluded exactly as registered. The pilot
+  still appears in the every-live-cell table, which says so on its face, and in
+  the instrumentation section, which is where the pre-registration puts it.
+- The continuation's source tree was staged by hand: the operator ran the
+  migration over a finished workspace and then re-pointed the host launcher at
+  arm C's prefix by re-running the candidate's own setup command. Both steps are
+  the product's own commands and the harness itself was not modified, but the
+  staging was operator-driven rather than harness-driven. It is one reviewable
+  commit, `36080aa`, touching `AGENTS.md`, `spec.yaml`, `spec/architecture.yaml`,
+  `spec/capabilities.yaml`, the feature shard, the attestation, and adding
+  `spec/generated/`.
+
+### Budget
+
+$11.14 of the $40 cap, across thirteen live cells — the twelve counted ones and
+the instrumentation check.
 
 ## Reproduction
 

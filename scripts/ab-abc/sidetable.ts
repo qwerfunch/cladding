@@ -641,10 +641,17 @@ function main(): void {
   writeFileSync(join(RESULTS, 'sidetable.md'), `${md}\n`);
   process.stdout.write(md);
 
+  // The mismatch file describes THIS run, so it is rewritten on every run —
+  // including the unlocked case, where there is nothing to mismatch against.
+  // Presence means "the last run found differences"; a leftover from an older
+  // run would make a clean table read as broken.
+  const mismatchPath = join(RESULTS, 'sidetable-mismatches.txt');
+  if (mismatches.length > 0) writeFileSync(mismatchPath, `${mismatches.join('\n')}\n`);
+  else rmSync(mismatchPath, {force: true});
+
   if (expectations.status === 'locked') {
     if (mismatches.length > 0) {
       process.stderr.write(`\nthe locked side-table does not match what this run saw:\n${mismatches.map((m) => `  · ${m}`).join('\n')}\n`);
-      writeFileSync(join(RESULTS, 'sidetable-mismatches.txt'), `${mismatches.join('\n')}\n`);
       process.exitCode = 1;
     } else {
       process.stdout.write(`\nlocked table: every pinned exit, byte count and literal still holds (${expectations.rows.length} rows).\n`);

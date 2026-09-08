@@ -9,9 +9,16 @@
 // Arm A has no engine, so its harness columns render as `—` rather than zero:
 // "not applicable" and "none happened" are different facts.
 //
-// Usage: npx tsx scripts/ab-abc/render.ts <results-dir> [--out report.md]
+// The report is one call: score.json lives per cell under `<root>/artifacts/`
+// and the side-table under `<root>/results/`, so rendering takes the campaign
+// ROOT and reads both. Pointing it at `results/` alone used to produce a report
+// with no cells in it and no complaint.
+//
+// Usage: npx tsx scripts/ab-abc/render.ts [abc-root] [--out report.md]
+//        (root defaults to $ABC_ROOT, then ~/abc-0100)
 
 import {existsSync, readFileSync, readdirSync, statSync, writeFileSync} from 'node:fs';
+import {homedir} from 'node:os';
 import {join} from 'node:path';
 import process from 'node:process';
 
@@ -164,14 +171,25 @@ function renderSideTable(table: SideTable): string {
   ].join('\n');
 }
 
-const resultsDir = process.argv[2];
-if (resultsDir === undefined) throw new Error('usage: npx tsx scripts/ab-abc/render.ts <results-dir> [--out file.md]');
-
 const outFlagIndex = process.argv.indexOf('--out');
 const outPath = outFlagIndex === -1 ? null : process.argv[outFlagIndex + 1];
 
-const scores = collectScores(resultsDir);
-const sidePath = join(resultsDir, 'sidetable.json');
+const args = process.argv.slice(2);
+const positional = args.filter((arg, i) => arg !== '--out' && args[i - 1] !== '--out');
+const root = positional[0] ?? process.env.ABC_ROOT ?? join(homedir(), 'abc-0100');
+const artifactsDir = join(root, 'artifacts');
+// A missing artifacts/ almost always means a results/ directory was passed —
+// the old invocation. Saying so beats rendering an empty report as if the
+// campaign had simply not run any cells yet.
+if (!existsSync(artifactsDir)) {
+  throw new Error(
+    `no artifacts directory under ${root} — render.ts takes the campaign root ` +
+      '(it reads <root>/artifacts/**/score.json and <root>/results/sidetable.json), not the results directory',
+  );
+}
+
+const scores = collectScores(artifactsDir);
+const sidePath = join(root, 'results', 'sidetable.json');
 const side = existsSync(sidePath) ? (JSON.parse(readFileSync(sidePath, 'utf8')) as SideTable) : null;
 const empty = '_No scored cells yet._';
 

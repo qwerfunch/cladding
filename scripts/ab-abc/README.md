@@ -47,8 +47,13 @@ npx tsx scripts/ab-abc/sidetable.ts               # deterministic rows, no agent
 
 bash scripts/ab-abc/make-cell.sh A pilot1         # then B pilot1, then C pilot1
 bash scripts/ab-abc/run-cell.sh  A pilot1         # one at a time
-npx tsx scripts/ab-abc/render.ts "$ABC_ROOT/results" --out "$ABC_ROOT/results/report.md"
+bash scripts/ab-abc/rescore.sh   A pilot1         # re-score a finished cell, no host
+npx tsx scripts/ab-abc/render.ts "$ABC_ROOT" --out "$ABC_ROOT/results/report.md"
 ```
+
+Results are written up in
+[`docs/ab-evaluation/case-version-abc-094-vs-0100.md`](../../docs/ab-evaluation/case-version-abc-094-vs-0100.md);
+the raw artifacts stay outside the repository, under `ABC_ROOT`.
 
 The deterministic side-table runs first on purpose. It costs nothing, and a row
 that comes back wrong is a reason to fix the engine and re-pack *before* spending
@@ -268,7 +273,8 @@ which engine is which is the one thing this table cannot afford to get wrong.
 | `run-cell.sh` | budget check → one live session → artifacts → judge → score |
 | `budget.mjs` | the cumulative ledger: `check` before, `record` after |
 | `score.ts` | one cell's artifacts → `score.json` |
-| `render.ts` | `score.json[]` + `sidetable.json` → markdown tables |
+| `rescore.sh` | re-scores a finished cell (no host) and records scorer reproducibility |
+| `render.ts` | the campaign root → markdown tables (reads `artifacts/**/score.json` and `results/sidetable.json`) |
 | `sidetable.ts` | the agent-free L0/L3 runner and its fixture bootstrap |
 | `expectations.yaml` | the side-table rows, their expectations, and the lock |
 | `mcp-client.mjs` | stdio MCP client for rows that must exercise the tool surface |

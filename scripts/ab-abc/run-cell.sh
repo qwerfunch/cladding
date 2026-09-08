@@ -172,17 +172,16 @@ log "measure: oracle exit $(cat "$ARTIFACTS/oracle.exit") — reported only, nev
 git status --porcelain=v1 > "$ARTIFACTS/git-status-after-measure.txt" || true
 
 # ── score ─────────────────────────────────────────────────────────────────────
-(cd "$ABC_REPO" && npx tsx "$ABC_HARNESS/score.ts" "$ARTIFACTS" > /dev/null)
-cp "$ARTIFACTS/score.json" "$ARTIFACTS/score.first.json"
-(cd "$ABC_REPO" && npx tsx "$ABC_HARNESS/score.ts" "$ARTIFACTS" > /dev/null)
-if diff -q "$ARTIFACTS/score.first.json" "$ARTIFACTS/score.json" > /dev/null; then
-  echo true > "$ARTIFACTS/scorer-reproducible.txt"
-else
-  echo false > "$ARTIFACTS/scorer-reproducible.txt"
-  log "WARNING: scoring the same cell twice produced different output"
-fi
-rm -f "$ARTIFACTS/score.first.json"
-log "score.json written (scorer reproducible: $(cat "$ARTIFACTS/scorer-reproducible.txt"))"
+# Scoring lives in rescore.sh so a finished cell can be re-scored without a
+# host: it scores twice, compares, records the verdict, and scores once more so
+# score.json actually carries it. Writing anything into $ARTIFACTS from here
+# would land between its two comparison runs and read as a scorer difference —
+# so the log line waits until it has returned.
+ABC_ROOT="$ABC_ROOT" ABC_HARNESS="$ABC_HARNESS" ABC_REPO="$ABC_REPO" \
+  bash "$ABC_HARNESS/rescore.sh" "$ARM" "$CELL" > /dev/null
+REPRODUCIBLE="$(cat "$ARTIFACTS/scorer-reproducible.txt")"
+[ "$REPRODUCIBLE" = "true" ] || log "WARNING: scoring the same cell twice produced different output"
+log "score.json written (scorer reproducible: $REPRODUCIBLE)"
 # Field names follow score.ts's CellScore exactly: turns live under `time`, cost
 # under `tokens`. The earlier `s.cost.numTurns` was a TypeError that killed the
 # summary line after a cell had already run.

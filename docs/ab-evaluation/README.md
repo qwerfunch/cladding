@@ -144,7 +144,10 @@ candidate, written before the runs so the rules cannot follow the numbers:
   against the language-agnostic core.
 - [`case-version-abc-094-vs-0100.md`](./case-version-abc-094-vs-0100.md) — no
   engine, 0.9.4, and the 0.10.0 candidate, three arms on one task. Its harness
-  is `scripts/ab-abc/`.
+  is `scripts/ab-abc/`. **Verdict: GO** — all six pre-registered claims held and
+  none of the six stop conditions fired, on a deterministic table plus three live
+  runs per arm; code quality, coverage and the hidden oracle tied across all
+  three arms, as pre-registered.
 
 ## Related
 
