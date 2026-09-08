@@ -1,0 +1,16 @@
+{
+  "name": "abc-fixture",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "eslint": "^9.13.0",
+    "vitest": "^2.1.0",
+    "@vitest/coverage-v8": "^2.1.9"
+  }
+}

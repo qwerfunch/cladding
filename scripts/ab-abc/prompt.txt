@@ -1,0 +1,1 @@
+Implement the feature described in TASK.md in this repository, including tests, and finish the work the way this project's conventions require. If AGENTS.md or CLAUDE.md exist, follow them. Do not ask questions; when you are finished, stop.

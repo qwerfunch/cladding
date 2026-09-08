@@ -134,6 +134,18 @@ The **Findings** section is what most readers care about: a 6-bullet
 narrative quantifying the structural delta between cladding-managed and
 vanilla development.
 
+## Version campaigns
+
+Separate from the generated case pair above, this directory also holds
+**pre-registered version comparisons** — a released engine against a release
+candidate, written before the runs so the rules cannot follow the numbers:
+
+- [`case-version-ab-093-vs-next.md`](./case-version-ab-093-vs-next.md) — 0.9.3
+  against the language-agnostic core.
+- [`case-version-abc-094-vs-0100.md`](./case-version-abc-094-vs-0100.md) — no
+  engine, 0.9.4, and the 0.10.0 candidate, three arms on one task. Its harness
+  is `scripts/ab-abc/`.
+
 ## Related
 
 - [`../ssot-model.md`](../ssot-model.md) — 4-tier SSoT governance model that cladding implements.
