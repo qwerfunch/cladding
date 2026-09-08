@@ -1,6 +1,6 @@
 id: F-6349870d
 title: Schema 0.2 workspaces tell adopters how a test claims a criterion
-status: in_progress
+status: done
 purpose: A schema 0.2 workspace binds a test to a criterion only through a
   covers token at the very start of the test title, yet none of the surfaces an
   adopter's host actually reads — the managed AGENTS.md block, the managed
