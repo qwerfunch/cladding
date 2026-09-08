@@ -30,7 +30,8 @@ import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {describe, expect, test} from 'vitest';
 
-import {CLAUDE_MD_SECTION, isStaleInstructions} from '../src/init/host-instructions.js';
+import {CLAUDE_MD_SECTION, claudeMdSectionFor, isStaleInstructions} from '../src/init/host-instructions.js';
+import {requiredRootSchema} from '../src/spec/transaction.js';
 import {renderAgentsMdManagedBlock} from '../src/init/agents-md.js';
 
 // The live cross-host surface: the spec-driven AGENTS.md managed block
@@ -177,7 +178,10 @@ describe('AC-b3b7a118 · the size ceiling was deliberately raised (documented), 
     expect(vicinity).not.toMatch(/\b20\d{2}-\d{2}-\d{2}\b/);
   });
 
-  test("[covers:F-723c81dd/AC-b3b7a118] this repo's own CLAUDE.md `## cladding` section equals CLAUDE_MD_SECTION byte-for-byte (dogfood parity)", () => {
-    expect(read('CLAUDE.md')).toContain(CLAUDE_MD_SECTION);
+  test("[covers:F-723c81dd/AC-b3b7a118] this repo's own CLAUDE.md `## cladding` section equals the section its own schema renders, byte-for-byte (dogfood parity)", () => {
+    // This repository is a schema 0.2 workspace, so parity is against the 0.2
+    // render — the section an adopter of the same schema receives.
+    expect(requiredRootSchema('.')).toBe('0.2');
+    expect(read('CLAUDE.md')).toContain(claudeMdSectionFor('0.2'));
   });
 });

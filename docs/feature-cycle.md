@@ -19,7 +19,8 @@ say-so alone, never skip a `▣`.
 ## The cycle (one feature; repeat)
 
 1. **SPEC — `planner` (formerly `librarian`).** Author *this* feature's shard now: `acceptance_criteria` (with
-   `test_refs`) + the `modules` you're about to build + any scenario it needs — in one
+   `test_refs` on schema 0.1; on schema 0.2 a test claims a criterion by its title instead — see
+   step 3) + the `modules` you're about to build + any scenario it needs — in one
    `clad_create_feature` call (the tool takes ACs/modules). Not the whole backlog; just the feature
    you're about to build.
    Classify its design impact in the same call: `none` for a genuinely internal change,
@@ -55,6 +56,14 @@ say-so alone, never skip a `▣`.
    drive loop halts when reviewer identity equals the implementer's — not a guarantee that the
    test-author never peeked. An A/B run found test-authors reading repository files in 4/4 features
    despite the instruction; the reviewer remains the backstop.)
+   - On a schema 0.2 workspace a test claims a criterion **by its title**, not by a file list:
+     start the test's title with `[covers:<feature id>/<criterion id>]`, e.g.
+     `it('[covers:F-…/AC-…] rejects an expired token', …)` with the feature's and criterion's own
+     ids in place of the ellipses. The token has to be the
+     first thing in a plain string title; a `describe()` title is never read, and several tokens
+     may follow one another when one test proves several criteria. `test_refs` is the older
+     schema 0.1 form and is not accepted on 0.2. Until a criterion has a test whose title claims
+     it, the gate reports that criterion as unobserved and the feature cannot finish.
    - ▣ **Barrier:** `clad check --tier=pre-push --strict` — type / lint / unit / cov **and** drift
      (MISSING_IMPLEMENTATION, UNTESTED_AC, MISSING_TESTS, STATUS_DRIFT). Zero error-severity ⇒
      proceed; else loop back to 2/3 until green.

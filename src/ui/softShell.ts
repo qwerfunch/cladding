@@ -114,7 +114,7 @@ export const DETECTOR_PLAIN: Readonly<Record<string, PlainEntry>> = {
   HARNESS_INTEGRITY: {lead: 'The cladding setup is inconsistent — a version or count does not match across its files'},
   META_INTEGRITY: {lead: 'The spec schema files are missing or malformed', action: 'restore spec/schema.json (reinstall cladding if needed)'},
   AC_DRIFT: {lead: 'An acceptance criterion is incomplete or out of sync with the spec', action: 'write the criterion text or its when/shall/so-that fields'},
-  MISSING_TESTS: {lead: 'A finished feature has an acceptance criterion with nothing proving it works', action: 'add a test file or evidence reference to the criterion'},
+  MISSING_TESTS: {lead: 'A finished feature has an acceptance criterion with nothing proving it works', action: 'start the verifying test title with `[covers:<feature id>/<criterion id>]` on schema 0.2, or add a test file or evidence reference on schema 0.1'},
   STALE_TESTS: {lead: 'The tests are much older than the code they cover, so they may no longer match', action: 'review and refresh the outdated tests'},
   COVERAGE_DROP: {lead: 'Test coverage fell below the project minimum', action: 'add tests until coverage clears the floor'},
   PERFORMANCE_DRIFT: {lead: 'A measured performance number is noticeably worse than the saved baseline', action: 'investigate the slowdown or update the baseline'},
@@ -236,4 +236,32 @@ export function doneRefusalLead(): string {
  */
 export function doneSelfCertRefusalLead(): string {
   return 'the checks passed, but this feature has no independent or human review yet — this project asks for one before completion';
+}
+
+/**
+ * The plain sentences a schema 0.2 gate prints for every criterion that no test
+ * claims. A criterion is bound to its proof only by a covers token at the very
+ * start of a test title, so an `unbound` row has exactly one cure and the gate
+ * says it in place — with the real address inside the token, ready to paste.
+ * Rows for any other state or reason produce nothing.
+ */
+export function unboundCriterionGuidance(
+  rows: readonly {
+    readonly subject: string;
+    readonly state: string;
+    readonly reason?: string;
+  }[],
+): readonly string[] {
+  const seen = new Set<string>();
+  const lines: string[] = [];
+  for (const row of rows) {
+    if (row.state !== 'unobserved' || row.reason !== 'unbound') continue;
+    const address = row.subject.startsWith('criterion:')
+      ? row.subject.slice('criterion:'.length)
+      : row.subject;
+    if (seen.has(address)) continue;
+    seen.add(address);
+    lines.push(`no test claims this criterion — start a test title with \`[covers:${address}]\``);
+  }
+  return lines;
 }

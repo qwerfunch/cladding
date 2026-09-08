@@ -19,7 +19,7 @@ import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {describe, expect, test} from 'vitest';
 
-import {CLAUDE_MD_SECTION, isStaleInstructions} from '../src/init/host-instructions.js';
+import {CLAUDE_MD_SECTION, claudeMdSectionFor, isStaleInstructions} from '../src/init/host-instructions.js';
 import {renderAgentsMdManagedBlock} from '../src/init/agents-md.js';
 
 const AGENTS_MD_BLOCK = renderAgentsMdManagedBlock(null);
@@ -107,8 +107,17 @@ describe('AC-a684ae50 · round trip holds in both directions', () => {
   });
 });
 
+// Deliberate exemption (F-6349870d, 2026-09-08): the schema 0.2 section runs to
+// ~1,343 bytes, past the 1,250-byte ceiling pinned in
+// tests/agent-interpreter-rule.test.ts. That ceiling guards CLAUDE_MD_SECTION —
+// the 0.1 constant — which is unchanged; the 0.2 render adds one sentence,
+// because on that schema a test claims a criterion ONLY through the token that
+// opens its title and an adopter who is not told cannot discover it. The diet
+// stays enforced where it was measured.
 describe('AC-26e087d1 · the repo dogfoods its own emission', () => {
-  test("[covers:F-288864ae/AC-26e087d1] this repo's own CLAUDE.md contains CLAUDE_MD_SECTION verbatim", () => {
-    expect(read('CLAUDE.md')).toContain(CLAUDE_MD_SECTION);
+  test("[covers:F-288864ae/AC-26e087d1] this repo's own CLAUDE.md contains the section its own schema renders, verbatim", () => {
+    // A schema 0.2 workspace emits the 0.2 section; every anchor above is
+    // shared with CLAUDE_MD_SECTION, which the 0.2 render is derived from.
+    expect(read('CLAUDE.md')).toContain(claudeMdSectionFor('0.2'));
   });
 });

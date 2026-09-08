@@ -112,7 +112,7 @@ import {loadSpec, loadSpecFromDiskUnlocked} from '../spec/load.js';
 import {readEvidence} from '../hitl/audit.js';
 import {pulse, type PulseKind} from '../ui/pulse.js';
 import {buildPanelModel, renderPanel} from '../ui/panel.js';
-import {gateLabel, plainLead} from '../ui/softShell.js';
+import {gateLabel, plainLead, unboundCriterionGuidance} from '../ui/softShell.js';
 
 /** Handler for `clad serve`. Boots the MCP server over stdio. */
 export async function runServeCommand(opts: {cwd?: string}): Promise<void> {
@@ -605,6 +605,9 @@ export interface CheckStageOptions {
 /** Runs stages, refusing public completion transport flags without a prepared capability. */
 /** How many unrecorded done features are named before the note summarizes the rest. */
 const ATTESTATION_REFUSAL_NOTE_LIMIT = 5;
+
+/** How many unbound criteria are named before the binding note summarizes the rest. */
+const UNBOUND_CRITERION_NOTE_LIMIT = 5;
 
 export function runCheckStages(opts: CheckStageOptions): CheckOutcome {
   const requestsCompletion = opts.deferAttestation === true
@@ -1230,6 +1233,22 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
       pulse('note', 'attestation', `… and ${doneRefusals.length - ATTESTATION_REFUSAL_NOTE_LIMIT} more feature(s) whose verification was not recorded.`);
     }
   }
+  // F-6349870d — a criterion with no test binding is the first RED an adopting
+  // host meets on schema 0.2, and until now the run said only that something
+  // failed. Name the one cure in place: the covers token that starts a test
+  // title. Rendered from the verdict rows, never stored in them, so no
+  // obligation, verdict, or attestation input changes.
+  const unboundGuidance = assuranceSchema === '0.2'
+    ? unboundCriterionGuidance(assurance?.results ?? [])
+    : [];
+  if (unboundGuidance.length > 0 && !opts.json && !silent) {
+    for (const line of unboundGuidance.slice(0, UNBOUND_CRITERION_NOTE_LIMIT)) {
+      pulse('note', 'binding', line);
+    }
+    if (unboundGuidance.length > UNBOUND_CRITERION_NOTE_LIMIT) {
+      pulse('note', 'binding', `… and ${unboundGuidance.length - UNBOUND_CRITERION_NOTE_LIMIT} more criterion(s) that no test claims.`);
+    }
+  }
   if (opts.json && !silent) {
     // Machine-readable, UNTRUNCATED — findings carry file/line/suggestion so an
     // agent fixes in one pass instead of re-running to discover where + what.
@@ -1249,7 +1268,13 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
         // turns `profile_complete: false` from a verdict into a work list.
         // Schema 0.1 has no such closure, and its JSON stays byte-identical.
         ...(assuranceSchema === '0.2'
-          ? {incomplete_addresses: gateAssurancePlan?.snapshot.incompleteAddresses ?? []}
+          ? {
+            incomplete_addresses: gateAssurancePlan?.snapshot.incompleteAddresses ?? [],
+            // The same binding guidance the human run prints. clad_run_gate
+            // passes this document through verbatim, so an MCP host reads the
+            // cure here. Schema 0.1 keeps its byte-identical JSON.
+            unbound_criteria: unboundGuidance,
+          }
           : {}),
         independence: assurance.independence,
         attestation_freshness: v3Freshness,

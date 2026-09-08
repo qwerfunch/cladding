@@ -1,0 +1,83 @@
+id: F-6349870d
+title: Schema 0.2 workspaces tell adopters how a test claims a criterion
+status: in_progress
+purpose: A schema 0.2 workspace binds a test to a criterion only through a
+  covers token at the very start of the test title, yet none of the surfaces an
+  adopter's host actually reads — the managed AGENTS.md block, the managed
+  CLAUDE.md section, the gate's unobserved-criterion output, the MISSING_TESTS
+  remedy, and the server's refusal of legacy test references — say so; the
+  pre-release A/B/C design found that a host with no outside instruction cannot
+  discover the rule, so 0.10.0 must state it where the host first meets it while
+  leaving schema 0.1 guidance byte-stable.
+modules:
+  - src/init/agents-md.ts
+  - src/init/host-instructions.ts
+  - src/ui/softShell.ts
+  - src/serve/server.ts
+  - src/cli/clad.ts
+  - docs/feature-cycle.md
+depends_on: []
+capability_refs: []
+acceptance_criteria:
+  - id: AC-6a6386a3
+    kind: behavior
+    statement: When clad init scaffolds a schema 0.2 workspace, the managed
+      AGENTS.md block shall state that a test binds a criterion by starting its
+      title with the covers token and that criteria carry a kind and a strict
+      statement.
+    notes: The block today teaches the 0.1 ears/text fields only. On 0.2 the
+      feature-cycle paragraph names clad_begin and the typed edit tools, and the
+      criterion section describes kind + strict statement (exactly one shall,
+      terminal period, the system phrase opens with the) and the title token
+      rule.
+  - id: AC-147722e1
+    kind: behavior
+    statement: When clad init scaffolds a schema 0.1 workspace, the managed
+      AGENTS.md block and the managed CLAUDE.md section shall keep the bytes
+      they had before this feature.
+    notes: "Regression guard: 0.1 adopters must see no guidance churn. The test
+      compares the 0.1 render against a pinned copy of the pre-feature output."
+  - id: AC-4eb00621
+    kind: behavior
+    statement: When the managed CLAUDE.md section is rendered for a schema 0.2
+      workspace, the feature cycle paragraph shall name the title token as the
+      way a test claims a criterion.
+    notes: The repository's own CLAUDE.md managed section is regenerated from the
+      0.2 render so the dogfood byte-parity test stays green. A workspace
+      migrated to schema 0.2 keeps the schema 0.1 section, which no marker calls
+      stale; the freshness rule therefore treats a cladding-authored section
+      with no covers token as stale on 0.2 so `clad update` delivers the rule.
+  - id: AC-336d461f
+    kind: behavior
+    statement: When a schema 0.2 gate reports a criterion as unobserved because no
+      test claims it, the gate output shall name the title token that binds a
+      test to that criterion.
+    notes: "This is the first RED a host sees: the pre-push run reports the kernel
+      obligation as unobserved (unbound) before clad done ever runs. Both the
+      CLI rendering and the clad_run_gate summary must carry the rule."
+  - id: AC-695f4712
+    kind: behavior
+    statement: When a schema 0.2 feature creation request carries test references or
+      legacy criterion fields, the server shall refuse with a message that names
+      the title token as the replacement.
+    notes: Today the refusal says legacy fields are not accepted and stops. The tool
+      schema descriptions for test_refs and the get-feature and impact tools
+      also stop presenting test references as the only binding.
+  - id: AC-8f563d88
+    kind: behavior
+    statement: When the gate reports MISSING_TESTS, the remedy shall name both the
+      schema 0.2 title token and the schema 0.1 test reference.
+    notes: softShell copy is schema-agnostic, so one remedy sentence covers both
+      schemas.
+  - id: AC-d8343efa
+    kind: constraint
+    statement: The guidance change shall leave the MCP tool set and every gate
+      verdict unchanged.
+    rationale: "Text only: the catalog byte pin moves because descriptions change,
+      but the tool count stays 27 and no verdict path is touched."
+design_impact:
+  classification: none
+  rationale: "Guidance text only: no schema, tool set, gate verdict, or
+    design-document contract changes; the managed instruction renderers become
+    schema-aware and the existing messages name the title token."
+  status: resolved

@@ -14,6 +14,8 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { requiredRootSchema } from '../spec/transaction.js';
+
 export const CLAUDE_MD_SECTION_MARKER = '## cladding';
 
 export const CLAUDE_MD_SECTION = `## cladding
@@ -42,6 +44,34 @@ cladding's own gate and hook messages: relay them by
 meaning. Never lead with internal ids.
 `;
 
+/**
+ * The `## cladding` section a workspace of `schema` receives. Schema 0.1 gets
+ * `CLAUDE_MD_SECTION` byte-for-byte (AC-147722e1); schema 0.2 gets the same
+ * section with one added sentence in the feature-cycle paragraph, because on
+ * that schema a test claims a criterion only through the token that opens its
+ * title (AC-4eb00621). Every other anchor is shared by construction.
+ */
+export function claudeMdSectionFor(schema: '0.1' | '0.2'): string {
+  if (schema !== '0.2') return CLAUDE_MD_SECTION;
+  return CLAUDE_MD_SECTION.replace(SCHEMA_01_FEATURE_CYCLE, SCHEMA_02_FEATURE_CYCLE);
+}
+
+/** The feature-cycle paragraph as schema 0.1 states it (the replace anchor). */
+const SCHEMA_01_FEATURE_CYCLE = `**Feature cycle — one at a time** — One feature end-to-end before the next:
+author its spec entry (\`acceptance_criteria\` + \`modules\`) → implement → author tests
+in a separate context → \`clad done <featureId>\` (sets \`status: done\` only when
+\`clad check --tier=pre-push --strict\` is GREEN). Never author spec entries ahead of
+their code, or hand-write \`status: done\`. See \`docs/feature-cycle.md\`.`;
+
+/** The same paragraph, naming the title token schema 0.2 binds a test with. */
+const SCHEMA_02_FEATURE_CYCLE = `**Feature cycle — one at a time** — One feature end-to-end before the next:
+author its spec entry (\`acceptance_criteria\` + \`modules\`) → implement → author tests
+in a separate context → \`clad done <featureId>\` (sets \`status: done\` only when
+\`clad check --tier=pre-push --strict\` is GREEN). A test claims a criterion by
+starting its title with \`[covers:F-…/AC-…]\`; \`test_refs\` are not accepted on
+schema 0.2. Never author spec entries ahead of their code, or hand-write
+\`status: done\`. See \`docs/feature-cycle.md\`.`;
+
 // v0.3.x markers that disappeared in v0.4.0. When detected in an existing
 // AGENTS.md or CLAUDE.md, the file was written by an older `clad init` and
 // needs a refresh — otherwise the AI session reads stale guidance (e.g.
@@ -61,8 +91,17 @@ const STALE_MARKERS = [
 const FRESH_MARKER = 'Feature cycle — one at a time';
 const CLADDING_AUTHORED_SIGNATURE = 'anti-self-cert';
 
-export function isStaleInstructions(body: string): boolean {
+export function isStaleInstructions(body: string, schema: '0.1' | '0.2' = '0.1'): boolean {
   if (STALE_MARKERS.some((m) => body.includes(m))) return true;
+  // A workspace that MIGRATED to schema 0.2 keeps the section it was written on
+  // schema 0.1, which is not stale by any marker above — yet it teaches a
+  // binding this schema refuses and omits the only one it reads. A
+  // cladding-authored section with no covers token is therefore stale on 0.2,
+  // so `clad update` hands the migrated adopter the rule. Schema 0.1 keeps its
+  // verdict unchanged.
+  if (schema === '0.2' && body.includes(CLADDING_AUTHORED_SIGNATURE) && !body.includes('[covers:')) {
+    return true;
+  }
   // Lone "use clad_create_feature MCP tool" with no surrounding "clad CLI"
   // qualifier — the new template always pairs the two.
   const mcpMentioned = /clad_create_feature[^.\n]{0,40}MCP\s*\n?\s*tool/i.test(body);
@@ -89,27 +128,38 @@ export type ClaudeMdResult =
 
 export function writeClaudeMdSection(
   targetDir: string,
-  opts: { readonly force?: boolean } = {},
+  opts: { readonly force?: boolean; readonly schema?: '0.1' | '0.2' } = {},
 ): ClaudeMdResult {
   const path = join(targetDir, 'CLAUDE.md');
+  // The workspace's own declaration decides which guidance is written; a
+  // directory with no readable declaration keeps the schema 0.1 section.
+  let schema: '0.1' | '0.2' = opts.schema ?? '0.1';
+  if (opts.schema === undefined) {
+    try {
+      schema = requiredRootSchema(targetDir);
+    } catch {
+      schema = '0.1';
+    }
+  }
+  const section = claudeMdSectionFor(schema);
   if (!existsSync(path)) {
-    writeFileSync(path, CLAUDE_MD_SECTION);
+    writeFileSync(path, section);
     return 'created';
   }
   const existing = readFileSync(path, 'utf8');
   const hasMarker = existing.includes(CLAUDE_MD_SECTION_MARKER);
   if (!hasMarker) {
     const separator = existing.endsWith('\n') ? '\n' : '\n\n';
-    writeFileSync(path, `${existing}${separator}${CLAUDE_MD_SECTION}`);
+    writeFileSync(path, `${existing}${separator}${section}`);
     return 'appended';
   }
   if (opts.force) {
-    writeFileSync(path, replaceCladdingSection(existing, CLAUDE_MD_SECTION));
+    writeFileSync(path, replaceCladdingSection(existing, section));
     return 'refreshed-stale';
   }
   const sectionBody = extractCladdingSection(existing);
-  if (sectionBody !== null && isStaleInstructions(sectionBody)) {
-    writeFileSync(path, replaceCladdingSection(existing, CLAUDE_MD_SECTION));
+  if (sectionBody !== null && isStaleInstructions(sectionBody, schema)) {
+    writeFileSync(path, replaceCladdingSection(existing, section));
     return 'refreshed-stale';
   }
   return 'unchanged';

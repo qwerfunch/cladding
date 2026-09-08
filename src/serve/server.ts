@@ -1422,7 +1422,8 @@ function registerInitializedTools(
       description:
         "Returns the working set for ONE feature in one call: the focus feature (full), its transitive " +
         'depends_on ancestors (title+status), bound scenarios, the matching ai_hints patterns, and the union ' +
-        "of the feature's test_refs. Look up by feature id (F-…), slug, or a module path. Prefer this over " +
+        "of the feature's test bindings (schema 0.1 test_refs, or the covers tokens that open schema 0.2 test " +
+        'titles). Look up by feature id (F-…), slug, or a module path. Prefer this over ' +
         'reading shards by hand — dispatch the slice, never the whole spec.',
       inputSchema: {
         query: z.string().describe('Feature id (F-…), slug, or module path (e.g. src/auth/login.ts)'),
@@ -1500,7 +1501,7 @@ function registerInitializedTools(
       title: 'Get the blast radius for a change (reverse / impact slice)',
       description:
         "Returns what a change to ONE feature or file could break: the transitive dependents (id+title+status), " +
-        'the scenarios bound to any of them, the deduped union of their test_refs (the regression set to re-run), ' +
+        'the scenarios bound to any of them, the deduped union of their test bindings (the regression set to re-run), ' +
         'and the modules in the radius. Look up by feature id (F-…), slug, or a module path — a module fans out to ' +
         'ALL features that touch it. The backward complement of clad_get_context: forward = what this needs, ' +
         'impact = what depends on this. Prefer this over grepping to scope a safe refactor.',
@@ -1808,7 +1809,7 @@ function registerInitializedTools(
               action: z.string().optional(),
               response: z.string().optional(),
               condition: z.string().optional().describe('Trigger/precondition for event/state EARS.'),
-              test_refs: z.array(z.string()).optional().describe('Paths to verifying tests.'),
+              test_refs: z.array(z.string()).optional().describe('Schema 0.1 only: paths to verifying tests. On schema 0.2 a test is bound by the [covers:F-…/AC-…] token that opens its title.'),
               rationale: z.string().optional(),
               constraint_refs: z.array(z.string()).optional(),
               oracle_refs: z.array(z.string()).optional(),
@@ -1872,7 +1873,7 @@ function registerInitializedTools(
           return mutationPayload({code: 'INVALID_OPERATION', message: 'A schema 0.2 feature needs a purpose and an explicit capability link list.'}, true);
         }
         if ((args.acceptance_criteria ?? []).some((criterion) => criterion.text !== undefined || criterion.ears !== undefined || criterion.condition !== undefined || criterion.action !== undefined || criterion.response !== undefined || criterion.test_refs !== undefined)) {
-          return mutationPayload({code: 'INVALID_OPERATION', message: 'Schema 0.2 criteria use kind and strict statement; legacy EARS and test-reference fields are not accepted.'}, true);
+          return mutationPayload({code: 'INVALID_OPERATION', message: 'Schema 0.2 criteria use kind and strict statement; legacy EARS and test-reference fields are not accepted. Bind a test by starting its title with [covers:F-…/AC-…].'}, true);
         }
         try {
           const snapshot = readSchema02AuthoringSnapshot(cwd);

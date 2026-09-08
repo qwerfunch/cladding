@@ -101,8 +101,10 @@ implements; whoever authors a unit must not sign off on it (anti-self-cert).
 **Feature cycle — one at a time** — One feature end-to-end before the next:
 author its spec entry (`acceptance_criteria` + `modules`) → implement → author tests
 in a separate context → `clad done <featureId>` (sets `status: done` only when
-`clad check --tier=pre-push --strict` is GREEN). Never author spec entries ahead of
-their code, or hand-write `status: done`. See `docs/feature-cycle.md`.
+`clad check --tier=pre-push --strict` is GREEN). A test claims a criterion by
+starting its title with `[covers:F-…/AC-…]`; `test_refs` are not accepted on
+schema 0.2. Never author spec entries ahead of their code, or hand-write
+`status: done`. See `docs/feature-cycle.md`.
 
 **Hash-based IDs** — Never hand-author `F-NNN` filenames; use the `clad` CLI
 (or `/cladding:init`). Model in `docs/spec-ids-multi-dev.md`.
