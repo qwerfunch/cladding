@@ -609,6 +609,9 @@ const ATTESTATION_REFUSAL_NOTE_LIMIT = 5;
 /** How many unbound criteria are named before the binding note summarizes the rest. */
 const UNBOUND_CRITERION_NOTE_LIMIT = 5;
 
+/** Ascending level order, used only to tell a refused downgrade from a refused upgrade. */
+const ASSURANCE_LEVEL_ORDER: readonly AssuranceLevel[] = ['L1', 'L2', 'L3', 'L4'];
+
 export function runCheckStages(opts: CheckStageOptions): CheckOutcome {
   const requestsCompletion = opts.deferAttestation === true
     || opts.prospectiveFeatureId !== undefined
@@ -685,6 +688,10 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
   // their historical 0.1 subsets, while a canonical profile never quietly
   // defaults to `all` merely because no tier was supplied.
   let profileCompilation: ReturnType<typeof compileSpecWorkspace> | undefined;
+  // A rejected ONE-RUN level is a refusal the caller asked for, so it is
+  // carried out of the compile guard and answered below. Without a requested
+  // level nothing is ever captured here and the default run is byte-identical.
+  let levelRejection: {readonly configured: AssuranceLevel; readonly requested: AssuranceLevel; readonly reason: string} | undefined;
   if (selectedProfile) {
     try {
       profileCompilation = compileSpecWorkspace('.');
@@ -698,6 +705,8 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
         if (resolved.ok) {
           const profileLevel = selectedProfile === 'feedback' || selectedProfile === 'checkpoint' ? 'L1' : resolved.level;
           allowed = assuranceProfile(selectedProfile, profileLevel).obligations;
+        } else if (opts.assuranceLevel !== undefined) {
+          levelRejection = {configured, requested: opts.assuranceLevel, reason: resolved.reason};
         }
       }
     } catch {
@@ -710,12 +719,40 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
   let gateAssurancePlan: Schema02AssurancePlan | undefined;
   if (selectedProfile && profileCompilation?.schemaVersion === '0.2') {
     try {
-      gateAssurancePlan = schema02AssurancePlan(profileCompilation, selectedProfile, opts.assuranceLevel, opts.scopeSubjects);
+      const planned = schema02AssurancePlan(profileCompilation, selectedProfile, opts.assuranceLevel, opts.scopeSubjects);
+      if (planned !== undefined && 'levelRejected' in planned) {
+        levelRejection ??= {configured: planned.configured, requested: planned.requested, reason: planned.levelRejected};
+      }
+      gateAssurancePlan = assurancePlanOnly(planned);
     } catch {
       // A schema-0.2 planning failure must not retain a caller-provided module
       // filter. Reduction later records the authoritative fault as blocking.
       gateAssurancePlan = undefined;
     }
+  }
+  // The kernel already decided; the adapter's only job is to say so. Running
+  // the stages anyway would print a green-stage legacy report for a run whose
+  // requested level was never honoured — a verdict with no visible cause.
+  if (levelRejection) {
+    const upgrade = ASSURANCE_LEVEL_ORDER.indexOf(levelRejection.requested) > ASSURANCE_LEVEL_ORDER.indexOf(levelRejection.configured);
+    const message = upgrade
+      ? `${levelRejection.reason} Only the completion profile on a bounded feature scope can raise the level for one run.`
+      : levelRejection.reason;
+    if (!silent) {
+      if (opts.json) {
+        process.stdout.write(`${JSON.stringify({
+          tier,
+          profile: selectedProfile,
+          configured_assurance_level: levelRejection.configured,
+          requested_assurance_level: levelRejection.requested,
+          assurance_level_rejected: message,
+        }, null, 2)}\n`);
+      } else {
+        pulse('fail', 'check', message);
+      }
+      process.exitCode = 1;
+    }
+    return {worst: 1, anyFailed: true, stages: [], error: message};
   }
   // Focus-feature module scope (Gradle monorepos): forwarded to every command
   // stage and to the drift suite so the coverage detector reads per-module
@@ -801,7 +838,7 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
                 // that read and the compiler view in the same reconstructed
                 // prospective target so the F4 recheck cannot compare a done
                 // gate seal with an in-progress disk closure.
-                const current = opts.prospectiveFeatureId === undefined
+                const current = assurancePlanOnly(opts.prospectiveFeatureId === undefined
                   ? schema02AssurancePlan(
                     currentCompilation, selectedProfile, opts.assuranceLevel, opts.scopeSubjects, currentSpec,
                   )
@@ -810,7 +847,7 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
                       schema02AssurancePlan(
                         currentCompilation, selectedProfile, opts.assuranceLevel, opts.scopeSubjects, currentSpec,
                       ),
-                    ));
+                    )));
                 return current !== undefined
                   && current.snapshot.complete
                   && current.snapshot.inputSha256 === capturedPlan.snapshot.inputSha256;
@@ -968,7 +1005,7 @@ function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: Prepared
             const postSpec = opts.prospectiveFeatureId === undefined
               ? undefined
               : prospectiveDoneSpec(loadSpec('.'), opts.prospectiveFeatureId);
-            postPlan = schema02AssurancePlan(postCompilation, requestedProfile, opts.assuranceLevel, opts.scopeSubjects, postSpec);
+            postPlan = assurancePlanOnly(schema02AssurancePlan(postCompilation, requestedProfile, opts.assuranceLevel, opts.scopeSubjects, postSpec));
             closureStable = plan.snapshot.complete
               && postPlan !== undefined
               && postPlan.snapshot.complete
@@ -1382,6 +1419,23 @@ interface Schema02AssurancePlan {
   readonly snapshot: WorkspaceProfileSnapshot;
 }
 
+/**
+ * A one-run level the planner refused, handed back so an adapter can say so.
+ *
+ * The planner owns the strictest bounded-scope test in the process, and a
+ * refusal it swallows is a refusal no caller can explain.
+ */
+interface Schema02LevelRejection {
+  readonly configured: AssuranceLevel;
+  readonly requested: AssuranceLevel;
+  readonly levelRejected: string;
+}
+
+/** Narrows a planner result to a plan, so a refusal never reads as a missing plan. */
+function assurancePlanOnly(result: Schema02AssurancePlan | Schema02LevelRejection | undefined): Schema02AssurancePlan | undefined {
+  return result === undefined || 'levelRejected' in result ? undefined : result;
+}
+
 /** Builds an exact subject-scoped plan from compiler facts without interpreting proof results. */
 function schema02AssurancePlan(
   compilation: SpecCompilation,
@@ -1389,7 +1443,7 @@ function schema02AssurancePlan(
   requestedLevel: AssuranceLevel | undefined,
   scopeSubjects: readonly string[] | undefined,
   suppliedSpec?: ReturnType<typeof loadSpec>,
-): Schema02AssurancePlan | undefined {
+): Schema02AssurancePlan | Schema02LevelRejection | undefined {
   if (compilation.schemaVersion !== '0.2' || !compilation.contract) return undefined;
   const configured = compilation.contract.project.assuranceLevel ?? 'L2';
   // Resolve scope before accepting a one-run assurance upgrade: only an exact
@@ -1401,7 +1455,11 @@ function schema02AssurancePlan(
     requested: requestedLevel,
     boundedScope: requestedProfile === 'completion' && !effectiveScope.repository && effectiveScope.complete,
   });
-  if (!level.ok) return undefined;
+  if (!level.ok) {
+    return requestedLevel === undefined
+      ? undefined
+      : {configured, requested: requestedLevel, levelRejected: level.reason};
+  }
   const profileLevel = requestedProfile === 'feedback' || requestedProfile === 'checkpoint' ? 'L1' : level.level;
   const profile = assuranceProfile(requestedProfile, profileLevel);
   const allScopeAddresses = compilation.contract.features.map((feature) => `feature:${feature.id}`).sort();
@@ -2078,7 +2136,7 @@ export function createProgram(): Command {
 
   program
     .command('ingest-receipt <receiptFile>')
-    .description('Create-only ingest of one portable receipt. Local CLI trust is empty until a registered host supplies F9 trust.')
+    .description('Create-only ingest of one portable receipt, verified against the committed trust registry (spec/trust/issuers.yaml).')
     .option('--cwd <path>', 'target project directory (default cwd)')
     .option('--json', 'emit receipt-ingestion details')
     .action((receiptFile: string, opts: {cwd?: string; json?: boolean}) => {

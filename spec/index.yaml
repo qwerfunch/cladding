@@ -106,6 +106,7 @@ features:
   F-16746b: {slug: enforcement-triggers, status: done, modules: 3}
   F-17df0a: {slug: scan-artifacts-llm-refinement, status: done, modules: 3}
   F-182eaa53: {slug: spec-compiler-registry-bootstrap, status: done, modules: 92}
+  F-18a5883a: {slug: spec-02-cli-adapter-kernel-parity, status: in_progress, modules: 4}
   F-18e951: {slug: drift-baseline-cleanup, status: done, modules: 7}
   F-195cb59e: {slug: onboarding-handoff-steer, status: done, modules: 2}
   F-1a87a6bd: {slug: spec-02-context-envelope, status: done, modules: 6}

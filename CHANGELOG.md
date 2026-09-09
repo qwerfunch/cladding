@@ -42,6 +42,8 @@ Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 - **A renamed test keeps its binding.** Bindings carried forward by the migration and then invalidated by a title edit are promoted to live tokens instead of failing silently.
 - **Patched dependencies.** The MCP SDK's transitive `fast-uri`, `qs`, and `side-channel` packages move to their patched releases, so `npm audit` reports no known vulnerabilities.
 - **A workspace holding a signed review could never record a verification.** The gate sealed the record of what it verified without counting the reviews on disk, while the writer counted them, so the two never matched: the check finished green, wrote nothing, said nothing, and `clad done` refused with a cause it could not name. Both now read the same set, the freshness check reads it too, and a refusal names the guard that refused.
+- **Asking for a different level of assurance for one run now says why it was refused.** Requesting a level the project does not allow — anything below the level it is set to, or a stronger one anywhere except a single feature's completion check — used to end in a red result with no cause printed anywhere, every check apparently green. The refusal now names its reason before anything runs; a run without the option is untouched.
+- **A receipt imported on the command line is now checked against the project's registered signers,** exactly the way it is when your AI host imports one. Until now every receipt was filed as an unverified claim, whether it was genuine, altered, or signed by someone the project never registered — an altered one is now refused and nothing is stored.
 
 ## [0.9.4] — The gate judges the sources on disk (2026-08-26)
 
