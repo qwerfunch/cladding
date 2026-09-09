@@ -1,6 +1,6 @@
 id: F-71da4292
 title: Portable closure membership for attestation seals
-status: in_progress
+status: done
 purpose: Attestation seals stamped from a working copy must equal the seals a
   clean checkout of the same commit computes, because a desktop metadata file or
   an ignored fixture inside a sealed directory currently marks every committed
