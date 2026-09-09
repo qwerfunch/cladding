@@ -148,6 +148,12 @@ candidate, written before the runs so the rules cannot follow the numbers:
   none of the six stop conditions fired, on a deterministic table plus three live
   runs per arm; code quality, coverage and the hidden oracle tied across all
   three arms, as pre-registered.
+- [`case-0100-feature-scenarios.md`](./case-0100-feature-scenarios.md) — the
+  follow-up to that campaign, asking a narrower question: was every change in
+  0.10.0 actually checked? Every item in the release notes is mapped to a
+  deterministic row, a live host probe, or a written reason it is not a
+  scenario, and the mapping is verified by this repository's own test suite.
+  **Status: rows recorded, classification pending.**
 
 ## Related
 

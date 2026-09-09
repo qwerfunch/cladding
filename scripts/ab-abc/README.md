@@ -59,6 +59,12 @@ The deterministic side-table runs first on purpose. It costs nothing, and a row
 that comes back wrong is a reason to fix the engine and re-pack *before* spending
 anything on live cells.
 
+The side-table rows read three of their own: `ABC_L4_POLICY=require` switches the
+L4 replay to the refusal case, `ABC_L4_ISSUER=<name>` signs it as somebody other
+than the committing author (unset, the replay is byte-for-byte what it always
+was), and `ABC_HOST_PROBE_TIMEOUT` moves the host probe's per-cell wall clock off
+its ten-minute default.
+
 `ABC_TASK=task2.md` builds a cell around the second, smaller feature, and
 `ABC_FROM=<arm>/<cell>` seeds a cell from a **finished** one instead of the
 template — the continuation case, where a second feature lands in a workspace
@@ -225,8 +231,22 @@ under test**. A run fills `observed`; a human then marks each row `match`,
 `defect-fixed` (something had to be repaired before the row could be believed),
 `expectation-wrong` (the engine is fine, the guess was not), `designed` (a
 deliberate 0.2 change, named in the case document before the fact), or `record`
-(the row exists to write down what each engine says). While the file says
-`status: unlocked` a mismatch is a finding to classify, never a blocker.
+(the row exists to write down what each engine says). A sixth value, `manual`,
+belongs to a row that cannot be driven without a model at all: it is recorded
+with the reason it is manual and is answered by a live probe instead. An
+`expectation-wrong` row also carries `expect_revised` — what is now expected, in
+the same shape as the guess, plus a `why` saying what the pre-registration got
+wrong. The original `expect` stays where it is, because a corrected guess is only
+readable next to the one it corrects. While the file says `status: unlocked` a
+mismatch is a finding to classify, never a blocker.
+
+A row that found a product fault gets neither a classification nor a lock yet. It
+carries `defect` — one sentence saying what is wrong — and `rerun`, naming the
+repair the row is waiting on. That pairing is a transient state, not a verdict:
+the row keeps `classification: null` until the repaired engine is packed and the
+row has run against it, and only then is it classified and pinned like any other.
+Leaving it unclassified is deliberate — a row cannot be locked against behaviour
+that is about to change.
 
 Once every row is classified, flip the file to `locked`. That is not a label: each
 row must then also carry a `lock:` map — one entry per `<step>-<arm>` pinning the
@@ -240,16 +260,33 @@ mode this campaign exists to avoid. Pinned literals are matched against the
 artifact's own bytes, so a string that lands inside a JSON payload is pinned in
 its escaped form.
 
+One pin reads a file inside the row's own workspace rather than a captured
+artifact — the `file` step kind — so `sidetable-runs/` must still hold that
+workspace when the lock is checked. A full run and an `--only` that excludes the
+row both satisfy that; deleting the scratch tree by hand between the run and the
+check does not, and the pin fails for a reason that has nothing to do with either
+engine.
+
 `sidetable.ts --only L0-1,L0-4` re-runs a few rows and carries the rest of the
 table forward from the previous run, so a targeted re-run never blanks the record
 of the rows it did not touch.
 
-Every row runs automatically. The ones that need a project which has actually
-finished something use the `done` fixture; the ones that need deliberate damage
-name a **mutation** — `strip-module-header`, `covers-token-trailing`,
-`require-independence`, `vacuous-green` — so a reader can see what was broken
+A row may also carry its own `status: unlocked` inside a locked file. That only
+ever loosens: the row is recorded, counted and named in the run's closing line,
+never enforced — so a batch still being read can sit beside pinned rows without
+either weakening the gate or blocking on guesses nobody has checked yet.
+
+Every row runs automatically. Five fixture families keep the questions apart:
+`shared-0.1` (one schema-0.1 workspace both engines drive), `per-version-init`
+(each engine's own scaffold from the identical template), `done` and
+`inprogress` (a project that has finished a feature, and one stopped a step
+short), and `template` — the skeleton before any engine has touched it, which
+the onboarding rows scaffold for themselves. The rows that need deliberate
+damage name a **mutation** — `strip-module-header`, `covers-token-trailing`,
+`require-independence`, `vacuous-green`, `stale-host-section`,
+`archive-with-successor`, `missing-module` — so a reader can see what was broken
 without reading code, and each mutation is applied to that row's own fresh
-workspace so it cannot leak. Four rows are shell scripts of their own, because
+workspace so it cannot leak. Several rows are shell scripts of their own, because
 they are sequences rather than single calls: the migration (preview, reject,
 accept, gate), the stale typed edit, the L4 replay, and the refused L4 cycle. The
 last two need `expect` for the interactive signing prompts and record *not run* if
@@ -263,6 +300,25 @@ refuse look identical from the outside.
 
 The runner prints each arm's engine path and version before it records anything:
 which engine is which is the one thing this table cannot afford to get wrong.
+
+## The coverage ledger
+
+A side-table proves what its rows ask. It does not, on its own, prove that the
+rows cover everything the release changed — and "we checked every feature" is
+exactly the kind of claim that rots quietly. `coverage.yaml` closes that gap: one
+entry per bold lead in the 0.10.0 release notes, per sentence of its heads-up
+paragraph, and per feature entry added since 0.9.4, each mapped to the rows that
+exercise it, to a live host probe, or to a written reason why a black-box row
+would measure nothing.
+
+`tests/scripts/ab-abc-coverage.test.ts` checks that mapping in CI. It reads only
+the release notes, the ledger, the row list and the feature entries — no engine,
+no fixtures under `~/abc-0100`, no network — so the coverage claim is re-checked
+on every commit rather than on the day it was written. A new bullet with no
+entry, a reworded heads-up sentence, a feature entry that is not done, or a row
+id nobody wrote all fail it. The ledger carried a `pending_rows:` list while one
+round of rows was still being written; every id in it has landed, so the list is
+gone and each row the ledger names now exists in `expectations.yaml`.
 
 ## Files
 
@@ -287,6 +343,27 @@ which engine is which is the one thing this table cannot afford to get wrong.
 | `row-stale-edit.sh` | the stale typed-edit row |
 | `row-l4.sh` | the L4 replay row, driving the signing prompts through `expect`; `ABC_L4_POLICY=require` switches it to the refusal case |
 | `row-l4-require.sh` | that switch, as the row's own entry point: a self-signed L4 cycle must be refused |
+| `row-init.sh` | what each engine's own scaffold declares and instructs |
+| `row-init-compat.sh` | asking the candidate for the old format, compared with the released engine's scaffold |
+| `row-begin.sh` | claiming completion before the cycle is opened, and after |
+| `row-typed-edit-two.sh` | two edits prepared from one snapshot: one lands, one replays |
+| `row-scenario-policy.sh` | an unclaimed journey under the advisory and the required setting |
+| `row-capability.sh` | a capability reference that does and does not resolve |
+| `row-profiles.sh` | the named check profiles, and the one that refuses uncommitted work |
+| `row-attestation.sh` | the shape of the sealed record, and whether a repeat pass rewrites it |
+| `row-retired-surfaces.sh` | whether the retired loop is still in the installed package |
+| `row-key.sh` | an issuer key's whole lifetime: created outside the workspace, registered once, refused twice |
+| `row-signoff-refusals.sh` | the four paths that must not produce a verified receipt |
+| `row-receipt-stale.sh` | a signed cycle, the module edited underneath it, and what re-signing restores |
+| `row-l4-independent.sh` | `row-l4.sh` signed by someone other than the committing author: the positive half of the independence policy |
+| `row-ingest.sh` | ingesting a receipt again, tampered, and from a stranger — with a control pass that says whether the verb verifies at all |
+| `row-census.sh` | an evidence directory that cannot be read safely, and the gate's answer to it |
+| `row-mcp-signoff.sh` | a verified sign-off asked for over MCP by a client that cannot ask a human |
+| `row-relocate.sh` | the generated projections' whole move: preview, apply, gate, repeat, conflict, and a 0.1 workspace |
+| `row-migrate-guards.sh` | the three refusals around a migration: uncommitted work, a decision already answered, a criterion nobody can parse |
+| `host-probe.sh` | the live host-integration probe — real host CLI, three read cells and a minimal write cycle |
+| `host-probe.md` | what each probe cell does, how to repeat one by hand, and what the cost cap means |
+| `coverage.yaml` | the coverage ledger: every released 0.10.0 item to its rows, a host probe, or a reason it is not a scenario |
 | `judge.sh` | the blinded model rubric — secondary, and not run |
 | `template/` | the fixture every arm starts from (no `node_modules`; `npm ci` fills it) |
 | `prompt.txt`, `task.md`, `task2.md` | the bytes every arm receives |

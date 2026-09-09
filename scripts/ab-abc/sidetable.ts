@@ -16,7 +16,7 @@
 // Output: $ABC_ROOT/results/sidetable.json and sidetable.md.
 
 import {spawnSync} from 'node:child_process';
-import {cpSync, existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
+import {cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {homedir} from 'node:os';
 import {join} from 'node:path';
 import process from 'node:process';
@@ -64,6 +64,13 @@ interface Row {
   readonly mutations?: readonly string[];
   readonly expect: Record<string, unknown>;
   classification: string | null;
+  /**
+   * A row's own lock state, which only ever loosens the file's. A row marked
+   * `unlocked` inside a locked table is a row still being read: the gate skips
+   * it and counts it instead of demanding pins it does not have yet. Omitted
+   * means the row follows the table.
+   */
+  readonly status?: 'locked' | 'unlocked';
   /** `<step>-<arm>` → what that observation must still be. Required once locked. */
   readonly lock?: Record<string, Pin>;
 }
@@ -226,6 +233,10 @@ function bootstrap(): void {
     process.stdout.write(`${inProgress.stdout.trim()}\n`);
   }
 
+  // template — the untouched skeleton the onboarding rows scaffold for
+  // themselves. No engine runs here; that is the point.
+  seedWorkspace(join(FIXTURES, 'template'));
+
   process.stdout.write(`bootstrapped fixtures under ${FIXTURES}\n`);
 }
 
@@ -242,11 +253,20 @@ function familyRoot(family: string, arm: Arm): string {
   if (family === 'per-version-init') return join(FIXTURES, 'per-version-init', arm);
   if (family === 'done') return join(FIXTURES, 'done', arm);
   if (family === 'inprogress') return join(FIXTURES, 'inprogress', arm);
+  // `template` is the project BEFORE any engine has touched it: the same
+  // skeleton every other family starts from, with no `clad init` run on it. It
+  // is what the onboarding rows need, because their question is what each
+  // engine's own scaffold produces from identical input. It is arm-independent
+  // by construction — one directory, copied per row and per arm.
+  if (family === 'template') return join(FIXTURES, 'template');
   return join(FIXTURES, 'shared-0.1');
 }
 
 function checkout(family: string, arm: Arm, rowId: string): string {
   const source = familyRoot(family, arm);
+  // The template family is cheap and self-contained, so it is seeded on first
+  // use rather than requiring a full re-bootstrap of the expensive fixtures.
+  if (family === 'template' && !existsSync(source)) seedWorkspace(source);
   if (!existsSync(source)) throw new Error(`missing fixture ${source} — run --bootstrap first`);
   const dest = join(SCRATCH, `${rowId}-${arm}`);
   if (existsSync(dest)) return dest;
@@ -255,6 +275,39 @@ function checkout(family: string, arm: Arm, rowId: string): string {
   const modules = join(source, 'node_modules');
   if (existsSync(modules)) symlinkSync(modules, join(dest, 'node_modules'), 'dir');
   return dest;
+}
+
+/**
+ * The managed `## cladding` section as the RELEASED engine writes it, cached
+ * under the fixtures. It is produced rather than transcribed: arm B is run over
+ * a scratch copy of its own scaffold, and whatever it writes is the legacy
+ * wording by definition. A cached section that already names the newer binding
+ * would mean the cache came from the wrong engine, so both properties are
+ * asserted before it is handed to a mutation.
+ */
+function legacyClaudeSection(): string {
+  const cache = join(FIXTURES, 'claude-md-0.1.section');
+  if (!existsSync(cache)) {
+    const source = join(FIXTURES, 'per-version-init', 'B');
+    if (!existsSync(source)) throw new Error(`no ${source} — re-run --bootstrap so arm B has a scaffold`);
+    const scratch = join(SCRATCH, '.claude-md-source');
+    rmSync(scratch, {recursive: true, force: true});
+    mkdirSync(scratch, {recursive: true});
+    cpSync(source, scratch, {recursive: true, filter: (src) => !src.split('/').includes('node_modules')});
+    run(armBin('B'), ['update'], scratch);
+    const written = join(scratch, 'CLAUDE.md');
+    if (!existsSync(written)) throw new Error(`arm B wrote no CLAUDE.md in ${scratch} — the legacy section cannot be produced`);
+    const body = readFileSync(written, 'utf8');
+    const start = body.indexOf('## cladding');
+    if (start < 0) throw new Error(`arm B's CLAUDE.md carries no managed section: ${head(body, 200)}`);
+    const tail = body.slice(start);
+    const next = tail.search(/\n##\s+(?!cladding\b)/);
+    const section = next < 0 ? tail : tail.slice(0, next);
+    if (!section.includes('Feature cycle — one at a time')) throw new Error('the legacy section is missing the feature-cycle paragraph');
+    if (section.includes('[covers:')) throw new Error('the legacy section already names the newer binding — wrong engine');
+    writeFileSync(cache, section);
+  }
+  return readFileSync(cache, 'utf8');
 }
 
 /**
@@ -339,6 +392,87 @@ const MUTATIONS: Record<string, (cwd: string) => void> = {
         ? raw.replace(/independence_policy:.*/, 'independence_policy: require')
         : raw.replace(/^(project:\s*\n)/m, '$1  independence_policy: require\n'),
     );
+  },
+
+  /**
+   * Replaces the managed `## cladding` section of CLAUDE.md with the wording the
+   * released engine writes — the section a project carries when it was set up
+   * before this release, or migrated without refreshing its instructions. The
+   * newer wording names the only binding schema 0.2 reads; the older one does
+   * not, which is what makes it stale.
+   *
+   * No fixture ships a CLAUDE.md: `clad init` never creates one (the file is the
+   * user's), and only `clad update` writes the section. So the legacy wording is
+   * taken from the released engine itself, once, by letting arm B write it in a
+   * scratch copy of its own scaffold — never hand-copied into this file, where it
+   * could drift from what 0.9.4 actually emits.
+   */
+  'stale-host-section': (cwd) => {
+    const legacy = legacyClaudeSection();
+    const file = join(cwd, 'CLAUDE.md');
+    const before = existsSync(file) ? readFileSync(file, 'utf8') : '';
+    const marker = '## cladding';
+    const start = before.indexOf(marker);
+    let after: string;
+    if (start < 0) {
+      after = before === '' ? legacy : `${before}${before.endsWith('\n') ? '\n' : '\n\n'}${legacy}`;
+    } else {
+      const tail = before.slice(start);
+      const next = tail.search(/\n##\s+(?!cladding\b)/);
+      after = `${before.slice(0, start)}${legacy}${next < 0 ? '' : tail.slice(next)}`;
+    }
+    if (after === before) throw new Error(`stale-host-section changed no bytes in ${file}`);
+    writeFileSync(file, after);
+  },
+
+  /**
+   * Archives the fixture's one feature and names a successor that has not been
+   * built yet — the retirement window. The archived feature keeps its modules,
+   * because that is the whole question: code still standing behind an archived
+   * entry is either a problem or the successor's job, and which of the two it is
+   * is what this row asks each engine.
+   */
+  'archive-with-successor': (cwd) => {
+    const dir = join(cwd, 'spec', 'features');
+    const names = readdirSync(dir).filter((name) => name.endsWith('.yaml'));
+    const subject = names[0];
+    if (subject === undefined) throw new Error(`archive-with-successor found no shard under ${dir}`);
+    const file = join(dir, subject);
+    const before = readFileSync(file, 'utf8');
+    const successorHash = 'a11ce55a';
+    const successorId = `F-${successorHash}`;
+    const after = `${before.replace(/^status:.*$/m, 'status: archived')
+      .trimEnd()}\narchived_at: "2026-09-09T00:00:00Z"\narchive_reason: "superseded by a rewritten slug builder that is not finished yet"\nsuperseded_by: ${successorId}\n`;
+    if (after === before) throw new Error(`archive-with-successor changed no bytes in ${file}`);
+    writeFileSync(file, after);
+    // The successor is written in the shard's own shape — the archived bytes
+    // with a new identity — so the fixture never has to hand-author a schema
+    // it did not produce itself.
+    const successor = before
+      .replace(/^id:.*$/m, `id: ${successorId}`)
+      .replace(/^slug:.*$/m, 'slug: slugify-next')
+      .replace(/^title:.*$/m, 'title: "Turn a title into a URL slug, rewritten"')
+      .replace(/^status:.*$/m, 'status: planned');
+    writeFileSync(join(dir, `slugify-next-${successorHash}.yaml`), successor);
+  },
+
+  /**
+   * Adds a module path the feature declares and the tree does not have — a
+   * feature written before its code, which is the state the spec-first window
+   * exists to allow. The edit is a line insertion rather than a YAML round-trip,
+   * so the only bytes that move are the ones the row is about.
+   */
+  'missing-module': (cwd) => {
+    const dir = join(cwd, 'spec', 'features');
+    const names = readdirSync(dir).filter((name) => name.endsWith('.yaml'));
+    const subject = names[0];
+    if (subject === undefined) throw new Error(`missing-module found no shard under ${dir}`);
+    const file = join(dir, subject);
+    const before = readFileSync(file, 'utf8');
+    const after = before.replace(/^(modules:\n(?:\s+-\s.*\n)*)/m, '$1  - src/not-yet.ts\n');
+    if (after === before) throw new Error(`missing-module changed no bytes in ${file}`);
+    if (existsSync(join(cwd, 'src', 'not-yet.ts'))) throw new Error('missing-module names a path that exists');
+    writeFileSync(file, after);
   },
 
   /** Moves the covers token from the head of each test title to its end. */
@@ -491,10 +625,20 @@ function summarise(observations: readonly Observation[], arm: Arm): string {
  * locking a row without pinning anything would make the gate vacuous, which is
  * the failure mode this whole campaign exists to avoid.
  */
-function checkLock(expectations: Expectations, results: readonly RowResult[]): string[] {
+function checkLock(expectations: Expectations, results: readonly RowResult[]): {mismatches: string[]; unlocked: string[]; pinned: number} {
   const mismatches: string[] = [];
+  const unlocked: string[] = [];
+  let pinned = 0;
   const byId = new Map(results.map((r) => [r.id, r]));
   for (const row of expectations.rows) {
+    // A row that declares itself unlocked inside a locked table is still being
+    // read: it is recorded and counted, never enforced. The count is printed so
+    // an unlocked row cannot sit in the table unnoticed.
+    if (row.status === 'unlocked') {
+      unlocked.push(row.id);
+      continue;
+    }
+    pinned += 1;
     if (row.classification === null) mismatches.push(`${row.id}: locked but unclassified`);
     const pins = row.lock;
     if (pins === undefined || Object.keys(pins).length === 0) {
@@ -528,7 +672,7 @@ function checkLock(expectations: Expectations, results: readonly RowResult[]): s
       }
     }
   }
-  return mismatches;
+  return {mismatches, unlocked, pinned};
 }
 
 function main(): void {
@@ -616,10 +760,15 @@ function main(): void {
   // Once the file is locked the verdict column stops being an instruction to a
   // human and becomes the lock's own answer: the classification the row was
   // locked with, or the difference that broke it.
-  const mismatches = expectations.status === 'locked' ? checkLock(expectations, rows) : [];
+  const lock = expectations.status === 'locked'
+    ? checkLock(expectations, rows)
+    : {mismatches: [] as string[], unlocked: [] as string[], pinned: 0};
+  const mismatches = lock.mismatches;
+  const stillUnlocked = new Set(lock.unlocked);
   const classifications = new Map(expectations.rows.map((r) => [r.id, r.classification ?? 'unclassified']));
   const rendered = expectations.status === 'locked'
     ? rows.map((r) => {
+        if (stillUnlocked.has(r.id)) return {...r, verdict: 'unlocked · recorded, not enforced'};
         const mine = mismatches.filter((m) => m.startsWith(`${r.id} `) || m.startsWith(`${r.id}:`));
         return {...r, verdict: mine.length === 0 ? `locked · ${classifications.get(r.id) ?? 'unclassified'}` : `MISMATCH — ${mine.join('; ')}`};
       })
@@ -654,7 +803,10 @@ function main(): void {
       process.stderr.write(`\nthe locked side-table does not match what this run saw:\n${mismatches.map((m) => `  · ${m}`).join('\n')}\n`);
       process.exitCode = 1;
     } else {
-      process.stdout.write(`\nlocked table: every pinned exit, byte count and literal still holds (${expectations.rows.length} rows).\n`);
+      process.stdout.write(`\nlocked table: every pinned exit, byte count and literal still holds (${lock.pinned} rows).\n`);
+    }
+    if (lock.unlocked.length > 0) {
+      process.stdout.write(`${lock.unlocked.length} rows still unlocked: ${lock.unlocked.join(', ')}\n`);
     }
   }
 }

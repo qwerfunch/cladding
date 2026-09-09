@@ -1,7 +1,7 @@
 # Cladding · scripts/ab-abc/expectations.yaml — the L0/L3 deterministic side-table
 #
 # These rows run with no agent: the engine is driven directly, so the same input
-# gives the same answer every time. Two fixture families are kept apart on
+# gives the same answer every time. Five fixture families are kept apart on
 # purpose, because they answer different questions:
 #
 #   shared-0.1        one schema-0.1 workspace, driven by BOTH engines. Anything
@@ -11,6 +11,14 @@
 #                     template (B: `clad init --no-llm`; C: `clad init --schema 0.2
 #                     --no-llm`). Differences here are the intended 0.2 delta, not
 #                     a regression.
+#   done              a project that has genuinely finished a feature, per arm —
+#                     the input every question about completion, warn severity,
+#                     independence or migration actually needs.
+#   inprogress        the same project stopped one step short of completion, for
+#                     the questions that are about the cycle rather than its end.
+#   template          the skeleton before any engine has touched it. The
+#                     onboarding rows scaffold it themselves; that is their
+#                     question.
 #
 # `expect` is the pre-registered guess, and it is itself under test. A run fills
 # `observed`, and a human fills `classification` from this vocabulary:
@@ -38,6 +46,11 @@
 # file is locked the runner compares every pinned value against what it just saw
 # and exits non-zero on the first difference. Prose in `observed` is for the
 # reader; `lock:` is what actually blocks.
+#
+# A row may carry its own `status: unlocked` inside a locked file. That only ever
+# loosens: the row is recorded, counted and reported, never enforced, so a batch
+# still being read can sit beside pinned rows without either weakening the gate
+# or blocking on guesses nobody has checked yet. The run prints how many remain.
 #
 # A pinned literal is matched against the artifact's own bytes, so a string that
 # reaches the artifact inside a JSON payload is pinned in its escaped form —
@@ -619,6 +632,1190 @@ rows:
 # is the list of measures and which of them may move a release decision. Every
 # one is deterministic, computed by scripts/ab-abc/score.ts from artifacts after
 # the session ends. The transcript's prose is never scored.
+  # ---------------------------------------------------------------------------
+  # 0.10.0 feature-scenario battery (added 2026-09-09). Every row below carries
+  # `status: unlocked`: the sixteen rows above are pinned and enforced, these are
+  # still being read. The runner records them and prints how many remain.
+  # ---------------------------------------------------------------------------
+
+  - id: S-A1
+    title: What each engine's own scaffold tells the project
+    fixture_family: template
+    mode: auto
+    status: unlocked
+    question: >-
+      Onboarding is the first and often only place an adopter reads how this
+      works. Run each engine's default over the identical untouched template:
+      what does the project declare, and do the instructions left behind name the
+      binding that engine's gate actually reads?
+    steps:
+      - name: scaffold
+        run: script
+        script: row-init.sh
+        arms: [B, C]
+        family: template
+    expect:
+      b: {schema: "0.1 (no schema key)", agents_md_covers_token: absent, claude_md_section: "0.1 wording"}
+      c:
+        schema: "0.2"
+        assurance_level: L2
+        scenario_policy: advisory
+        project_purpose: present
+        agents_md_covers_token: present
+        agents_md_clad_begin: present
+        claude_md_token_sentence: present
+    expect_revised:
+      b: {schema: "0.1 (no schema key)", agents_md_covers_token: absent, claude_md_written_at_init: false}
+      c:
+        schema: "0.2"
+        assurance_level: L2
+        scenario_policy: advisory
+        project_purpose: present
+        agents_md_covers_token: present
+        agents_md_clad_begin: present
+        claude_md_written_at_init: false
+      why: >-
+        rewritten AFTER seeing the first run. Everything the guess said about
+        spec.yaml and AGENTS.md held on both engines; the CLAUDE.md clause had no
+        surface to be asked on, because neither engine writes CLAUDE.md at init.
+        That file belongs to the adopter, and only `clad update` writes the
+        managed section into it — which is the question S-A3 asks.
+    observed: "B (0.9.4): init exit 0; spec.yaml declares schema \"0.1\" with no assurance_level, scenario_policy or project purpose; AGENTS.md carries the feature-cycle heading but no covers token and no clad_begin. C: schema \"0.2\", assurance_level L2, scenario_policy advisory, project purpose present; AGENTS.md carries both the covers token and clad_begin. Neither engine writes CLAUDE.md at init \u2014 the file belongs to the adopter and only `clad update` writes the managed section \u2014 so the guess's CLAUDE.md clause is answered by S-A3 instead."
+    classification: expectation-wrong
+
+  - id: S-A2
+    title: Asking for the old format gives the old scaffold
+    fixture_family: template
+    mode: auto
+    status: unlocked
+    question: >-
+      The old spec format stays a first-class choice. Does asking the candidate
+      for it produce what the released engine produces — same managed
+      instructions, same project declaration bar the engine's own version line —
+      or a new-format scaffold wearing an old label?
+    steps:
+      - name: back-compat-scaffold
+        run: script
+        script: row-init-compat.sh
+        arms: [B, C]
+        family: template
+    expect:
+      b: {applicable: false, note: "the comparison runs both engines from the C pass"}
+      c: {agents_md_diff_lines: 0, claude_md_diff_lines: 0, spec_yaml_diff_lines_excluding_version: 0}
+    expect_revised:
+      b: {applicable: false, note: "the comparison runs both engines from the C pass"}
+      c:
+        agents_md_diff_lines: 2
+        agents_md_diff_bytes: 1
+        claude_md_diff_lines: 0
+        spec_yaml_diff_lines_excluding_version: 2
+        spec_yaml_diff_bytes: 1
+        difference: "the same documentation wording change in both files, `<hash>` to `<hash8>` in the shard-filename example"
+      why: >-
+        rewritten AFTER seeing the first run. The guess asked for a zero-line
+        diff and got a one-byte one, in the example sentence that tells an author
+        how to name a spec entry file — a documentation correction carried into
+        the old-format scaffold, not a scaffold that changed shape. Zero was the
+        wrong bar: the honest expectation is that the only difference is
+        documentation wording.
+    observed: "Both scaffolds declare schema \"0.1\". AGENTS.md differs by 2 lines and 1 byte (5395 vs 5396) and spec.yaml by 2 lines and 1 byte (626 vs 627); in both files the difference is the same wording change, `<hash>` to `<hash8>` in the shard-filename example. The managed CLAUDE.md section each engine's `update` writes is byte-identical (1221 B, 0 diff lines). Harness fault repaired first: the scaffolds were built in directories named after the arms, and the engine names a project after its directory, so every comparison carried the harness's own folder names as a difference."
+    classification: expectation-wrong
+
+  - id: S-A3
+    title: Refreshing instructions that predate the new binding
+    fixture_family: done
+    mode: auto
+    status: unlocked
+    mutations: [stale-host-section]
+    question: >-
+      A project set up before this release carries instructions that describe the
+      previous way of binding a test to a criterion. After the refresh verb runs,
+      does the candidate's project get told the rule its gate reads — and does the
+      released engine leave an old-format project's wording alone?
+    steps:
+      - name: update
+        run: cli
+        arms: [B, C]
+        family: done
+        args: ["update"]
+      - name: claude-md
+        run: file
+        arms: [B, C]
+        family: done
+        path: "{root}/sidetable-runs/S-A3-{arm}/CLAUDE.md"
+    expect:
+      b: {section_after_update: "0.1 wording, unchanged", covers_sentence: absent}
+      c: {section_after_update: "refreshed", covers_sentence: present}
+    observed: "B: `update` reports CLAUDE.md unchanged; the section keeps the 0.1 wording (1221 B, no covers token). C: `update` reports 'CLAUDE.md refreshed-stale' and the section comes back carrying the covers sentence (1343 B, one covers token). As guessed."
+    classification: match
+
+  - id: S-A4
+    title: A workspace that explains its own generated files
+    fixture_family: done
+    mode: auto
+    status: unlocked
+    question: >-
+      Does the candidate's workspace carry a projected note saying which files it
+      generates and where relocation would put them, is that note stable when the
+      projection runs twice, and does the released engine produce nothing of the
+      kind?
+    steps:
+      - name: generated-readme-before
+        run: file
+        arms: [B, C]
+        family: done
+        path: "{root}/sidetable-runs/S-A4-{arm}/spec/generated/README.md"
+      - name: sync-1
+        run: cli
+        arms: [B, C]
+        family: done
+        args: ["sync"]
+      - name: sync-2
+        run: cli
+        arms: [B, C]
+        family: done
+        args: ["sync"]
+      - name: generated-readme-after
+        run: file
+        arms: [B, C]
+        family: done
+        path: "{root}/sidetable-runs/S-A4-{arm}/spec/generated/README.md"
+    expect:
+      b: {file_present: false}
+      c:
+        file_present: true
+        contains: ["projected from the artifact registry", "relocation target"]
+        bytes_unchanged_after_two_syncs: true
+    observed: "C: spec/generated/README.md is present before either sync (704 B), contains 'projected from the artifact registry' and 'relocation target', and is byte-identical after two syncs. B: the file does not exist at either point. As guessed."
+    classification: match
+
+  - id: S-A5
+    title: The onboarding question-and-answer round trip on the new format
+    fixture_family: per-version-init
+    mode: manual
+    status: unlocked
+    question: >-
+      Does the clarify round trip hand back the new format's outcome shape rather
+      than the previous summary-and-surface one?
+    recipe: >-
+      MANUAL, and confirmed so by probe rather than by reading the help text.
+      `clad_prepare_clarify` was driven against a freshly scaffolded 0.2
+      workspace with a canned answer and refused with status `invalid_state`,
+      `changed: false`, error `no onboarding session`; with no answer at all it
+      fails argument validation before it reaches the workspace. A session only
+      starts from `clad init` with a free-text intent, which calls the host's
+      model, so driving this row inside the agent-free table would mean faking
+      the session state rather than exercising the surface. It belongs with the
+      live host probes, where a model is present anyway.
+    expect:
+      b: {catalog_shape: "summary/surface"}
+      c: {catalog_shape: "outcome"}
+    observed: "not run as a table row \u2014 but the refusal itself was probed: `clad_prepare_clarify` against a fresh 0.2 scaffold answers invalid_state / no onboarding session, which is why the row is manual rather than automatic."
+    classification: manual
+
+  - id: S-B1
+    title: The statement grammar, four ways to get it wrong
+    fixture_family: per-version-init
+    mode: auto
+    status: unlocked
+    question: >-
+      The new format accepts one sentence shape for an acceptance criterion, so
+      that a criterion always says one testable thing. Are the four ways of
+      breaking that shape each refused with a reason, is a correct one accepted,
+      and does the released engine take the same four texts without comment?
+    steps:
+      - name: strict-grammar
+        run: mcp
+        arms: [C]
+        family: per-version-init
+        calls:
+          - type: tool
+            name: clad_create_feature
+            args:
+              slug: grammar-two-shalls
+              title: A criterion carrying two obligations
+              purpose: The row needs one criterion that states more than one obligation.
+              modules: [src/grammar-two-shalls.ts]
+              capability_refs: []
+              acceptance_criteria:
+                - kind: behavior
+                  statement: The system shall reject an empty title and shall accept a full one.
+          - type: tool
+            name: clad_create_feature
+            args:
+              slug: grammar-no-period
+              title: A criterion that does not end
+              purpose: The row needs one criterion with no terminal period.
+              modules: [src/grammar-no-period.ts]
+              capability_refs: []
+              acceptance_criteria:
+                - kind: behavior
+                  statement: The system shall accept a title that carries slug-able characters
+          - type: tool
+            name: clad_create_feature
+            args:
+              slug: grammar-comma-clause
+              title: A criterion whose condition runs on
+              purpose: The row needs one criterion with a comma inside its condition.
+              modules: [src/grammar-comma-clause.ts]
+              capability_refs: []
+              acceptance_criteria:
+                - kind: behavior
+                  statement: When a title arrives, and it is empty, the system shall reject it.
+          - type: tool
+            name: clad_create_feature
+            args:
+              slug: grammar-bare-subject
+              title: A criterion whose subject is not the system
+              purpose: The row needs one criterion whose subject phrase does not open with "the".
+              modules: [src/grammar-bare-subject.ts]
+              capability_refs: []
+              acceptance_criteria:
+                - kind: behavior
+                  statement: Slug builder shall reject a title that carries no slug-able characters.
+          - type: tool
+            name: clad_create_feature
+            args:
+              slug: grammar-correct
+              title: A criterion in the shape the format accepts
+              purpose: The row needs one criterion the grammar accepts, so refusal is not the only outcome available.
+              modules: [src/grammar-correct.ts]
+              capability_refs: []
+              acceptance_criteria:
+                - kind: behavior
+                  statement: The system shall accept a title that carries slug-able characters.
+      - name: legacy-grammar
+        run: mcp
+        arms: [B]
+        family: per-version-init
+        calls:
+          - type: tool
+            name: clad_create_feature
+            args:
+              slug: grammar-two-shalls
+              title: A criterion carrying two obligations
+              modules: [src/grammar-two-shalls.ts]
+              acceptance_criteria:
+                - ears: ubiquitous
+                  text: The system shall reject an empty title and shall accept a full one.
+          - type: tool
+            name: clad_create_feature
+            args:
+              slug: grammar-no-period
+              title: A criterion that does not end
+              modules: [src/grammar-no-period.ts]
+              acceptance_criteria:
+                - ears: ubiquitous
+                  text: The system shall accept a title that carries slug-able characters
+          - type: tool
+            name: clad_create_feature
+            args:
+              slug: grammar-comma-clause
+              title: A criterion whose condition runs on
+              modules: [src/grammar-comma-clause.ts]
+              acceptance_criteria:
+                - ears: event
+                  text: When a title arrives, and it is empty, the system shall reject it.
+          - type: tool
+            name: clad_create_feature
+            args:
+              slug: grammar-bare-subject
+              title: A criterion whose subject is not the system
+              modules: [src/grammar-bare-subject.ts]
+              acceptance_criteria:
+                - ears: ubiquitous
+                  text: Slug builder shall reject a title that carries no slug-able characters.
+          - type: tool
+            name: clad_create_feature
+            args:
+              slug: grammar-correct
+              title: A criterion in the shape the format accepts
+              modules: [src/grammar-correct.ts]
+              acceptance_criteria:
+                - ears: ubiquitous
+                  text: The system shall accept a title that carries slug-able characters.
+    expect:
+      b: {refused: 0, accepted: 5}
+      c: {refused: 4, accepted: 1, each_refusal_names_a_reason: true}
+    expect_revised:
+      b: {refused: 1, accepted: 4, refusal_follows_from: "the row's own EARS label, not the sentence"}
+      c: {refused: 4, accepted: 1, each_refusal_names_a_reason: false, refusal_text: "one generic sentence for all four"}
+      why: >-
+        rewritten AFTER seeing the first run, on both arms. The candidate refuses
+        all four malformed statements, which is the substance of the guess; but
+        every refusal reads only "has an invalid strict statement", naming
+        neither the rule broken nor the offending words, so "each refusal names a
+        reason" was too generous. On the released engine the guess was too harsh:
+        it refuses one of the four, and a control create showed that refusal
+        comes from the row labelling that sentence as a condition-shaped one, not
+        from the sentence itself.
+    observed: "C refused all four malformed statements with INVALID_OPERATION and accepted the fifth. But every refusal reads only 'Criterion AC-\u2026 has an invalid strict statement' \u2014 it names neither the rule broken nor the offending text \u2014 so the 'each refusal names a reason' half of the guess is not met. B accepted three of the four (two obligations, missing terminal period, bare subject) and refused only the condition-shaped one, on EARS shape; a throwaway create of the same sentence under `ears: ubiquitous` was ACCEPTED, so B's refusal follows from the row's own `ears: event` label rather than from the sentence."
+    classification: expectation-wrong
+    note: >-
+      The refusals are correct — all four malformed statements are turned away
+      and the well-formed one is accepted — but every message reads only that the
+      statement is invalid, without naming the rule or quoting the offending
+      words. An author has to work out which of the four rules they broke. A 0.10.x
+      wording candidate, not a release blocker.
+
+  - id: S-B2
+    title: Claiming completion for work that has not started
+    fixture_family: per-version-init
+    mode: auto
+    status: unlocked
+    question: >-
+      A feature that was written down a minute ago has no code and no proof.
+      Does the refusal name the step that was skipped, or only the evidence that
+      is missing — and once the cycle is opened, does the refusal change to being
+      about proof?
+    steps:
+      - name: cycle-order
+        run: script
+        script: row-begin.sh
+        arms: [B, C]
+        family: per-version-init
+    expect:
+      b: {done_refused: true, refusal_names_opening_step: false}
+      c:
+        done_before_begin_refused: true
+        refusal_names_opening_step: true
+        status_after_begin: in_progress
+        done_after_begin_refused_for_unproven_criteria: true
+    expect_revised:
+      b:
+        first_done_refused: true
+        first_done_reverts: true
+        second_done_refused: true
+        second_done_leaves_status_done: true
+        note: "the released engine's second, identical refusal crashes its drift stage and does not revert"
+      c:
+        done_before_begin_refused: true
+        refusal_names_opening_step: false
+        refusal_is_about_state: true
+        status_after_begin: in_progress
+        done_after_begin_refused_for_unproven_criteria: true
+      why: >-
+        rewritten AFTER seeing the first run. The candidate does refuse, but the
+        refusal is about state ("only an in-progress feature can be completed")
+        and never names the opening step, so the guess's wording half is wrong —
+        a message worth improving, not a fault. The released-engine arm was
+        guessed as a plain refusal and turned out to carry the campaign's one
+        safety difference, so it is now expected explicitly.
+    observed: "C: `done` before `begin` is refused with 'Only an in-progress feature can be completed in schema 0.2' \u2014 a refusal about state that never names the opening step, so that half of the guess is wrong. `begin` then succeeds, the status becomes in_progress, and `done` after it is refused for the missing module and unproven criteria with the status left at in_progress. B: `begin` is not a command; the FIRST `done` on the planned feature exits 1 and reverts correctly (the status is still planned afterwards), and the SECOND, identical call exits 1 with the drift stage CRASHING inside the bundled engine, leaving the feature at status: done \u2014 the released engine's flip-then-revert did not revert that time. Byte-identical across two runs, so it reproduces. Both arms carry type-stage noise because the bare scaffold ships no source files."
+    classification: expectation-wrong
+    note: >-
+      The comparative finding of this campaign. On the released engine the second,
+      identical `done` on a feature that cannot be completed crashes its drift
+      stage after the status has been flipped, and the revert never runs — so a
+      feature that was refused is left reading `done`. The candidate refuses both
+      times and leaves the status alone. Byte-identical across two runs, so it
+      reproduces.
+
+  - id: S-B3
+    title: Two prepared edits from one snapshot
+    fixture_family: per-version-init
+    mode: auto
+    status: unlocked
+    question: >-
+      Applying one prepared edit must not invalidate another that was prepared at
+      the same moment and touches different files, and replaying the first from
+      its spent snapshot must be refused. Which of the two does the rule do?
+    steps:
+      - name: two-edits
+        run: script
+        script: row-typed-edit-two.sh
+        arms: [C]
+        family: per-version-init
+    expect:
+      b: {applicable: false, note: "typed edits are a schema 0.2 surface"}
+      c: {first_apply: accepted, second_apply: accepted, replay_of_the_first: STALE_INPUT}
+    observed: "C: both prepares report the same context revision; applying X is accepted, applying Y afterwards is accepted on its own write-set, and replaying X from its spent snapshot is refused with STALE_INPUT ('The feature:F-\u2026 input changed since it was read'). Both titles are on disk. As guessed."
+    classification: match
+
+  - id: S-B4
+    title: A described journey nobody has claimed
+    fixture_family: per-version-init
+    mode: auto
+    status: unlocked
+    question: >-
+      Under the default setting an unbound scenario should be worth mentioning
+      and not worth stopping for; under the stricter setting it should stop the
+      gate. Does the setting decide, and where does the editing surface draw its
+      own line?
+    steps:
+      - name: scenario-policy
+        run: script
+        script: row-scenario-policy.sh
+        arms: [C]
+        family: per-version-init
+    expect:
+      b: {applicable: false, note: "the scenario policy is a schema 0.2 setting"}
+      c: {advisory_gate_exit: 0, advisory_reports_the_scenario: true, required_gate_exit: 1}
+    observed: "C under advisory: the unbound journey draws one info/SCENARIO_COVERAGE finding and the checkpoint gate exits 0. C under required: the same journey becomes error/SCENARIO_COVERAGE and the gate exits 1. Two boundaries recorded alongside \u2014 `clad_create_scenario` refuses an unbound journey outright, so the shard had to be written by hand from the tool's own output shape; and while that shard is on disk the typed editing surface refuses EVERY transaction ('Scenario S-\u2026 does not satisfy the schema 0.2 journey contract'), so the policy change itself was refused until the shard was moved aside. Under required the whole spec stops loading and twenty other detectors degrade to 'spec.yaml not loaded' info."
+    classification: designed
+    note: >-
+      Classified designed for the boundary the run recorded beside the policy
+      answer, not for the policy answer itself, which came out exactly as
+      guessed. While an unbound journey shard is on disk the typed editing
+      surface refuses every transaction, and under the stricter setting the
+      specification stops loading altogether, degrading some twenty unrelated
+      checks to "spec.yaml not loaded". Both are the deferred F4/D09 item — the
+      scenario contract being enforced at load time rather than as a finding —
+      and are named as such in the plan rather than discovered here.
+
+  - id: S-B5
+    title: A capability reference that has to resolve
+    fixture_family: per-version-init
+    mode: auto
+    status: unlocked
+    question: >-
+      Naming a capability nobody declared should be refused or reported; naming a
+      declared one should pass. Is the reference checked at all?
+    steps:
+      - name: capability-contract
+        run: script
+        script: row-capability.sh
+        arms: [C]
+        family: per-version-init
+    expect:
+      b: {applicable: false, note: "the capability contract is a schema 0.2 surface"}
+      c: {undeclared_reference: "refused or reported", declared_reference: accepted}
+    observed: "C: `clad_create_feature` refuses an undeclared capability at creation with UNKNOWN_REFERENCE ('F-\u2026 links unknown capability ghost-capability'), so the reference never reaches disk and the gate has nothing to report (exit 0). After `clad_link_capability` creates the capability, a feature naming it is accepted and the gate stays at exit 0."
+    classification: match
+
+  - id: S-B6
+    title: An archived feature whose replacement is not built yet
+    fixture_family: shared-0.1
+    mode: auto
+    status: unlocked
+    mutations: [archive-with-successor]
+    question: >-
+      Code still standing behind an archived entry is either a problem or the
+      successor's job. With a successor named and not yet done, does the released
+      engine still call it drift, and does the candidate call it information?
+    steps:
+      - name: sync
+        run: cli
+        arms: [B, C]
+        family: shared-0.1
+        args: ["sync"]
+      - name: gate
+        run: cli
+        arms: [B, C]
+        family: shared-0.1
+        args: ["check", "--tier=pre-push", "--json"]
+    expect:
+      b: {stale_specification_severity: warn}
+      c: {stale_specification_severity: info}
+    observed: "B: warn \u2014 'feature F-614d1c73 is archived but 1 module(s) still exist: src/slugify.ts'. C: info \u2014 the same sentence plus 'retirement is owned by successor F-a11ce55a, which is not done yet'. As guessed. Both gates exit 1 in this fixture for reasons unrelated to the row."
+    classification: match
+
+  - id: S-C1
+    title: The named check profiles, and the one that refuses uncommitted work
+    fixture_family: done
+    mode: auto
+    status: unlocked
+    question: >-
+      Do the profiles carry different obligations — in particular, does the
+      release profile refuse a tree with uncommitted work on it and pass once the
+      work is committed — and what happens when a name nobody defined is asked
+      for?
+    steps:
+      - name: profiles
+        run: script
+        script: row-profiles.sh
+        arms: [B, C]
+        family: done
+    expect:
+      b: {profile_option: "unknown option"}
+      c:
+        completion_exit: 0
+        release_on_a_dirty_tree: "refused at the commit stage"
+        release_on_a_committed_tree: 0
+        unknown_profile: refused
+    observed: "B: `--profile` is an unknown option (exit 1); the tier it does have exits 0. C: completion exits 0 and leaves spec/attestation.yaml modified; release against that dirty tree exits 1 naming the commit stage; after committing, release exits 0; `--profile bogus` exits 2 with 'Unknown assurance profile. Use feedback, checkpoint, completion, push, or release.' As guessed, in full."
+    classification: match
+
+  - id: S-C2
+    title: The shape of the sealed record, and whether a repeat pass rewrites it
+    fixture_family: done
+    mode: auto
+    status: unlocked
+    question: >-
+      What does a passing gate write down, how much of it is a digest rather than
+      the observations themselves, does it name the engine that wrote it — and
+      does running the gate again on an unchanged tree change the file?
+    steps:
+      - name: attestation
+        run: script
+        script: row-attestation.sh
+        arms: [B, C]
+        family: done
+    expect:
+      b: {schema: 2, observation_digest: absent, tool_identity: absent}
+      c:
+        schema: 3
+        observation_set_sha256: present
+        observation_count: present
+        tool_identity: "0.10.0"
+        inline_identity_entries: 0
+        rewritten_by_a_repeat_pass: true
+    observed: "B: 1316 B, top-level policy / attested_modules / attested_features, one legacy constant marker, no per-feature row, and the digest unchanged by a second passing gate. C: 2622 B with an attested_v3 block whose single feature row is one JSON object carrying attestation_schema 3, tool_identity 0.10.0, observation_set_sha256, observation_count 13 and no inline observation array \u2014 and the digest DOES change on a second passing run, which is the heads-up sentence about committing the file. Harness fault repaired first: the row matched indented YAML keys against a row that is a single JSON line, and reported every key absent."
+    classification: match
+    note: >-
+      The repeat pass rewriting the record is designed, not drift: a passing
+      pre-push seals what it just observed, so running it again on an unchanged
+      tree writes a new observation digest. The release notes carry this as a
+      heads-up, because it means the sealed record shows up as a modified file
+      after a green check.
+
+  - id: S-C3
+    title: Asking for a level the run cannot honestly reach, and for a lower one
+    fixture_family: done
+    mode: auto
+    status: unlocked
+    question: >-
+      A one-run level above the project's own should leave obligations nobody
+      observed, and the gate should say so rather than pass. A level below the
+      project's own should be refused outright, because a project cannot quietly
+      lower the bar it committed to.
+    recipe: >-
+      A third step runs the same profile at the level the project already
+      declares. Without it, a degraded answer at L3 and at L1 could be read as
+      "the flag does nothing" rather than "the flag does something only when the
+      level differs", and the two are different findings.
+    steps:
+      - name: at-the-configured-level
+        run: cli
+        arms: [B, C]
+        family: done
+        args: ["check", "--profile", "push", "--assurance-level", "L2", "--json"]
+      - name: raise-to-l3
+        run: cli
+        arms: [B, C]
+        family: done
+        args: ["check", "--profile", "push", "--assurance-level", "L3", "--json"]
+      - name: lower-to-l1
+        run: cli
+        arms: [B, C]
+        family: done
+        args: ["check", "--profile", "push", "--assurance-level", "L1", "--json"]
+    expect:
+      b: {assurance_level_option: "unknown option"}
+      c: {raise_to_l3: "unresolved, exit 1", lower_to_l1: "refused — cannot lower the persisted project level"}
+    observed: "C: at the project's own level (L2) the push profile exits 0 and returns the full 17-key report. At L3 and at L1 alike it exits 1 and returns the legacy four-key shape \u2014 no requested or achieved level, no obligations, no incomplete addresses \u2014 and the human output shows the run silently degraded to the pre-push tier with Spec conformance and Deliverable smoke skipped and NO message about the level at all. Neither half of the guess is confirmed: the raise produces no unresolved-obligation report, and the documented 'cannot lower the persisted project level' refusal never reaches the user. B: `--assurance-level` is an unknown option, empty stdout, exit 1. The L2 control step was added after the first run so a degraded answer could not be read as 'the flag does nothing'."
+    classification: null
+    defect: "A one-run assurance level the gate cannot honour is refused silently — asking for L3 or L1 on the push profile exits 1 with the old four-key report, no requested-or-achieved level and no message at all about the level, so the reason for the refusal never reaches the user."
+    rerun: "after F-18a5883a repack"
+
+  - id: S-C4
+    title: A feature that declares a module before the module exists
+    fixture_family: inprogress
+    mode: auto
+    status: unlocked
+    mutations: [missing-module]
+    question: >-
+      Writing the spec entry before the code is the documented order of work, so
+      a feature under way that declares a file nobody has written yet must not be
+      treated as drift. Does the mid-cycle profile let it through with only the
+      unproven-criterion note, and what does the released engine say about the
+      same shape?
+    steps:
+      - name: checkpoint
+        run: cli
+        arms: [C]
+        family: inprogress
+        args: ["check", "--profile", "checkpoint", "--json"]
+      - name: precommit
+        run: cli
+        arms: [B]
+        family: done
+        args: ["check", "--tier=pre-commit", "--json"]
+    expect:
+      b: {record: "what the released engine says about a declared path that is not on disk"}
+      c: {blocking_findings_for_the_missing_module: 0}
+    observed: "C, on a begun feature declaring src/not-yet.ts: the checkpoint profile exits 0 with one info finding \u2014 'not built yet \u2014 the normal state between authoring the spec entry and implementing it'. Zero blocking findings, as guessed. B is recorded on its completed 0.1 feature, because the released engine has no in-progress fixture here: two errors (MISSING_IMPLEMENTATION, STATUS_DRIFT) and a STALE_ATTESTATION warn, exit 1. The arms are therefore not in the same feature state, and the row compares what each engine does with a declared-but-absent module in the state it can be in."
+    classification: match
+
+  - id: S-E1
+    title: The envelope a graph answer arrives in
+    fixture_family: shared-0.1
+    mode: auto
+    status: unlocked
+    question: >-
+      One compiled model now answers what four sources used to. Does a graph
+      answer arrive in the second-generation envelope — naming what kind of
+      answer it is, how complete it is, and how many bytes of payload it carries
+      — and does the released engine still answer in the first?
+    steps:
+      - name: graph-tool
+        run: mcp
+        arms: [B, C]
+        family: shared-0.1
+        calls:
+          - type: tool
+            name: clad_get_graph
+            args:
+              query: "{shared_feature}"
+              max_depth: 1
+      - name: graph-export
+        run: cli
+        arms: [B, C]
+        family: shared-0.1
+        args: ["graph", "export", "--format", "json"]
+      - name: graph-stats
+        run: cli
+        arms: [B, C]
+        family: shared-0.1
+        args: ["graph", "stats"]
+    expect:
+      b: {schema_version: 1, kind: absent, completeness: absent, by_state_none: absent}
+      c:
+        schema_version: 2
+        kind: present
+        completeness: present
+        payload_utf8_bytes_within: 16384
+        required_overflow: false
+        by_state_none: present
+    expect_revised:
+      b: {schema_version: 1, kind: absent, completeness: absent, export_schema_version: absent}
+      c:
+        schema_version: 2
+        kind: present
+        completeness: present
+        payload_utf8_bytes_within: 16384
+        required_overflow: false
+        export_flag: "--format json"
+        stats_json: "not offered by either engine"
+      why: >-
+        rewritten AFTER seeing the first run. The envelope half held in full. Two
+        clauses had no surface: the export is asked for with `--format json`, not
+        `--json`, and `graph stats` prints for a reader on both engines and takes
+        no machine-readable flag at all — so the guess's `by_state.none` clause
+        could not be asked, and its printed output is byte-identical across
+        arms.
+    observed: "C: the tool answer is schema_version 2 with kind 'projection', per-layer and overall completeness, meta.payload_utf8_bytes 1865 (well inside 16384) and required_overflow false; `graph export --format json` returns the same v2 envelope. B: schema_version 1 and a flat nodes/edges answer, and its export carries no schema_version at all. `graph stats` takes no --json on either engine and its printed output is byte-identical (156 B) across arms, so the guess's by_state.none clause has no surface to be asked on. The row was registered against `--json`, which the export subcommand spells `--format json`."
+    classification: expectation-wrong
+
+  - id: S-E2
+    title: The blast-radius answer keeps its shape
+    fixture_family: shared-0.1
+    mode: auto
+    status: unlocked
+    question: >-
+      The graph rewrite is meant to add to what the impact answer says without
+      changing the contract a reader already depends on. Same version, added keys
+      only, or something a caller would have to be rewritten for?
+    recipe: >-
+      The row was registered against `clad impact --json`, which neither engine
+      defines — the verb prints for a reader and takes only `--depth`. The
+      machine-readable answer a caller would actually depend on comes from the
+      tool surface, so the shape question is asked there and the printed form is
+      recorded beside it.
+    steps:
+      - name: impact-tool
+        run: mcp
+        arms: [B, C]
+        family: shared-0.1
+        calls:
+          - type: tool
+            name: clad_get_impact
+            args:
+              query: src/slugify.ts
+      - name: impact-printed
+        run: cli
+        arms: [B, C]
+        family: shared-0.1
+        args: ["impact", "src/slugify.ts"]
+    expect:
+      b: {schema_version: 1}
+      c: {schema_version: 1, added_keys_only: true}
+    observed: "Both engines answer schema_version 1 with focus / impacted / impacted_modules / scenarios / test_refs / ledger; C adds exactly one key, `authority`. Added keys only, contract unchanged \u2014 as guessed. `clad impact --json` exists on neither engine, so the shape question is asked through the tool surface and the printed form is recorded beside it."
+    classification: match
+
+  - id: S-G1
+    title: The retired loop is gone from the installed package
+    fixture_family: per-version-init
+    mode: auto
+    status: unlocked
+    question: >-
+      Removal is a claim about files. Does the candidate's installed package
+      still carry the retired loop's entry point, its skill folder or the modules
+      that served it, does its command list still offer it, and does its scaffold
+      still tell a project to run it?
+    steps:
+      - name: retired-surfaces
+        run: script
+        script: row-retired-surfaces.sh
+        arms: [B, C]
+        family: per-version-init
+    expect:
+      b: {run_skill_folders: 1, drive_modules: "one or more", run_in_help: 1}
+      c: {run_skill_folders: 0, drive_modules: 0, run_in_help: 0, scaffold_mentions_clad_run: false}
+    expect_revised:
+      b: {run_in_help: 1, retired_loop_in_bundle: true, run_skill_folders: "not shipped separately"}
+      c:
+        run_in_help: 0
+        retired_loop_in_bundle: false
+        scaffold_mentions_clad_run: false
+        run_skill_folders: "not shipped separately"
+      why: >-
+        rewritten AFTER seeing the first run. Removal held on every surface a
+        user can reach, but the guess counted files the published package does
+        not have: neither engine ships a skills folder or separate modules for
+        the loop, because the tarball inlines everything into one bundle. The
+        file-count clauses are replaced by a search of the bundle's own bytes,
+        which is what "gone from the installed package" actually means here.
+    observed: "C: the `run` verb is gone from --help, `clad run` falls through to the root help, and the shipped bundle carries neither the loop's description nor its driver. B: `run` is listed in --help, `clad run --help` prints 'Headless autonomous loop', and its bundle carries both. Neither package ships a skills/ folder or separate drive modules \u2014 the published tarball inlines everything into dist/clad.js \u2014 so the file-name half of the guess has nothing to measure, and the bundle-content check replaces it. Neither scaffold mentions `clad run`."
+    classification: expectation-wrong
+
+# ── Groups D and F, added 2026-09-09 ────────────────────────────────────────
+# Evidence and independence (S-D1…S-D7), migration and relocation (S-F1, S-F2).
+# Each row declares itself `unlocked` inside the locked table: the guesses are
+# recorded, the runs are recorded, and a human classifies before any of it
+# blocks. The `lock:` maps are candidates — the labelled lines each script
+# already prints — and are inert until the row's own status flips.
+#
+# Two of these rows found the pre-registered guess wrong, and say so in
+# `expect_revised` rather than correcting it quietly: S-D5 (the CLI ingest path
+# verifies nothing — even the workspace's own valid receipt comes back
+# `asserted / unknown_issuer_key` — so the refusal the plan expected does not
+# exist to be measured) and S-F2 (the uncommitted-path refusal only fires when
+# the dirt precedes the preview; dirt after it answers STALE_INPUT first).
+#
+# What a runner needs: `expect(1)` on PATH; the bootstrapped fixtures
+# ~/abc-0100/sidetable/{inprogress/C, done/{B,C}, shared-0.1} with the
+# `C.feature` and `C.criteria` records beside them; macOS (`stat -f`). Every row
+# isolates CLADDING_KEYS_DIR under its own artifact directory and never reads
+# ~/.cladding/keys.
+
+  - id: S-D1
+    title: An issuer key's whole lifetime — created, held, registered once
+    fixture_family: inprogress
+    mode: auto
+    status: unlocked
+    question: >-
+      Does creating an issuer key keep the private half outside the workspace and
+      readable only by its owner, put exactly one public entry in the committed
+      registry, and refuse a second registration of the same name?
+    steps:
+      - name: key
+        run: script
+        script: row-key.sh
+        arms: [C]
+        family: inprogress
+      - name: key-absent
+        run: script
+        script: row-key.sh
+        arms: [B]
+        family: shared-0.1
+    expect:
+      b: {applicable: false, note: "0.9.4 has no `key` verb at all — the row records the unknown-command answer rather than skipping"}
+      c:
+        key_dir_mode: "700"
+        key_file_mode: "600"
+        private_key_files_inside_the_workspace: 0
+        registered_issuers: 1
+        second_registration_refused: true
+    expect_revised: "written before the row first ran"
+    observed: >-
+      C: key create exit 0, private key at $CLADDING_KEYS_DIR/<key-id>.ed25519 with
+      the keys dir 700 and the key file 600; 0 private key files inside the
+      workspace; spec/trust/issuers.yaml carries 1 issuer (issuer/issuer_key_id/
+      spki_der); `key list` prints "1 registered issuer … alice … signing key
+      present"; the second `key create --issuer alice` exits 1 with "Issuer alice
+      is already registered in spec/trust/issuers.yaml. Registering the same
+      issuer twice is refused; there is no rotation path yet." and the registry
+      still holds 1. B: `clad key list` exit 1, "error: unknown command 'key'".
+    classification: match
+    lock:
+      key-C: {exit: 0, contains: ["keys dir mode: 700", "private key material inside the workspace: 0 files", "registry issuers: 1", "second key create for the same issuer exit: 1", "registry issuers after the refusal: 1"]}
+      key-absent-B: {exit: 0, contains: ["unknown command 'key'"]}
+
+  - id: S-D2
+    title: The four ways a verified sign-off is refused
+    fixture_family: inprogress
+    mode: auto
+    status: unlocked
+    question: >-
+      A verified receipt is the only evidence 0.10.0 calls human. Do all four
+      paths that must not produce one refuse it — no terminal, the wrong feature
+      id typed, an unregistered issuer, and the plain asserted path — and does
+      each leave the evidence directory empty?
+    steps:
+      - name: signoff-refusals
+        run: script
+        script: row-signoff-refusals.sh
+        arms: [C]
+        family: inprogress
+    expect:
+      b: {applicable: false, note: "verified receipts are a 0.2 surface"}
+      c:
+        headless_code: HUMAN_REQUIRED
+        wrong_id_refused: true
+        unregistered_issuer_refused: true
+        asserted_writes_no_receipt: true
+        receipts_after_all_four: 0
+    expect_revised: "written before the row first ran"
+    observed: >-
+      C: headless `--verified` exits 1 with code HUMAN_REQUIRED — "A verified
+      signoff needs an interactive terminal so a human can re-enter the feature
+      id. Only asserted history was recorded."; typing F-00000000 at the prompt
+      exits 1 with "A verified signoff needs a human to re-enter the feature id in
+      a terminal prompt or a host elicitation form."; `--issuer mallory` exits 1
+      with "Issuer mallory is not registered in spec/trust/issuers.yaml. Run `clad
+      key create --issuer mallory` first."; the asserted sign-off exits 1 with
+      HUMAN_REQUIRED and the note that asserted history was recorded. 0 receipt
+      files after every path; 4 signoff events in the audit log.
+    classification: match
+    lock:
+      signoff-refusals-C: {exit: 0, contains: ["HUMAN_REQUIRED", "wrong-id refusal: a human must re-enter the feature id", "unregistered-issuer refusal: mallory is not registered in spec/trust/issuers.yaml", "receipts after the asserted sign-off: 0"]}
+
+  - id: S-D3
+    title: A receipt goes stale when the code it reviewed changes, and heals when re-signed
+    fixture_family: inprogress
+    mode: auto
+    status: unlocked
+    question: >-
+      After a full L4 cycle, does editing the module the completed feature
+      declares make the human obligations unobserved again — and does signing
+      again, and only signing again, restore the green push profile?
+    recipe: >-
+      Replays row-l4.sh into the same artifact directory, so the issuer key and
+      the signing script that row writes are the ones this row re-signs with. The
+      edit is committed before the gate runs, so nothing but the module's content
+      differs from the signed state.
+    steps:
+      - name: receipt-stale
+        run: script
+        script: row-receipt-stale.sh
+        arms: [C]
+        family: inprogress
+    expect:
+      b: {applicable: false, note: "signed receipts and their staleness are a 0.2 surface"}
+      c:
+        push_before_edit: 0
+        push_after_edit: 1
+        stale_state: "unobserved:stale"
+        push_after_resigning: 0
+    expect_revised: >-
+      corrected once during the dry run, before the recorded run: the first
+      version re-signed only the per-criterion audit claims, and the row stayed
+      red because the feature-scoped UAT receipt goes stale with the same edit.
+      The remedy is both, which is what the row now does.
+    observed: >-
+      C: L4 replay exit 0 (completion exit 0, strict pre-push after completion
+      exit 0); push profile before the edit exit 0; after the committed one-line
+      edit to src/slugify.ts exit 1 with stage_4.1 unobserved(stale) ×3 and
+      stage_4.2 unobserved(stale) ×3; after re-signing all three audit criteria
+      and the feature-scoped UAT claim, exit 0 with nothing unobserved. ~30 s.
+    classification: designed
+    note: >-
+      Designed, and the reason the row's own recipe had to be corrected: editing
+      a module inside a completed feature's runtime closure stales the
+      feature-scoped acceptance receipt as well as the per-criterion audit
+      claims. Re-signing only the audit claims leaves the gate red. The healing
+      move is both — re-sign the audit criteria and the feature-scoped
+      acceptance claim — after which the push profile is green again.
+    lock:
+      receipt-stale-C: {exit: 0, contains: ["push profile BEFORE the edit: exit 0", "push profile AFTER the edit: exit 1", "unobserved(stale)", "push profile AFTER re-signing: exit 0", "every obligation passes again"]}
+
+  - id: S-D4
+    title: An independent signer passes the strictest independence policy
+    fixture_family: inprogress
+    mode: auto
+    status: unlocked
+    mutations: [require-independence]
+    question: >-
+      L0-6b shows `require` refusing a self-signed cycle. Does the same cycle
+      complete when the registered issuer's name is not the committing author's —
+      and does the gate then label it `independent`?
+    recipe: >-
+      row-l4-independent.sh is row-l4.sh with ABC_L4_ISSUER=alice; the default
+      path, which L0-10 and L0-6b are locked against, is unchanged when the
+      variable is absent. The row also documents the limit it demonstrates: the
+      label compares the issuer name to `git user.name` as strings, so a second
+      name on one person's machine reads as independent. It records who signed
+      under which name, not that two humans exist.
+    steps:
+      - name: l4-independent
+        run: script
+        script: row-l4-independent.sh
+        arms: [C]
+        family: inprogress
+    expect:
+      b: {applicable: false, note: "assurance levels and the trust registry are a 0.2 surface"}
+      c:
+        done_exit: 0
+        independence: independent
+        achieved: L4
+        under_policy: require
+    expect_revised: "written before the row first ran"
+    observed: >-
+      C: issuer alice against committing author abc-harness under
+      independence_policy: require — completion exit 0, "independence: independent
+      — a registered issuer other than the implementation authors reviewed it",
+      strict pre-push after completion exit 0, achieved L4 of configured L4. ~29 s.
+      The default (unset) path was re-run and still prints L0-10's and L0-6b's
+      locked lines unchanged.
+    classification: match
+    note: >-
+      The known limit this row demonstrates: independence is decided by comparing
+      the issuer's name with the committing author's name as strings. A second
+      name configured on one person's machine therefore reads as independent. The
+      label records who signed under which name, not that two people exist.
+    lock:
+      l4-independent-C: {exit: 0, contains: ["independence: independent", "completion exit: 0", "strict pre-push AFTER completion: exit 0", "achieved L4 of configured L4"]}
+
+  - id: S-D5
+    title: Ingesting a receipt again, tampered, and from a stranger
+    fixture_family: inprogress
+    mode: auto
+    status: unlocked
+    question: >-
+      Is ingesting the receipt a workspace already holds a no-op, and what verdict
+      does the verb record for a receipt whose signature has been altered or whose
+      issuer this workspace's registry does not carry?
+    recipe: >-
+      Four passes on three different criteria, so no receipt's answer can be
+      borrowed from another's evidence, and each ingest's own
+      `verification.assurance/reason` is printed. The control pass — the
+      workspace's OWN valid receipt, removed and put straight back through the
+      verb — is what makes the other three readable: without it, "refused because
+      tampered" and "verifies nothing at all" look the same.
+    steps:
+      - name: ingest
+        run: script
+        script: row-ingest.sh
+        arms: [C]
+        family: inprogress
+    expect:
+      b: {applicable: false, note: "portable receipts are a 0.2 surface"}
+      c:
+        re_ingest_changes_nothing: true
+        tampered_refused: true
+        unregistered_issuer_refused: true
+    expect_revised: >-
+      NOT revised — the guess stands as it was written, and the run contradicted
+      two thirds of it. `clad ingest-receipt` refuses nothing: it stores every
+      receipt, exit 0, as "asserted evidence pending offline resolution". The
+      control pass then showed why that is not simply a hole — the workspace's own
+      valid receipt, signed moments earlier by a registered issuer, comes back with
+      exactly the same verdict (assurance asserted, reason unknown_issuer_key),
+      which is what the verb's own help says will happen: "Local CLI trust is
+      empty until a registered host supplies F9 trust." So the CLI ingest path
+      does not verify anything at all, and tampering cannot be refused on a
+      surface that never checks a signature. Whether that inert CLI path is the
+      designed shape or a gap worth closing is the classification this row hands
+      the human; what the row establishes is that the refusal the plan expected
+      does not exist, and the difference is not detectable at this surface.
+    observed: >-
+      C: ingesting the same receipt twice is a genuine no-op — "The identical
+      receipt is already stored." changed:false idempotent:true, 1 → 1 receipt
+      files. Every other ingest exits 0 with "The receipt was stored as asserted
+      evidence pending offline resolution" and verdict assurance asserted /
+      currentness unresolved / reason unknown_issuer_key — the control (a valid
+      receipt of this workspace's own registered issuer), the tampered one (one
+      character of its 86-character issuer_proof flipped), and mallory's, whose
+      key is registered only in a second workspace. The fixture is inside its
+      cycle, so its audit obligation is project-scoped and reads
+      unobserved(stale) throughout; the row does not read that as a per-receipt
+      verdict. 3 receipt files at the end. ~26 s.
+    classification: null
+    defect: "`clad ingest-receipt` never consults the committed trust registry, so every receipt — the workspace's own valid one, a tampered one and a stranger's alike — is stored as asserted evidence with reason unknown_issuer_key, and a tampered signature cannot be refused at this surface."
+    rerun: "after F-18a5883a repack"
+    lock:
+      ingest-C: {exit: 0, contains: ["The identical receipt is already stored.", "second ingest of the same receipt exit: 0", "control verdict: assurance asserted, currentness unresolved, reason unknown_issuer_key", "tampered one character of the", "tampered verdict: assurance asserted", "this workspace's registry does not carry mallory", "foreign verdict: assurance asserted"]}
+
+  - id: S-D6
+    title: An evidence census that cannot be read is not an empty one
+    fixture_family: done
+    mode: auto
+    status: unlocked
+    question: >-
+      With a symbolic link planted under spec/evidence, does the gate stop being
+      green and say the verification could not be checked — rather than reading
+      the unreadable census as "no receipts, nothing to verify"?
+    steps:
+      - name: census
+        run: script
+        script: row-census.sh
+        arms: [C]
+        family: done
+    expect:
+      b: {applicable: false, note: "the receipt census is a 0.2 surface"}
+      c:
+        push_before: 0
+        push_with_link: 1
+        profile_complete: false
+        incomplete_address: "receipt-census:spec/evidence"
+        warning_named: true
+    expect_revised: "written before the row first ran"
+    observed: >-
+      C: push profile exit 0 with profile_complete true and no incomplete
+      addresses; with a link at spec/evidence/F-planted/<digest>.yaml pointing at
+      /etc/hosts, exit 1, profile_complete false, incomplete addresses
+      ["receipt-census:spec/evidence", "runner-controls",
+      "verification:F-0ac93269/AC-…" ×3] and 15 obligations unobserved. The strict
+      pre-push text carries "F-0ac93269's verification could not be checked — the
+      evidence files under spec/evidence could not all be read safely …  Remove
+      any link or non-receipt file placed under spec/evidence, then run `clad
+      check --tier=pre-push --strict`." (the console elides the tail; the row
+      reads the full sentence from the JSON report).
+    classification: match
+    lock:
+      census-C: {exit: 0, contains: ["before: profile_complete true", "after: profile_complete false", "receipt-census:spec/evidence", "warning text present: verification could not be checked", "Remove any link or non-receipt file placed under spec/evidence"]}
+
+  - id: S-D7
+    title: A verified sign-off asked for by a client that cannot ask a human
+    fixture_family: inprogress
+    mode: auto
+    status: unlocked
+    question: >-
+      Over MCP, does `clad_signoff {verified: true}` from a client advertising no
+      elicitation support degrade to HUMAN_REQUIRED and write no receipt — and
+      does 0.9.4 simply not carry the tool?
+    steps:
+      - name: mcp-signoff
+        run: script
+        script: row-mcp-signoff.sh
+        arms: [C]
+        family: inprogress
+      - name: mcp-signoff-absent
+        run: script
+        script: row-mcp-signoff.sh
+        arms: [B]
+        family: shared-0.1
+    expect:
+      b: {applicable: false, note: "0.9.4 advertises no clad_signoff — the catalogue is the comparison"}
+      c:
+        code: HUMAN_REQUIRED
+        isError: true
+        receipts: 0
+    expect_revised: "written before the row first ran"
+    observed: >-
+      C: 27 tools advertised, clad_signoff present; the call returns isError true
+      with code HUMAN_REQUIRED — "A verified signoff needs a human to re-enter the
+      feature id in a terminal prompt or a host elicitation form. Only asserted
+      history was recorded." — and 0 receipts. B: 22 tools advertised,
+      clad_signoff not among them.
+    classification: match
+    lock:
+      mcp-signoff-C: {exit: 0, contains: ["clad_signoff in the catalogue: yes", "clad_signoff code: HUMAN_REQUIRED", "clad_signoff isError: true", "receipts written by the elicitation-less client: 0"]}
+      mcp-signoff-absent-B: {exit: 0, contains: ["tools advertised: 22", "clad_signoff in the catalogue: no"]}
+
+  - id: S-F1
+    title: The generated projections move once, safely, and refuse the two cases they must
+    fixture_family: done
+    mode: auto
+    status: unlocked
+    question: >-
+      Does the relocation preview write nothing, does the apply move all three
+      derived files byte-identically and retarget the merge=union line, does the
+      moved workspace still pass its own strict push profile, is a second apply a
+      no-op, and are the two impossible states — both paths present, and a 0.1
+      workspace — refused with a remedy?
+    steps:
+      - name: relocate
+        run: script
+        script: row-relocate.sh
+        arms: [C]
+        family: done
+      - name: relocate-absent
+        run: script
+        script: row-relocate.sh
+        arms: [B]
+        family: done
+    expect:
+      b: {applicable: false, note: "0.9.4 has no relocate-generated verb — the row records the unknown-command answer"}
+      c:
+        preview_writes: 0
+        moves: 3
+        bytes_identical: true
+        gate_after_move: 0
+        second_apply_changed: false
+        conflict_refused: true
+        schema_01_refused_with: "clad migrate --to 0.2"
+    expect_revised: "written before the row first ran"
+    observed: >-
+      C: preview state old, 3 moves (spec/index.yaml, spec/_doc-links.yaml,
+      spec/attestation.yaml → spec/generated/…), writes 0, 0 changed paths; apply
+      state new, changed true, writes 3 — all three old paths gone, all three
+      files byte-identical at the new path, .gitattributes now
+      "spec/generated/index.yaml merge=union"; `clad sync` exit 0 and the strict
+      push profile after the move exit 0; a second apply exits 0 with changed
+      false; with both copies present the preview reports state conflict naming
+      spec/index.yaml and spec/generated/index.yaml, and `--apply` exits 1 with
+      "A generated projection exists at both of its known locations … Remove the
+      copy you do not keep, then rerun. No files were changed." leaving both files
+      in place; the same binary on the 0.1 workspace exits 1 with "Relocation
+      needs a schema 0.2 specification. Run `clad migrate --to 0.2` first; schema
+      migration and relocation are separate steps." B: exit 1, "error: unknown
+      command 'relocate-generated'".
+    classification: match
+    lock:
+      relocate-C: {exit: 0, contains: ["preview state old; moves 3; writes 0", "preview left 0 changed paths", "old paths still present: 0 of 3", "index bytes identical after the move: yes", "spec/generated/index.yaml merge=union", "strict push profile after the move: exit 0", "second apply state new; changed false", "conflict apply exit: 1", "relocation_conflict", "Run `clad migrate --to 0.2` first"]}
+      relocate-absent-B: {exit: 0, contains: ["unknown command 'relocate-generated'"]}
+
+  - id: S-F2
+    title: The three guards around a migration
+    fixture_family: done
+    mode: auto
+    status: unlocked
+    question: >-
+      Is an apply refused when a planned path carries uncommitted work, is a
+      baseline decision that has already been applied protected from being
+      re-answered, and does a 0.1 criterion the 0.2 grammar cannot parse become a
+      question for a human rather than a guess?
+    recipe: >-
+      Each guard runs on its own copy of the completed 0.1 project (done/B) inside
+      the row's workspace, so a refusal in one pass cannot be mistaken for a state
+      another left behind.
+    steps:
+      - name: migrate-guards
+        run: script
+        script: row-migrate-guards.sh
+        arms: [C]
+        family: done
+    expect:
+      b: {applicable: false, note: "the migration verb is a 0.2 surface"}
+      c:
+        dirty_code: DIRTY_PLANNED_PATH
+        second_answer_changes_nothing: true
+        unparseable_criterion_demands_a_decision: true
+        apply_without_that_answer_refused: true
+    expect_revised:
+      b: {applicable: false, note: "the migration verb is a 0.2 surface"}
+      c:
+        dirty_before_the_preview: DIRTY_PLANNED_PATH
+        dirty_after_the_preview: STALE_INPUT
+        second_answer_changes_nothing: true
+        unparseable_criterion_demands_a_decision: true
+        apply_without_that_answer_refused: true
+      why: >-
+        the dirty pass was rewritten during the dry run, before the recorded run:
+        dirtying the tree AFTER taking the preview never reaches the
+        uncommitted-path guard, because the preview digest has already changed
+        and the apply answers STALE_INPUT first. The refusal this row is about
+        needs the dirt to precede the preview. Both orders are now run and
+        recorded, so the two refusals are not mistaken for each other.
+    observed: >-
+      C: with spec.yaml dirty before the preview, the apply exits 1 with code
+      DIRTY_PLANNED_PATH — "Migration planned paths have uncommitted changes;
+      unrelated paths may remain dirty." — writes 0, no 0.2 marker in spec.yaml and
+      only the one dirty file changed; with the same edit made after the preview
+      the apply exits 1 with STALE_INPUT instead. After a migration applied with
+      the legacy baseline accepted and committed, re-applying the same preview
+      with the answer flipped to reject exits 0 with changed false, spec.yaml
+      byte-identical and 0 paths changed. A criterion rewritten to "slug things,
+      mostly" makes the preview demand 5 decisions including
+      CRITERION_STATEMENT_CONFLICT for criterion:F-fb84bdc8/AC-9140ff77, and an
+      apply that answers everything except that one exits 1 with
+      MIGRATION_UNRESOLVED, 0 paths changed. ~3 s.
+    classification: expectation-wrong
+    lock:
+      migrate-guards-C: {exit: 0, contains: ["DIRTY_PLANNED_PATH", "dirtied-after-preview apply exit: 1", "STALE_INPUT", "second apply with the other answer exit: 0", "spec.yaml unchanged by the second answer: yes", "criterion-text decision demanded for: criterion:F-fb84bdc8/AC-9140ff77", "MIGRATION_UNRESOLVED"]}
+
 live_metrics:
   verdict_bearing:
     # Only these may block, delay, or reword the release.

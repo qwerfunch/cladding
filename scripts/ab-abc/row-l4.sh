@@ -64,9 +64,20 @@ mkdir -p "$CLADDING_KEYS_DIR"
 echo "engine: $(command -v clad) $(clad --version)"
 
 FEATURE="$(cat "$RECORD/C.feature")"
-ISSUER="$(cd "$CWD" && git config user.name)"
+AUTHOR="$(cd "$CWD" && git config user.name)"
+# ABC_L4_ISSUER names a signer who is NOT the committing author, which is the
+# only thing the independence label compares — the two names as strings. Unset,
+# the row signs as the author and the label reads `self-certified`; that default
+# is what rows L0-10 and L0-6b are locked against, so nothing below changes when
+# the variable is absent.
+ISSUER="${ABC_L4_ISSUER:-$AUTHOR}"
 POLICY="${ABC_L4_POLICY:-default}"
 echo "feature $FEATURE, issuer $ISSUER, policy mode $POLICY"
+# Printed only when the row is deliberately signing as someone else, so the
+# default replay's output stays exactly what L0-10 and L0-6b recorded.
+if [ -n "${ABC_L4_ISSUER:-}" ]; then
+  echo "committing author (git user.name): $AUTHOR — independence is a comparison of these two names, nothing more"
+fi
 grep -n 'assurance_level' "$CWD/spec.yaml" | head -1
 # Printed in BOTH modes: `not-applicable` and a policy that never landed look
 # identical from the outside, so the row shows the line it depends on rather
@@ -133,6 +144,29 @@ set -e
 echo "completion exit: $DONE_EXIT"
 cat "$OUT/l4-done.txt"
 echo
+
+if [ "$POLICY" = "require" ] && [ -n "${ABC_L4_ISSUER:-}" ]; then
+  # S-D4: the same replay, signed by a registered issuer whose name differs from
+  # the committing author. `require` is the strictest policy there is, so a
+  # completion that passes HERE is the positive half of L0-6b's refusal — and the
+  # label it prints is the whole claim under test.
+  if [ "$DONE_EXIT" -ne 0 ]; then
+    echo "FAIL: the completion was refused even though the issuer is not the author"
+    exit 2
+  fi
+  set +e
+  ( cd "$CWD" && clad check --tier=pre-push --strict --json ) > "$OUT/l4-after-done.json" 2>> "$OUT/l4.log"
+  AFTER=$?
+  set -e
+  echo "strict pre-push AFTER completion: exit $AFTER"
+  node -e '
+    const fs = require("node:fs");
+    const report = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    process.stdout.write(`independence: ${report.independence}; achieved ${report.achieved_assurance_level} of configured ${report.configured_assurance_level}\n`);
+  ' "$OUT/l4-after-done.json" || true
+  grep -iE 'independen' "$OUT/l4-done.txt" | head -3
+  exit 0
+fi
 
 if [ "$POLICY" = "require" ]; then
   # The whole row: a self-signed L4 cycle under `require` must not complete, and
