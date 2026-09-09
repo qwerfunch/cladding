@@ -34,7 +34,11 @@ wording did not land.
 
 Everything below refers to the re-packed engine, whose identity `freeze.sh`
 records: repo commit, whether the tree was dirty at pack time, and the sha256 of
-the installed `dist/clad.js` against the repo build.
+the installed `dist/clad.js` against the repo build. That is the build from
+`56f3cb9` (sha256 `a679adcc…`); the build that ships adds two command-line
+repairs found afterwards and recorded in
+`docs/ab-evaluation/case-0100-feature-scenarios.md`, both outside anything this
+campaign measured.
 
 ## Hypotheses
 

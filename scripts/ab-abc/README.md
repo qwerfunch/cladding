@@ -276,6 +276,25 @@ ever loosens: the row is recorded, counted and named in the run's closing line,
 never enforced — so a batch still being read can sit beside pinned rows without
 either weakening the gate or blocking on guesses nobody has checked yet.
 
+**The table is fully locked.** All 43 rows are classified and pinned as of
+2026-09-09; none carries its own `status: unlocked`, so a passing run closes with
+`every pinned exit, byte count and literal still holds (43 rows)` and no
+still-unlocked line. Any difference from a pin fails the run.
+
+Re-locking after a product change is the same loop the rows were written in.
+Repack the candidate engine (`freeze.sh`), run the whole table
+(`npx tsx scripts/ab-abc/sidetable.ts`), and read what it names. A mismatch is a
+question before it is a fix: if the artifact shows the pin was mis-copied,
+correct the pin; if the engine's answer genuinely changed, decide whether the new
+answer is right before writing it down, and say so in the row's `observed` and
+`classification`. Two things are never the remedy — weakening an `exit` pin, and
+weakening a literal that carries the row's substance. A byte count is different:
+drop a `bytes` pin when the output legitimately varies between runs, because a
+digest or a timestamp moved. Then re-run the table until it is green, and check
+the lock in the other direction as well — change one pinned literal to a wrong
+value, run `--only <that row>`, and confirm the run fails naming it. A lock that
+has never been seen to fail is not yet known to be a lock.
+
 Every row runs automatically. Five fixture families keep the questions apart:
 `shared-0.1` (one schema-0.1 workspace both engines drive), `per-version-init`
 (each engine's own scaffold from the identical template), `done` and

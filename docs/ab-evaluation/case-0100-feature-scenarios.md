@@ -23,19 +23,43 @@ no model, no host, no spending — so the table can be re-run on demand and its
 answers are the same every time. The guesses were written down before the first
 run, which is what makes a wrong guess a finding rather than an edit.
 
+## Build lineage
+
+Three builds are named in this document, and it matters which is which. The
+reference-host cycles and the packed-tarball campaign ran on the build from
+`0578818` (`dist/clad.js` sha256 `1bb59b71…`). The version campaign and the host
+probes ran on the build from `56f3cb9`, which adds the adopter-guidance repair
+F-6349870d (sha256
+`a679adcc0c7e2d24190a746a7061625510372b6b6a135ac7d458e0bd01ca0b6b`). The build
+that ships is `e32c694` (sha256
+`b34e2755e9b9c891c1799545d17bf8c2ad1a891383bc4e93b74f453e58cd9f09`), which adds
+F-18a5883a — the two command-line repairs the rows below found. Those repairs
+touch only the two command-line paths named under Findings: the tool catalog is
+unchanged (still 140,498 bytes and 27 tools), and so is every gate verdict
+reached without the one-run assurance-level option.
+
 ## Status
 
-**Classified 2026-09-09; two rows waiting on a repair.** All twenty-seven new
-rows have run, and what each engine said is written down in `observed`.
-Twenty-five of them are classified below. Two are not, on purpose: they found
-product faults that are being fixed before the release, so they carry the fault
-in one sentence and the repair they are waiting on, and they will be re-run
-against the repaired engine.
+**Locked 2026-09-09 — 43 rows, 0 mismatches, negative check passed.** All
+twenty-seven new rows have run, every one is classified, and every one is now
+pinned: the whole table, the sixteen earlier rows included, is enforced rather
+than recorded. The two rows that had found product faults were held back until
+F-18a5883a (commit `e32c694`) repaired them; they were re-run on the build that
+ships (sha256 `b34e2755…`) and are locked on that repaired run.
 
-Every new row is still `status: unlocked` — recorded and counted, never
-enforced. The pins that make the table a gate are written from the run that
-follows the repair, so that nothing is locked against behaviour about to change.
-The host probes have not been run yet.
+Locked means the runner compares every pinned exit code, byte count and literal
+against what it just saw and fails on the first difference. The whole table was
+re-run against the pins and held, and the lock was checked in the other
+direction too: one pinned literal was changed to a wrong value, the row re-run,
+and the run failed naming that literal. The host probes ran on 2026-09-09 and
+are recorded below.
+
+One row changed shape to be lockable. S-A5's question — the shape a clarify
+round trip hands back — needs an onboarding session, and a session needs a host
+model, so it cannot be driven here. What can be driven is the refusal that makes
+it manual, and the row now runs and pins that on both engines instead of sitting
+in the table with nothing enforced. The round-trip question stays with the host
+probes.
 
 ## Coverage ledger
 
@@ -55,7 +79,7 @@ written reason in the ledger itself.
 | A schema 0.2 workspace explains its own generated files. | S-A4 | match |
 | A release gate for the 0.2 validation work. | — | not a scenario |
 | The release was measured against the engine it replaces, and against no engine at all. | — | not a scenario |
-| Completeness is judged from structure alone. | S-C3, S-C4, S-D6 | match: S-C4, S-D6 · pending re-run: S-C3 |
+| Completeness is judged from structure alone. | S-C3, S-C4, S-D6 | match: S-C4, S-D6 · defect-fixed: S-C3 |
 | The authoritative profiles block on warnings. | S-C1, S-B6, L0-1 | match: S-C1, S-B6 · defect-fixed: L0-1 |
 | A project's own instructions now say how a test claims a criterion. | S-A1, S-A3, L0-2 | match: S-A3, L0-2 · expectation-wrong: S-A1 |
 | An archived feature whose successor is not done yet | S-B6 | match |
@@ -63,11 +87,13 @@ written reason in the ledger itself.
 | The experimental headless loop and its `run` command. | S-G1 | expectation-wrong |
 | The parts that existed only to serve that loop: | S-G1 | expectation-wrong |
 | The `run` skill, | S-G1 | expectation-wrong |
-| The host support table was refreshed against live runs for this release. | live host probe | pending |
+| The host support table was refreshed against live runs for this release. | live host probe | probed 2026-09-09 — three hosts pass, Antigravity fail (host wiring) |
 | Graph code no longer reaches into gate code, | — | not a scenario |
 | A renamed test keeps its binding. | L0-11, S-F2 | match: L0-11 · expectation-wrong: S-F2 |
 | Patched dependencies. | — | not a scenario |
 | A workspace holding a signed review could never record a verification. | S-D2, S-D3 | match: S-D2 · designed: S-D3 |
+| Asking for a different level of assurance for one run now says why it was refused. | S-C3 | defect-fixed |
+| A receipt imported on the command line is now checked against the project's registered signers, | S-D5 | defect-fixed |
 
 ### Heads-up sentences
 
@@ -87,12 +113,12 @@ written reason in the ledger itself.
 | Item | Rows | Status |
 |---|---|---|
 | F-6349870d | S-A1, S-A3 | match: S-A3 · expectation-wrong: S-A1 |
-| F-6f0a2106 | S-C1, S-C2, S-C3 | match: S-C1, S-C2 · pending re-run: S-C3 |
+| F-6f0a2106 | S-C1, S-C2, S-C3 | match: S-C1, S-C2 · defect-fixed: S-C3 |
 | F-1a87a6bd | — | not a scenario |
 | F-0a29d024 | — | not a scenario |
 | F-8e7f399b | S-D4 | match |
 | F-9fcdd0a0 | S-G1 | expectation-wrong |
-| F-f4cfd533 | S-D1, S-D2, S-D5 | match: S-D1, S-D2 · pending re-run: S-D5 |
+| F-f4cfd533 | S-D1, S-D2, S-D5 | match: S-D1, S-D2 · defect-fixed: S-D5 |
 | F-b8d77abf | — | not a scenario |
 | F-208eaa79 | S-E1, S-E2 | match: S-E2 · expectation-wrong: S-E1 |
 | F-c4df5fb4 | S-A1, S-A2 | expectation-wrong: S-A1, S-A2 |
@@ -142,12 +168,14 @@ engine" is 0.9.4; "the candidate" is 0.10.0. Both are frozen installs.
   workspace carries a note saying which files it generates and where relocation
   would put them, and running the projection twice leaves it byte-identical. The
   released engine produces no such file. **match.**
-- **The onboarding question-and-answer round trip (S-A5).** Not run as a table
-  row. Driven against a fresh new-format workspace, the clarify surface refuses
-  with "no onboarding session": a session only exists after a setup run that
-  called the host's model, so driving this without a model would mean faking the
-  session rather than exercising the surface. **manual** — it belongs with the
-  live host probes, where a model is present anyway.
+- **The onboarding question-and-answer round trip (S-A5).** The round trip
+  itself is not run here. Driven against a fresh new-format workspace, the
+  clarify surface refuses with "no onboarding session": a session only exists
+  after a setup run that called the host's model, so driving this without a model
+  would mean faking the session rather than exercising the surface. That refusal
+  is what the row now runs and pins, on both engines alike. **manual** — the
+  round-trip question belongs with the live host probes, where a model is present
+  anyway.
 
 ### B — writing the spec, and editing it
 
@@ -206,12 +234,16 @@ engine" is 0.9.4; "the candidate" is 0.10.0. Both are frozen installs.
   change the digest. **match**; the rewrite-on-every-pass was in the guess and is
   in the release notes as a heads-up, because it means a green check leaves the
   sealed record showing as a modified file.
-- **Asking for a level the run cannot honestly reach (S-C3).** At the level the
-  project already declares, `clad check --profile push` passes and returns its
-  full report. Asked for a higher or a lower level, it exits 1 with the old
-  four-key report — no requested or achieved level, no unmet obligations — and
-  says nothing at all about the level. **A product fault, being fixed**; the row
-  is unclassified and will be re-run against the repaired engine.
+- **Asking for a level the run cannot honestly reach (S-C3).** On the first run,
+  asking for a higher or a lower level exited 1 with the old four-key report — no
+  requested or achieved level, no unmet obligations — and said nothing at all
+  about the level. **A product fault, fixed by F-18a5883a (commit `e32c694`),
+  re-run on the shipped build `b34e2755…` and locked.** On that build, at the
+  level the project already declares the push profile passes and returns its full
+  report; asked for a higher level it refuses with "A stronger one-run assurance
+  level requires a compiler-proven bounded scope", and for a lower one with
+  "Requested assurance level cannot downgrade the persisted project level".
+  **defect-fixed.**
 - **A feature that declares a module before the module exists (S-C4).** On the
   candidate, a feature under way that declares a file nobody has written yet
   passes the mid-cycle profile with one informational note calling it the normal
@@ -245,14 +277,20 @@ engine" is 0.9.4; "the candidate" is 0.10.0. Both are frozen installs.
   decided by comparing the issuer's name with the author's name as strings, so a
   second name configured on one person's machine reads as independent. It records
   who signed under which name, not that two people exist.
-- **Ingesting a receipt again, tampered, and from a stranger (S-D5).** Ingesting
-  a receipt the workspace already holds is a genuine no-op. Every other ingest
-  succeeds and stores the receipt as asserted evidence with the reason "unknown
-  issuer key" — including the control, this workspace's own valid receipt signed
-  moments earlier by its own registered issuer. **A product fault, being fixed**:
-  the command-line import never consults the committed trust registry, unlike the
-  same operation asked for by a host, so a tampered signature cannot be refused
-  at this surface. The row is unclassified and will be re-run.
+- **Ingesting a receipt again, tampered, and from a stranger (S-D5).** On the
+  first run every ingest succeeded and stored the receipt as asserted evidence
+  with the reason "unknown issuer key" — including the control, this workspace's
+  own valid receipt signed moments earlier by its own registered issuer — because
+  the command-line import never consulted the committed trust registry. **A
+  product fault, fixed by F-18a5883a (commit `e32c694`), re-run on the shipped
+  build `b34e2755…` and locked.** On that build the control is stored and
+  verified offline, ingesting the same receipt again is a genuine no-op, and the
+  tampered receipt is refused with an invalid-signature verdict. The stranger's
+  receipt is refused too, and the wording is worth writing down: it comes back as
+  an expected-digest mismatch rather than as an unknown issuer, because the
+  kernel compares the receipt's expected digests before it looks up the issuer —
+  and the host tool passes the same context and answers the same way. That is
+  parity between the two surfaces, not a gap between them. **defect-fixed.**
 - **An evidence census that cannot be read (S-D6).** With a symbolic link planted
   among the receipts, the push profile stops being green, reports itself
   incomplete, names the census as the address it could not settle, and tells the
@@ -311,9 +349,10 @@ engine" is 0.9.4; "the candidate" is 0.10.0. Both are frozen installs.
 
 ## Findings
 
-**Two product faults, being fixed before the release.** Both are in the
-command-line surface and both were found by rows written to ask a question
-nobody had asked from outside:
+**Two product faults, fixed by F-18a5883a (commit `e32c694`), re-run on the
+shipped build `b34e2755…` and locked.** Both were in the command-line surface,
+and both were found by rows written to ask a question nobody had asked from
+outside:
 
 - A one-run assurance level the gate cannot honour is refused **silently**.
   Asking `clad check --profile push` for a level above or below the one the
@@ -325,10 +364,17 @@ nobody had asked from outside:
   signed by the workspace's own registered issuer — so a tampered signature
   cannot be refused there (S-D5).
 
-Both rows are **pending re-run**: they carry the fault and the repair they wait
-on, and stay unclassified and unpinned until they have run against the repaired
-engine. Neither produces a false green — the gate re-reads and re-verifies the
-files itself — but both leave a person worse informed than they should be.
+Both are repaired: asking for a level the project cannot grant now prints the
+reason and exits nonzero instead of falling back to the old report with no cause,
+and a receipt imported on the command line is checked against the project's
+registered signers the same way a host's request is. Both rows re-ran against the
+build that ships and are locked on it, classified **defect-fixed**. One detail
+from the repaired run is worth keeping: a receipt from an issuer this workspace
+does not carry is refused as an expected-digest mismatch rather than as an
+unknown issuer, because the kernel compares the expected digests first — and the
+host tool answers identically, so the two surfaces agree. Neither fault produced
+a false green — the gate re-reads and re-verifies the files itself — but both
+left a person worse informed than they should be.
 
 **One comparative safety difference.** On the released engine, a second identical
 completion attempt on a feature that cannot be completed crashes its drift stage
@@ -355,23 +401,63 @@ been written after the run, none of these would be visible as anything at all.
 
 ## Host probes
 
-Four hosts, each driven from a real console with its cheapest model, over a
-finished project the engine set up. Every probe records the exact command, the
-host's own output, its exit code and how long it took, so a reader can run the
-same thing themselves.
+Four hosts, each driven from a real console with the cheapest model that host
+offers, over a finished project the engine set up: three read-only cells (list
+the features, read one feature back, run the check) and one write cell (create a
+feature, open it, read it back). All four ran on 2026-09-09 against the
+`a679adcc…` build. The raw transcripts and the exact command line for every cell
+are kept outside this repository, under `~/abc-0100/host-probe/`, because they
+carry account and machine detail; what follows is the summary.
 
-| Host | Read-only cycle | Write cycle | Version | Model | Tokens / time | Verdict |
+| Host | Version | Model | Read cells (3) | Write cell | Tokens / cost | Verdict |
 |---|---|---|---|---|---|---|
-| Claude Code | pending | pending | — | — | — | — |
-| Codex | pending | pending | — | — | — | — |
-| Cursor | pending | pending | — | — | — | — |
-| Antigravity | pending | pending | — | — | — | — |
+| Claude Code | 2.1.266 | `claude-haiku-4-5-20251001` | 3/3 real calls, exit 0, 6–8 s | pass — created a feature, opened it, read it back | $0.107 total, from the host's own report | pass |
+| Codex CLI | 0.153.0 | `gpt-5.3-codex-spark`, low reasoning effort | 3/3 real calls; the check reported "0 findings" | pass — created `F-e01d7c1b` and opened it, confirmed in the project's own spec files | 12.2k / 14.3k / 7.7k / 14.1k tokens per cell; the host reports no dollar figure | pass |
+| Cursor CLI | 2026.07.09 | `auto` (the free plan refuses every named model) | 3/3 pass | pass — created `F-972b67a3`, but only after the fixture's approval list was widened by hand | not recorded | pass, with the caveat below |
+| Antigravity CLI | 1.1.27 | `gemini-3.6-flash-low` | fail | fail | — | fail — host wiring, not a verdict about the engine |
 
 Gemini: excluded, superseded by Antigravity (maintainer decision).
 
+**Claude Code.** The write cell first tried to run a shell command, was blocked
+by the host's own permission list, and then did the same work through the
+cladding tools — which is the behaviour the setup is meant to produce.
+
+**Cursor.** `clad setup` deliberately pre-approves only the three read-only
+tools for Cursor command-line sessions; anything that writes needs a person to
+approve it in the moment. To measure the write cell at all, the probe widened
+that fixture's own approval list. So the readme's "Cursor verified" rests on the
+read-only checks, and that is what it should be read as.
+
+**Antigravity.** The failure has two layers, neither of them the engine.
+
+- This machine's shared wiring still pointed at an installation deleted in July.
+  `clad setup --host antigravity` refused to replace it without `--force` and
+  described it as a non-Cladding configuration, which is wrong — the wiring was
+  cladding's own.
+- With `--force` the wiring loads and the connection comes up, but the server
+  starts outside the project: the host answers that the feature-reading tool is
+  not found and shows only the bootstrap tools. The shared wiring carries no
+  binding to a working directory, and this host now runs one long-lived
+  background process, so nothing tells the server which project it is in. Adding
+  the fixture to the host's trusted workspaces did not change it.
+
+With the tools unavailable, the model narrated answers instead — grepping the
+files and inventing feature identifiers — and still exited 0. That
+false-success shape is worth naming on its own. The remedy for 0.10.x is to take
+the workspace from the connection's own declared roots or from a
+host-supplied workspace variable, and to recognise a dead cladding launcher as
+something replaceable, with a message that says so. The readme's host table is
+left unchanged: that table is written only by the doctor run, which drives every
+host at its default model.
+
+**Cost.** Dollars are recorded only where the host reports them, which is Claude
+Code alone; the others are recorded in tokens and wall time. Every machine
+configuration file touched by a probe — the Antigravity wiring and the trusted
+workspace settings included — was restored byte-identically afterwards, verified
+by hash.
+
 The probes are a read-and-write smoke test, not the full reference-host cycle
-two hosts went through for this release. The readme's host table is written by a
-separate command and is not touched by anything here.
+two hosts went through for this release.
 
 ## Limits
 
@@ -388,5 +474,11 @@ separate command and is not touched by anything here.
 - The host probes depend on accounts, networks and host versions outside this
   repository. A failed probe is recorded as not-run, never as a verdict about the
   engine.
-- Cost is only measurable in dollars on one host. For the others the record is
-  tokens and wall time, and no dollar total is claimed across hosts.
+- Cost is only measurable in dollars on one host — Claude Code, from its own
+  report. Codex reports tokens but no dollars, so no dollar total is claimed
+  across hosts.
+- The probes ran on the `a679adcc…` build, not the one that ships. The two repairs in between touch command-line paths the probes never
+  take, so the probe results carry over unchanged.
+- The Cursor probe could only run on `auto`; the free plan refuses every named
+  model, so "cheapest model" is not a comparable setting on that host.
+- The Antigravity probe was capped by wall time.

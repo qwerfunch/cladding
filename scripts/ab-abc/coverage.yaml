@@ -167,3 +167,6 @@ features:
     not_a_scenario: >-
       The compiler registry every other row reads through. Nothing observable
       sits on top of it that some other row does not already ask about.
+  F-18a5883a:
+    rows: [S-C3, S-D5]
+    note: the repair the battery itself demanded — both rows re-ran on the shipped build and are locked on it
