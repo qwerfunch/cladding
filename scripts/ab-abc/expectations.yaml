@@ -87,6 +87,20 @@
 # repacked from this checkout, dist sha b34e2755… — and it is that repaired run
 # the pins record.
 #
+# RE-LOCKED 2026-09-10, after the seal repair (F-71da4292) was packed into the C
+# arm — dist sha 06ec4cab…, the build that now ships. Two rows moved. S-C5, the
+# pre-registered row for that repair, ran for the first time, met its guess and
+# is pinned, taking the table to 44 rows. S-D5's stranger sub-case was re-pinned:
+# its old pin recorded an expected-digest mismatch, which turned out to be an
+# artefact of the harness rather than a property of an unregistered issuer — the
+# row built the stranger's workspace as a copy INSIDE the workspace under test,
+# and the old enumeration walked into it and sealed its files into the original.
+# With membership taken from git the copy's files are not members, the digests
+# match, and the kernel reaches the issuer lookup: unregistered → stored as
+# asserted evidence pending offline resolution, exit 0. The row now builds the
+# stranger outside the workspace, so its meaning no longer depends on nested-
+# repository semantics, and pins that verdict.
+#
 # S-A5 changed shape in this round. Its question — the shape a clarify round trip
 # hands back — needs an onboarding session, and a session needs a host model, so
 # the row cannot be driven here. What can be driven is the refusal that makes it
@@ -95,7 +109,7 @@
 # host probes, and the row's classification stays `manual` to say so.
 
 status: locked
-locked_at: "2026-09-09"
+locked_at: "2026-09-10"
 engines:
   b: "cladding@0.9.4 (registry) — prefix-B"
   c: "cladding 0.10.0 (packed from this checkout) — prefix-C"
@@ -1349,7 +1363,6 @@ rows:
       precommit-B: {exit: 1, contains: ["\"MISSING_IMPLEMENTATION\"", "\"STATUS_DRIFT\"", "\"STALE_ATTESTATION\""]}
 
   - id: S-C5
-    status: unlocked
     title: A record stamped on a machine that leaves stray files lying around
     fixture_family: done
     mode: auto
@@ -1371,9 +1384,26 @@ rows:
         clone_check_exit: 0
         attestation_identical_after_clone: true
         stale_findings_in_clone: 0
-    pending: >-
-      Pre-registered before the run. The row runs in the repack round, against
-      the frozen candidate engine that carries this repair.
+    expect_revised: "written before the row first ran, and met as written"
+    observed: >-
+      C: with a desktop metadata file and an ignored fixture written inside a
+      sealed source folder, the pre-push tier exits 0 and stamps
+      spec/attestation.yaml (2622 bytes); the commit is cloned into a fresh
+      directory and the strict pre-commit check there exits 0 with no
+      STALE_ATTESTATION finding, and the record the clone holds afterwards is
+      byte-identical to the one the messy machine stamped. The same row on the
+      previous engine produced a clone exit of 1 with one stale finding, which is
+      the defect F-71da4292 repairs. The released engine writes no
+      third-generation record, so only the candidate arm runs.
+    classification: match
+    locked_at: "2026-09-10"
+    note: >-
+      The row is the standing guard for the repair: what it asks — does the
+      record describe the commit or the machine that wrote it — is exactly the
+      question a fresh clone in continuous integration asks, and the pins fail
+      the run the day the answer changes.
+    lock:
+      portable-seal-C: {exit: 0, contains: ["pre-push exit on the messy working copy: 0", "clone strict pre-commit exit: 0", "stale findings in the clone: 0", "record after the clone check: byte-identical to the stamped one"]}
 
   - id: S-E1
     title: The envelope a graph answer arrives in
@@ -1740,15 +1770,28 @@ rows:
         tampered_refused: true
         unregistered_issuer_refused: true
     expect_revised: >-
-      NOT revised, and it did not need to be. The first run contradicted two
-      thirds of the guess — `clad ingest-receipt` refused nothing, storing every
-      receipt as "asserted evidence pending offline resolution" with reason
-      unknown_issuer_key, the workspace's own valid receipt included — and that
-      contradiction turned out to be the defect rather than a wrong guess: the CLI
-      adapter never consulted the committed trust registry. F-18a5883a repaired
-      it, and on the repacked build the guess as written is met in full. The
-      control pass is what made the difference readable: without a valid receipt
-      of the workspace's own issuer to compare against, "refused because
+      Revised in one clause, for the stranger sub-case, on 2026-09-10. The rest
+      stands: the first run contradicted two thirds of the guess — `clad
+      ingest-receipt` refused nothing, storing every receipt as "asserted
+      evidence pending offline resolution" with reason unknown_issuer_key, the
+      workspace's own valid receipt included — and that contradiction was the
+      defect rather than a wrong guess, since the CLI adapter never consulted the
+      committed trust registry. F-18a5883a repaired it, and the control and
+      tampered passes are met as written. What was wrong was
+      `unregistered_issuer_refused: true`. The refusal the earlier run recorded
+      came from the harness, not from the issuer being unknown: the row built the
+      stranger's workspace as a copy inside the workspace under test, and the old
+      seal enumeration walked into that copy and sealed its files into the
+      original, so the two workspaces computed different expected digests and the
+      kernel stopped at the digest comparison before it ever looked the issuer up.
+      With the workspaces separated and membership taken from git, the digests
+      match and the answer is the designed one: an unregistered issuer is not
+      refused but stored as asserted evidence pending offline resolution, exit 0,
+      which is also what the host tool answers. The property the row was really
+      after survives — the stranger's receipt discharges nothing (the audit
+      obligation stays unobserved) and lands as a second, separate receipt file.
+      The control pass is what made the difference readable: without a valid
+      receipt of the workspace's own issuer to compare against, "refused because
       tampered" and "verifies nothing at all" look the same.
     observed: >-
       FIRST RUN (defective): every ingest exited 0 and was stored as "asserted
@@ -1764,22 +1807,33 @@ rows:
       of its 86-character issuer_proof flipped, exits 1 with INVALID_SIGNATURE
       and verdict assurance invalid / currentness unresolved / reason
       invalid_signature; mallory's receipt, whose key this workspace's registry
-      does not carry, exits 1 with EXPECTED_DIGEST_MISMATCH. The fixture is
-      inside its cycle, so its audit obligation is project-scoped and reads
-      unobserved(stale) throughout; the row does not read that as a per-receipt
-      verdict. 1 receipt file at the end.
+      does not carry, exits 0 and is stored as asserted evidence pending offline
+      resolution, verdict assurance asserted / currentness unresolved / reason
+      unknown_issuer_key — it verifies nothing and discharges nothing. RE-PINNED
+      2026-09-10, on the build carrying the seal repair and with the stranger's
+      workspace built outside this one: the control, idempotent and tampered
+      passes are unchanged, and the stranger pass is the asserted verdict above,
+      stable across two consecutive runs apart from the per-run receipt digests.
+      The earlier EXPECTED_DIGEST_MISMATCH was harness pollution, not a property
+      of unregistered issuers. The fixture is inside its cycle, so its audit
+      obligation is project-scoped and reads unobserved(stale) throughout; the
+      row does not read that as a per-receipt verdict. 2 receipt files at the end
+      — the workspace's own, and the stranger's, kept apart.
     classification: defect-fixed
+    locked_at: "2026-09-10"
     note: >-
       The CLI ingest path now consults the committed trust registry, which is
       what F-18a5883a repaired: the verb verifies offline rather than storing
-      everything as asserted. One detail is worth writing down — the unregistered
-      issuer is reported as EXPECTED_DIGEST_MISMATCH rather than as an unknown
-      issuer, because the kernel compares the receipt's expected digests before
-      it looks up the issuer, and the host tool passes the same context and
-      answers the same way. That is parity between the two surfaces, not a gap
-      between them.
+      everything as asserted. What separates the two negative cases is worth
+      writing down. A tampered signature from a registered issuer is refused
+      outright, because the workspace can check it and the check fails. A receipt
+      from an issuer this workspace does not carry cannot be checked at all, so it
+      is kept and marked asserted, pending offline resolution — it discharges no
+      obligation and is stored as its own file. The host tool passes the same
+      context and answers the same way, which is parity between the two surfaces
+      rather than a gap between them.
     lock:
-      ingest-C: {exit: 0, contains: ["control ingest exit: 0", "control verdict: assurance verified, currentness current, reason verified", "The signed receipt was stored and verified offline.", "second ingest of the same receipt exit: 0", "The identical receipt is already stored.", "receipt files 1 → 1", "tampered ingest exit: 1", "\"INVALID_SIGNATURE\"", "tampered verdict: assurance invalid, currentness unresolved, reason invalid_signature", "this workspace's registry does not carry mallory", "foreign-issuer ingest exit: 1", "\"EXPECTED_DIGEST_MISMATCH\"", "foreign verdict: assurance invalid, currentness stale, reason expected_digest_mismatch"]}
+      ingest-C: {exit: 0, contains: ["control ingest exit: 0", "control verdict: assurance verified, currentness current, reason verified", "The signed receipt was stored and verified offline.", "second ingest of the same receipt exit: 0", "The identical receipt is already stored.", "receipt files 1 → 1", "tampered ingest exit: 1", "\"INVALID_SIGNATURE\"", "tampered verdict: assurance invalid, currentness unresolved, reason invalid_signature", "this workspace's registry does not carry mallory", "foreign-issuer ingest exit: 0", "The receipt was stored as asserted evidence pending offline resolution.", "foreign verdict: assurance asserted, currentness unresolved, reason unknown_issuer_key", "foreign: gate exit 1; audit project=unobserved(stale)", "receipt files at the end: 2"]}
 
   - id: S-D6
     title: An evidence census that cannot be read is not an empty one

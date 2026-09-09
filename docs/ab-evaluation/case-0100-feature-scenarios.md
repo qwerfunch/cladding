@@ -25,27 +25,35 @@ run, which is what makes a wrong guess a finding rather than an edit.
 
 ## Build lineage
 
-Three builds are named in this document, and it matters which is which. The
+Four builds are named in this document, and it matters which is which. The
 reference-host cycles and the packed-tarball campaign ran on the build from
 `0578818` (`dist/clad.js` sha256 `1bb59b71…`). The version campaign and the host
 probes ran on the build from `56f3cb9`, which adds the adopter-guidance repair
 F-6349870d (sha256
-`a679adcc0c7e2d24190a746a7061625510372b6b6a135ac7d458e0bd01ca0b6b`). The build
-that ships is `e32c694` (sha256
+`a679adcc0c7e2d24190a746a7061625510372b6b6a135ac7d458e0bd01ca0b6b`). Then comes
+`e32c694` (sha256
 `b34e2755e9b9c891c1799545d17bf8c2ad1a891383bc4e93b74f453e58cd9f09`), which adds
-F-18a5883a — the two command-line repairs the rows below found. Those repairs
-touch only the two command-line paths named under Findings: the tool catalog is
-unchanged (still 140,498 bytes and 27 tools), and so is every gate verdict
-reached without the one-run assurance-level option.
+F-18a5883a — the two command-line repairs the rows below found. The build that
+ships is `b37d174` (sha256
+`06ec4cabe16e692a7b555cdcd4d71a2bd2f36643549561a2084ed7d88cc6d811`), which adds
+F-71da4292: the files a record seals are now enumerated from what git tracks, so
+stray files on one machine no longer change the seal. Those repairs touch only
+the paths named under Findings: the tool catalog is unchanged (still 140,498
+bytes and 27 tools), and so is every gate verdict reached without the one-run
+assurance-level option.
 
 ## Status
 
-**Locked 2026-09-09 — 43 rows, 0 mismatches, negative check passed.** All
-twenty-seven new rows have run, every one is classified, and every one is now
+**Locked 2026-09-10 — 44 rows, 0 mismatches, negative check passed.** All
+twenty-eight new rows have run, every one is classified, and every one is now
 pinned: the whole table, the sixteen earlier rows included, is enforced rather
 than recorded. The two rows that had found product faults were held back until
-F-18a5883a (commit `e32c694`) repaired them; they were re-run on the build that
-ships (sha256 `b34e2755…`) and are locked on that repaired run.
+F-18a5883a (commit `e32c694`) repaired them, and were re-run and locked on the
+`b34e2755…` build. S-C5, pre-registered for the seal repair F-71da4292, ran for
+the first time on the build that ships (commit `b37d174`, sha256
+`06ec4cabe16e692a7b555cdcd4d71a2bd2f36643549561a2084ed7d88cc6d811`) and met its
+guess; S-D5's stranger sub-case was re-pinned on that same build, for the reason
+given under Findings.
 
 Locked means the runner compares every pinned exit code, byte count and literal
 against what it just saw and fails on the first difference. The whole table was
@@ -94,7 +102,7 @@ written reason in the ledger itself.
 | A workspace holding a signed review could never record a verification. | S-D2, S-D3 | match: S-D2 · designed: S-D3 |
 | Asking for a different level of assurance for one run now says why it was refused. | S-C3 | defect-fixed |
 | A receipt imported on the command line is now checked against the project's registered signers, | S-D5 | defect-fixed |
-| An attestation stamped on a working machine now matches the one a clean checkout computes. | S-C5 | pending — pre-registered, runs in the repack round |
+| An attestation stamped on a working machine now matches the one a clean checkout computes. | S-C5 | match |
 
 ### Heads-up sentences
 
@@ -134,7 +142,7 @@ written reason in the ledger itself.
 | F-4f4a12c3 | S-B3, L0-8 | match: S-B3, L0-8 |
 | F-2f840a6c | — | not a scenario |
 | F-182eaa53 | — | not a scenario |
-| F-71da4292 | S-C5 | pending — pre-registered, runs in the repack round |
+| F-71da4292 | S-C5 | match |
 
 ## Observations
 
@@ -240,7 +248,7 @@ engine" is 0.9.4; "the candidate" is 0.10.0. Both are frozen installs.
   asking for a higher or a lower level exited 1 with the old four-key report — no
   requested or achieved level, no unmet obligations — and said nothing at all
   about the level. **A product fault, fixed by F-18a5883a (commit `e32c694`),
-  re-run on the shipped build `b34e2755…` and locked.** On that build, at the
+  re-run on the `b34e2755…` build and locked.** On that build, at the
   level the project already declares the push profile passes and returns its full
   report; asked for a higher level it refuses with "A stronger one-run assurance
   level requires a compiler-proven bounded scope", and for a lower one with
@@ -253,6 +261,14 @@ engine" is 0.9.4; "the candidate" is 0.10.0. Both are frozen installs.
   is recorded on the state it can be in — a completed feature — where the same
   shape is two errors and a warning. **match**; the released-engine side is a
   recording, since there is no equivalent in-progress fixture for it.
+- **A record stamped on a machine that leaves stray files lying around (S-C5).**
+  With a desktop metadata file and an ignored fixture written inside a sealed
+  source folder, the passing check stamps the record, the commit is cloned into a
+  fresh directory, and the strict check the clone runs exits 0 with nothing
+  reported stale — the record the clone holds afterwards is byte-for-byte the one
+  the messy machine wrote. On the previous engine the same row's clone exits 1
+  with one stale finding. The released engine writes no third-generation record
+  to compare, so only the candidate arm runs. **match.**
 
 ### D — evidence and independence
 
@@ -284,15 +300,18 @@ engine" is 0.9.4; "the candidate" is 0.10.0. Both are frozen installs.
   with the reason "unknown issuer key" — including the control, this workspace's
   own valid receipt signed moments earlier by its own registered issuer — because
   the command-line import never consulted the committed trust registry. **A
-  product fault, fixed by F-18a5883a (commit `e32c694`), re-run on the shipped
-  build `b34e2755…` and locked.** On that build the control is stored and
+  product fault, fixed by F-18a5883a (commit `e32c694`), re-run on the
+  `b34e2755…` build and locked.** On that build the control is stored and
   verified offline, ingesting the same receipt again is a genuine no-op, and the
   tampered receipt is refused with an invalid-signature verdict. The stranger's
-  receipt is refused too, and the wording is worth writing down: it comes back as
-  an expected-digest mismatch rather than as an unknown issuer, because the
-  kernel compares the receipt's expected digests before it looks up the issuer —
-  and the host tool passes the same context and answers the same way. That is
-  parity between the two surfaces, not a gap between them. **defect-fixed.**
+  receipt is not refused, and that is the designed answer: a receipt whose issuer
+  this workspace's registry does not carry cannot be checked here at all, so it is
+  kept and marked asserted, pending offline resolution — it discharges nothing,
+  the audit obligation stays unobserved, and it lands as its own second receipt
+  file. The host tool passes the same context and answers the same way, which is
+  parity between the two surfaces rather than a gap between them. That clause of
+  the guess was re-pinned on 2026-09-10; the reason is under Findings.
+  **defect-fixed.**
 - **An evidence census that cannot be read (S-D6).** With a symbolic link planted
   among the receipts, the push profile stops being green, reports itself
   incomplete, names the census as the address it could not settle, and tells the
@@ -352,7 +371,7 @@ engine" is 0.9.4; "the candidate" is 0.10.0. Both are frozen installs.
 ## Findings
 
 **Two product faults, fixed by F-18a5883a (commit `e32c694`), re-run on the
-shipped build `b34e2755…` and locked.** Both were in the command-line surface,
+`b34e2755…` build and locked.** Both were in the command-line surface,
 and both were found by rows written to ask a question nobody had asked from
 outside:
 
@@ -370,13 +389,45 @@ Both are repaired: asking for a level the project cannot grant now prints the
 reason and exits nonzero instead of falling back to the old report with no cause,
 and a receipt imported on the command line is checked against the project's
 registered signers the same way a host's request is. Both rows re-ran against the
-build that ships and are locked on it, classified **defect-fixed**. One detail
+`b34e2755…` build and are locked on it, classified **defect-fixed**. One detail
 from the repaired run is worth keeping: a receipt from an issuer this workspace
-does not carry is refused as an expected-digest mismatch rather than as an
-unknown issuer, because the kernel compares the expected digests first — and the
-host tool answers identically, so the two surfaces agree. Neither fault produced
-a false green — the gate re-reads and re-verifies the files itself — but both
-left a person worse informed than they should be.
+does not carry is *not* refused. It cannot be checked here at all, so it is
+stored as asserted evidence pending offline resolution — it discharges no
+obligation and sits as its own file — and the host tool answers identically, so
+the two surfaces agree. Neither fault produced a false green — the gate re-reads
+and re-verifies the files itself — but both left a person worse informed than
+they should be.
+
+**A third fault, and this one the battery did not find.** A record stamped on a
+working machine sealed files the repository does not track — a desktop metadata
+file inside a source folder, an ignored fixture beside it — so the record
+described the machine rather than the commit, and the same commit came back red
+on a fresh clone. It surfaced in the first continuous-integration run of the pull
+request that carries this work (#263), which reported 288 files as stale on a
+tree that was green locally; no row here asked the question, and it is worth
+saying plainly that an outside runner caught what this battery did not. It is
+repaired by F-71da4292 (commit `b37d174`): the files a record seals are
+enumerated from what git tracks, so a file the repository does not have is not
+sealed. The battery now carries the question as a standing row — S-C5 stamps a
+record on a deliberately messy working copy, commits it, clones the commit and
+runs the strict check in the clone — so the day the answer changes, the table
+fails rather than the next pull request.
+
+**One re-pinned expectation, from the same repair.** S-D5's stranger sub-case had
+been pinned as a refusal: a receipt from an issuer this workspace does not carry
+came back as an expected-digest mismatch. That was an artefact of the harness,
+not a property of unregistered issuers. The row built the stranger's second
+workspace as a copy *inside* the workspace under test, and the old enumeration
+walked into the copy and sealed its files into the original, so the two
+workspaces computed different expected digests and the check stopped there,
+before the issuer was ever looked up. The repaired enumeration exposed it: with
+membership taken from git, the copy's files are not members, the digests agree,
+and the answer is the designed one — asserted, pending offline resolution. The
+row now builds the stranger's workspace outside the one under test, so what it
+measures no longer depends on how a nested repository is treated, and it pins the
+asserted verdict together with the two properties that carry the meaning: the
+stranger's receipt discharges nothing, and it is kept as a second, separate
+receipt file.
 
 **One comparative safety difference.** On the released engine, a second identical
 completion attempt on a feature that cannot be completed crashes its drift stage
@@ -386,14 +437,15 @@ status alone. It reproduces byte-for-byte across runs. This is the only place in
 the battery where the two engines differ in a way that matters for safety rather
 than for wording or shape.
 
-**How the twenty-seven rows came out.** Fifteen matched their pre-registered
+**How the twenty-eight rows came out.** Sixteen matched their pre-registered
 guess. Seven were pre-registration errors — the engine's behaviour is defensible
 and the guess was not — and each of those carries a corrected expectation beside
 the original, saying what was wrong with the guess. Two are deliberate
 relaxations named before the fact rather than discovered here. One cannot be
 driven without a model and is answered by the live probes instead. And two are
-the faults above, awaiting their re-run. Fifteen plus seven plus two plus one
-plus two is twenty-seven.
+the command-line faults above, re-run after their repair and locked on it.
+Sixteen plus seven plus two plus one plus two is twenty-eight. With the sixteen
+earlier rows the table holds forty-four.
 
 Of the seven wrong guesses, five were wrong about the *surface* rather than the
 behaviour — a flag spelled differently, a file the setup step does not write, a
@@ -479,8 +531,14 @@ two hosts went through for this release.
 - Cost is only measurable in dollars on one host — Claude Code, from its own
   report. Codex reports tokens but no dollars, so no dollar total is claimed
   across hosts.
-- The probes ran on the `a679adcc…` build, not the one that ships. The two repairs in between touch command-line paths the probes never
-  take, so the probe results carry over unchanged.
+- The probes ran on the `a679adcc…` build, not the one that ships. The three repairs in between touch command-line paths the probes never
+  take, and the enumeration of the files a record seals, which no probe reads, so the probe results carry over unchanged.
 - The Cursor probe could only run on `auto`; the free plan refuses every named
   model, so "cheapest model" is not a comparable setting on that host.
 - The Antigravity probe was capped by wall time.
+- A record now covers what the repository tracks, and files inside a nested
+  repository or a submodule are not part of that. A module declared at a path
+  inside one is therefore read as absent and the check refuses rather than
+  sealing bytes a fresh clone would not have — fail-closed, but it does mean a
+  project that keeps real source in a nested repository has to say so another
+  way.

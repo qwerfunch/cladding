@@ -276,9 +276,9 @@ ever loosens: the row is recorded, counted and named in the run's closing line,
 never enforced — so a batch still being read can sit beside pinned rows without
 either weakening the gate or blocking on guesses nobody has checked yet.
 
-**The table is fully locked.** All 43 rows are classified and pinned as of
-2026-09-09; none carries its own `status: unlocked`, so a passing run closes with
-`every pinned exit, byte count and literal still holds (43 rows)` and no
+**The table is fully locked.** All 44 rows are classified and pinned as of
+2026-09-10; none carries its own `status: unlocked`, so a passing run closes with
+`every pinned exit, byte count and literal still holds (44 rows)` and no
 still-unlocked line. Any difference from a pin fails the run.
 
 Re-locking after a product change is the same loop the rows were written in.
@@ -375,7 +375,8 @@ gone and each row the ledger names now exists in `expectations.yaml`.
 | `row-signoff-refusals.sh` | the four paths that must not produce a verified receipt |
 | `row-receipt-stale.sh` | a signed cycle, the module edited underneath it, and what re-signing restores |
 | `row-l4-independent.sh` | `row-l4.sh` signed by someone other than the committing author: the positive half of the independence policy |
-| `row-ingest.sh` | ingesting a receipt again, tampered, and from a stranger — with a control pass that says whether the verb verifies at all |
+| `row-ingest.sh` | ingesting a receipt again, tampered, and from a stranger — with a control pass that says whether the verb verifies at all; the stranger's workspace is built outside the one under test |
+| `row-portable-seal.sh` | a record stamped on a machine holding stray files, then the same commit cloned and checked afresh |
 | `row-census.sh` | an evidence directory that cannot be read safely, and the gate's answer to it |
 | `row-mcp-signoff.sh` | a verified sign-off asked for over MCP by a client that cannot ask a human |
 | `row-relocate.sh` | the generated projections' whole move: preview, apply, gate, repeat, conflict, and a 0.1 workspace |

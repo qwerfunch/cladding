@@ -15,8 +15,10 @@
 #   idempotent  the same valid receipt a second time — create-only, no overwrite.
 #   tampered    criterion 2's receipt with one character of its signature flipped,
 #               and it is the ONLY receipt that criterion has.
-#   stranger    criterion 3 signed by `mallory`, an issuer registered in a second
-#               workspace and unknown to this one's committed registry.
+#   stranger    criterion 3 signed by `mallory`, an issuer registered in a
+#               second workspace — built outside this one, so nothing about the
+#               row depends on a copy nested inside the workspace under test —
+#               and unknown to this one's committed registry.
 #
 # Called by sidetable.ts as: bash row-ingest.sh <arm> <cwd> <artifact-dir>
 set -uo pipefail
@@ -166,11 +168,14 @@ echo
 audit_states tampered
 
 # ── 4. a stranger's signature on criterion 3 ────────────────────────────────
-STRANGER="$CWD/.stranger"
+STRANGER="$OUT/stranger"
 rm -rf "$STRANGER"
 mkdir -p "$STRANGER"
-rsync -a --exclude node_modules --exclude .stranger "$CWD/" "$STRANGER/" >> "$OUT/ingest.log" 2>&1
+rsync -a --exclude node_modules "$CWD/" "$STRANGER/" >> "$OUT/ingest.log" 2>&1
 rm -rf "$STRANGER/spec/evidence"
+if [ -d "$CWD/node_modules" ] && [ ! -e "$STRANGER/node_modules" ]; then
+  ln -s "$CWD/node_modules" "$STRANGER/node_modules"
+fi
 (
   export CLADDING_KEYS_DIR="$OUT/stranger-keys"
   rm -rf "$CLADDING_KEYS_DIR"
