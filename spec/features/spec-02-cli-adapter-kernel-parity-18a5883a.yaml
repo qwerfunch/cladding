@@ -1,6 +1,6 @@
 id: F-18a5883a
 title: Spec 0.2 CLI adapters relay kernel decisions like the MCP surface
-status: in_progress
+status: done
 purpose: "Two CLI adapters discard a kernel result that their MCP and gate
   counterparts honor: the check command drops the reason when a one-run
   assurance level is rejected and falls back to a legacy report with no cause,
