@@ -6,6 +6,7 @@ import {relative, resolve} from 'node:path';
 
 import {safeProofWorkspacePath} from '../proof/fs-safety.js';
 import {compareCodeUnits} from './registry.js';
+import {workspaceMembership} from './workspace-membership.js';
 
 /** A hashable record retained with its address so missing inputs stay visible. */
 export interface ClosureRecord {
@@ -120,13 +121,19 @@ export function readSafeProofClosureBytes(cwd: string, path: string): Uint8Array
     const absolute = safeProofWorkspacePath(cwd, path);
     const stat = lstatSync(absolute);
     if (stat.isSymbolicLink()) return undefined;
-    if (stat.isFile()) return readFileSync(absolute);
+    // A seal must equal the one a clean checkout computes, so an ignored or
+    // desktop-metadata file is not a member of this workspace at all: reading
+    // it yields the same absent sentinel a clean checkout of the commit reads.
+    const membership = workspaceMembership(cwd);
+    const rootPath = relative(resolve(cwd), absolute).replaceAll('\\', '/');
+    if (stat.isFile()) return membership.includes(rootPath) ? readFileSync(absolute) : undefined;
     if (!stat.isDirectory()) return undefined;
     const records: Buffer[] = [];
     const visit = (directory: string): boolean => {
       for (const entry of readdirSync(directory, {withFileTypes: true}).sort((left, right) => compareCodeUnits(left.name, right.name))) {
         const child = `${directory}/${entry.name}`;
         const repoPath = relative(resolve(cwd), child).replaceAll('\\', '/');
+        if (!entry.isDirectory() && !membership.includes(repoPath)) continue;
         // Re-apply F5's workspace + symlink policy to every descendant.  A
         // directory root must never hide one unsafe implementation member.
         safeProofWorkspacePath(cwd, repoPath);
@@ -142,7 +149,8 @@ export function readSafeProofClosureBytes(cwd: string, path: string): Uint8Array
       }
       return true;
     };
-    return visit(absolute) ? Buffer.concat(records) : undefined;
+    // A directory with no members does not exist in a clean checkout either.
+    return visit(absolute) && (records.length > 0 || membership.source === 'filesystem') ? Buffer.concat(records) : undefined;
   } catch {
     return undefined;
   }

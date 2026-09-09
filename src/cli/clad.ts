@@ -100,6 +100,7 @@ import {canonicalClosureJson, type AssuranceClosureInput} from '../assurance/clo
 import {currentReceiptIdentities} from '../assurance/receipt-adapter.js';
 import {workspaceReceiptCensus} from '../assurance/receipt-census.js';
 import {mintRunCheckStagesAuthority} from '../assurance/run-authority.js';
+import {withWorkspaceMembership} from '../assurance/workspace-membership.js';
 import {assuranceClosureInputFromWorkspace, createWorkspaceAttestations, currentProofViewsFromWorkspace, effectiveFeatureScope, featureClosureSeals, hasApplicableSchema02TestCriteria, runnerConfigurationResolver, workspaceClosureSeals, workspaceIndependenceInputs, workspaceProfileSnapshot, type BoundCriteriaCollector, type WorkspaceProfileSnapshot, type WorkspaceReceiptContext} from '../assurance/workspace.js';
 import {liveCriterionReportsFromCurrentRun, staticCriterionReportsFromWorkspace, staticCriterionScopeFromWorkspace} from '../assurance/criterion-observations.js';
 import {emptyTrustSnapshot, type TrustSnapshot} from '../proof/receipt.js';
@@ -613,6 +614,14 @@ const UNBOUND_CRITERION_NOTE_LIMIT = 5;
 const ASSURANCE_LEVEL_ORDER: readonly AssuranceLevel[] = ['L1', 'L2', 'L3', 'L4'];
 
 export function runCheckStages(opts: CheckStageOptions): CheckOutcome {
+  // One gate evaluation reads one workspace membership listing; the next
+  // evaluation in the same long-lived process reads it again, so a file added
+  // between two gates is never sealed from a stale listing.
+  return withWorkspaceMembership(() => runCheckStagesEvaluation(opts));
+}
+
+/** Runs one gate evaluation inside the shared membership scope. */
+function runCheckStagesEvaluation(opts: CheckStageOptions): CheckOutcome {
   const requestsCompletion = opts.deferAttestation === true
     || opts.prospectiveFeatureId !== undefined
     || opts.completionGate !== undefined

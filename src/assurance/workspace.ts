@@ -43,6 +43,7 @@ import {loadSpec} from '../spec/load.js';
 import type {Spec} from '../spec/types.js';
 import {implementationAuthorMapping, isIndependentIssuer, type ImplementationAuthorMapping} from '../proof/authors.js';
 import {currentSafeBindingCensus, currentSafeBindings} from '../proof/current-bindings.js';
+import {withWorkspaceMembership, workspaceMembership} from './workspace-membership.js';
 import {parsePortableReceiptYaml, receiptFeatureId, type PortableReceipt, type ReceiptExpectedDigestContext} from '../proof/receipt.js';
 import {selectCriterionTestBindings, type CriterionBindingSelection} from '../proof/legacy-bindings.js';
 import type {TestBinding} from '../proof/types.js';
@@ -61,6 +62,19 @@ export type WorkspaceReceiptContext = AttestationReceiptContext;
 
 /** Builds closure input from one compiler snapshot and F5-safe reference bytes. */
 export function assuranceClosureInputFromWorkspace(
+  cwd: string,
+  compilation: SpecCompilation,
+  receiptContext?: WorkspaceReceiptContext,
+  currentSpec?: Spec,
+  controlResolver?: RunnerConfigurationResolver,
+): AssuranceClosureInput {
+  // Every sealed read of this assembly shares one workspace membership
+  // listing; a caller outside a gate evaluation still gets a fresh one.
+  return withWorkspaceMembership(() => scopedClosureInputFromWorkspace(cwd, compilation, receiptContext, currentSpec, controlResolver));
+}
+
+/** Assembles the closure input inside one shared membership scope. */
+function scopedClosureInputFromWorkspace(
   cwd: string,
   compilation: SpecCompilation,
   receiptContext?: WorkspaceReceiptContext,
@@ -1080,6 +1094,24 @@ export function createWorkspaceAttestations(input: {
    */
   readonly onRefusal?: (feature: string, refusal: {readonly guard: string; readonly detail: string}) => void;
 }): readonly AuthoritativeAttestationV3[] {
+  // Writing many rows is one evaluation: every row must be sealed from the
+  // same membership listing as the closures they are compared against.
+  return withWorkspaceMembership(() => scopedWorkspaceAttestations(input));
+}
+
+/** Mints the scoped rows inside one shared membership scope. */
+function scopedWorkspaceAttestations(input: {
+  readonly cwd: string;
+  readonly compilation: SpecCompilation;
+  readonly verdict: AssuranceVerdict;
+  readonly featureIds: readonly string[];
+  readonly detectorCatalogSha256: string;
+  readonly toolIdentity: string;
+  readonly environmentClass: string;
+  readonly trustSnapshotSha256: string;
+  readonly receiptContext?: WorkspaceReceiptContext;
+  readonly onRefusal?: (feature: string, refusal: {readonly guard: string; readonly detail: string}) => void;
+}): readonly AuthoritativeAttestationV3[] {
   // The compiler records an existing managed baseline artifact even when its
   // contents are invalid. Such a receipt is a closure input, never an absent
   // optional value that an authoritative writer may silently ignore.
@@ -1334,7 +1366,7 @@ export function runnerConfigurationResolver(cwd: string): RunnerConfigurationRes
   // A gate snapshot can query several descriptor families while building its
   // closure and profile records. Capture all known runner controls once so an
   // edit between family queries cannot compose two different workspaces.
-  const seal = discoverRunnerControls(cwd, new Set(Object.keys(CONTROL_PATHS) as AssuranceControl[]));
+  const seal = withWorkspaceMembership(() => discoverRunnerControls(cwd, new Set(Object.keys(CONTROL_PATHS) as AssuranceControl[])));
   return (channel, target, descriptorEntries): RunnerConfiguration => {
     // A family-specific caller still receives this immutable full census; a
     // narrower projection may be added from these bytes without new I/O.
@@ -1352,6 +1384,7 @@ export function runnerConfigurationResolver(cwd: string): RunnerConfigurationRes
 /** Finds and hashes one deterministic runner-control closure without following links. */
 function discoverRunnerControls(cwd: string, families: ReadonlySet<AssuranceControl>): RunnerControlSeal {
   const root = resolve(cwd);
+  const membership = workspaceMembership(root);
   const selectedPaths = new Set([...families].flatMap((family) => CONTROL_PATHS[family]));
   // Named runner controls may occur in a nested workspace package. A matching
   // basename outside a control location is ordinary project content unless a
@@ -1494,6 +1527,10 @@ function discoverRunnerControls(cwd: string, families: ReadonlySet<AssuranceCont
       // are manifest/lock-bound. A different symlink rule would split physical
       // and linked installs without sealing either, so ignore them here.
       if (skipDirectory(path, entry.name)) continue;
+      // An ignored or desktop-metadata file is not part of this workspace's
+      // committed content, so it must not become a runner control or an
+      // unknown-control issue; a clean checkout never sees it.
+      if (!stat.isDirectory() && !membership.includes(path)) continue;
       if (entry.isSymbolicLink() || stat.isSymbolicLink()) {
         issues.add(`symlink:${path}`);
         continue;

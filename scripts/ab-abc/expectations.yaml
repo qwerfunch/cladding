@@ -1348,6 +1348,33 @@ rows:
       checkpoint-C: {exit: 0, contains: ["\"profile\": \"checkpoint\"", "\"profile_complete\": true", "is not built yet — the normal state between authoring the spec entry and implementing it"]}
       precommit-B: {exit: 1, contains: ["\"MISSING_IMPLEMENTATION\"", "\"STATUS_DRIFT\"", "\"STALE_ATTESTATION\""]}
 
+  - id: S-C5
+    status: unlocked
+    title: A record stamped on a machine that leaves stray files lying around
+    fixture_family: done
+    mode: auto
+    question: >-
+      A working copy holds files the repository does not: a metadata file a
+      desktop file browser wrote inside a source folder, and a fixture the
+      project ignores. Does the record a green check writes still describe the
+      commit — so a fresh clone of that commit accepts it — or does it describe
+      the machine that wrote it, and go red everywhere else?
+    steps:
+      - name: portable-seal
+        run: script
+        script: row-portable-seal.sh
+        arms: [C]
+        family: done
+    expect:
+      b: {applicable: false, note: "the released engine writes no third-generation record to compare"}
+      c:
+        clone_check_exit: 0
+        attestation_identical_after_clone: true
+        stale_findings_in_clone: 0
+    pending: >-
+      Pre-registered before the run. The row runs in the repack round, against
+      the frozen candidate engine that carries this repair.
+
   - id: S-E1
     title: The envelope a graph answer arrives in
     fixture_family: shared-0.1

@@ -94,6 +94,7 @@ written reason in the ledger itself.
 | A workspace holding a signed review could never record a verification. | S-D2, S-D3 | match: S-D2 · designed: S-D3 |
 | Asking for a different level of assurance for one run now says why it was refused. | S-C3 | defect-fixed |
 | A receipt imported on the command line is now checked against the project's registered signers, | S-D5 | defect-fixed |
+| An attestation stamped on a working machine now matches the one a clean checkout computes. | S-C5 | pending — pre-registered, runs in the repack round |
 
 ### Heads-up sentences
 
@@ -133,6 +134,7 @@ written reason in the ledger itself.
 | F-4f4a12c3 | S-B3, L0-8 | match: S-B3, L0-8 |
 | F-2f840a6c | — | not a scenario |
 | F-182eaa53 | — | not a scenario |
+| F-71da4292 | S-C5 | pending — pre-registered, runs in the repack round |
 
 ## Observations
 

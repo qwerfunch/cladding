@@ -1,0 +1,82 @@
+id: F-71da4292
+title: Portable closure membership for attestation seals
+status: in_progress
+purpose: Attestation seals stamped from a working copy must equal the seals a
+  clean checkout of the same commit computes, because a desktop metadata file or
+  an ignored fixture inside a sealed directory currently marks every committed
+  attestation row stale in CI and on every other machine.
+modules:
+  - src/assurance/workspace-membership.ts
+  - src/assurance/closures.ts
+  - src/assurance/workspace.ts
+  - src/spec/attestation.ts
+  - src/cli/clad.ts
+  - tests/assurance/workspace-membership.test.ts
+  - tests/assurance/portable-closure-seals.test.ts
+depends_on: []
+capability_refs: []
+acceptance_criteria:
+  - id: AC-10bf4679
+    kind: behavior
+    statement: When the workspace root is inside a git repository, the assurance
+      kernel shall seal only the tracked files and the untracked files that git
+      does not ignore.
+    notes: Membership comes from one `git ls-files --cached --others
+      --exclude-standard -z` listing; a listed path that no longer exists on
+      disk is not sealed.
+  - id: AC-5ab01c62
+    kind: behavior
+    statement: The assurance kernel shall exclude desktop file-manager metadata
+      files from every closure seal and runner-control seal regardless of ignore
+      rules.
+    notes: "Fixed list: `.DS_Store`, `Thumbs.db`, `desktop.ini`. Adopters do not
+      reliably ignore these, so the list applies even when git would track
+      them."
+  - id: AC-0c558efe
+    kind: behavior
+    statement: When a sealed directory contains an ignored file or a desktop
+      metadata file, the closure seals shall equal the seals of a clean checkout
+      of the same commit.
+    notes: "Discriminating fixture: seal a temp git workspace, then add an ignored
+      file and a `.DS_Store` under a directory-valued module and under a
+      runner-control tree, and reseal."
+  - id: AC-830d4574
+    kind: behavior
+    statement: When an untracked file that git does not ignore is added under a
+      sealed directory, the closure seal of that directory shall change.
+    notes: "Tracked-only membership would be wrong: a developer who adds a source
+      file, stamps, then commits both would mismatch CI, which sees the file."
+  - id: AC-87a4ff16
+    kind: behavior
+    statement: When the workspace root is not inside a git repository, the assurance
+      kernel shall seal every regular file under a sealed directory except
+      desktop metadata files.
+    notes: Non-git fallback keeps today's walk minus the fixed metadata list.
+  - id: AC-47980510
+    kind: behavior
+    statement: When the receipt census meets a desktop metadata file under the
+      evidence directory, the census shall skip that file instead of reporting
+      the walk incomplete.
+    notes: Only the fixed metadata list is skipped; any other unexpected file still
+      makes the census undefined.
+  - id: AC-910947af
+    kind: behavior
+    statement: When a file is added between two gate evaluations in one long-lived
+      process, the second evaluation shall seal the added file.
+    notes: Membership may be memoized only within one evaluation; the MCP server
+      runs many gates per process and must never reuse a stale listing.
+  - id: AC-f264052f
+    kind: constraint
+    statement: The closure seals of a workspace whose sealed files are all tracked
+      shall be identical whether membership is read from git or from the
+      filesystem walk.
+    rationale: Every committed attestation row was computed from tracked bytes, so
+      this change may alter only dirty-tree behaviour; the same invariance is
+      proven end to end by diffing every feature's seals in a clean worktree
+      before and after the change.
+design_impact:
+  classification: none
+  rationale: The design set defines closures by sealed content and never specifies
+    how directory members are enumerated; this fixes the enumeration so it
+    matches a clean checkout and leaves every clean-checkout seal unchanged.
+  status: resolved

@@ -41,6 +41,7 @@ import {
 import {canonicalClosureJson} from '../assurance/closures.js';
 import {assuranceProfile} from '../assurance/kernel.js';
 import {compareCodeUnits, OBLIGATION_DESCRIPTORS} from '../assurance/registry.js';
+import {WORKSPACE_METADATA_FILES} from '../assurance/workspace-membership.js';
 import {requiredOracleWorklist} from '../oracle/policy.js';
 import {safeProofWorkspacePath} from '../proof/fs-safety.js';
 import {
@@ -779,6 +780,10 @@ export function receiptFileCensus(cwd: string): readonly CurrentReceiptFile[] | 
     const locations: CurrentReceiptFile[] = [];
     const visit = (directory: string, relativePath: string): boolean => {
       for (const name of readdirSync(directory).sort()) {
+        // A viewer-written metadata file is not evidence and not a missing
+        // obligation; only this fixed list is skipped, so any other unexpected
+        // file still leaves the census unresolved.
+        if (WORKSPACE_METADATA_FILES.has(name)) continue;
         const candidate = `${relativePath}/${name}`;
         const path = safeProofWorkspacePath(cwd, candidate);
         const stat = lstatSync(path);

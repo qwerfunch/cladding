@@ -87,6 +87,8 @@ changelog:
   "A receipt imported on the command line is now checked against the project's registered signers,":
     rows: [S-D5]
     note: repaired by F-18a5883a during the battery; row re-run after repack
+  "An attestation stamped on a working machine now matches the one a clean checkout computes.":
+    rows: [S-C5]
 
 heads_up:
   "the migration refuses to touch a path with uncommitted changes on it":
