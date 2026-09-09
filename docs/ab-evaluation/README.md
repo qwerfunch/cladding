@@ -153,7 +153,9 @@ candidate, written before the runs so the rules cannot follow the numbers:
   0.10.0 actually checked? Every item in the release notes is mapped to a
   deterministic row, a live host probe, or a written reason it is not a
   scenario, and the mapping is verified by this repository's own test suite.
-  **Status: rows recorded, classification pending.**
+  **Status: 44 rows locked on the shipped build (2026-09-10); the battery found two
+  command-line defects, and the first CI run of the release branch found an
+  attestation-portability defect — all three repaired and re-locked.**
 
 ## Related
 
