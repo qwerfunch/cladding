@@ -10,7 +10,7 @@
 //   1  at least one fixture diverged
 //   2  setup failure (filesystem/git)
 
-import {execaSync} from 'execa';
+import {runSync} from '../src/core/run-sync.js';
 import {mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join, resolve} from 'node:path';
@@ -33,6 +33,28 @@ import {runUat} from '../src/stages/uat.js';
 import {runUnit} from '../src/stages/unit.js';
 import {runVisual} from '../src/stages/visual.js';
 import type {DriftFinding, StageResult} from '../src/stages/types.js';
+
+/**
+ * Runs one fixture-setup command, refusing to continue if it failed.
+ *
+ * The shared runner reports failure as data rather than throwing, which is right
+ * for a stage that must classify a tool's outcome. Fixture setup is the opposite
+ * case: a silent `git init` failure would build the wrong fixture and the
+ * conformance verdict would be meaningless, so this throws loudly instead.
+ *
+ * @param cwd - Fixture directory to run in.
+ * @param args - Command and its arguments.
+ */
+function setupCommand(cwd: string, ...args: readonly string[]): void {
+  const [command, ...rest] = args;
+  const result = runSync(command as string, rest, {cwd});
+  if (result.exitCode !== 0) {
+    throw new Error(
+      `conformance fixture setup failed: ${args.join(' ')} — `
+      + `${result.code ?? `exit ${String(result.exitCode)}`} ${result.stderr}`.trim(),
+    );
+  }
+}
 
 // Fixtures run in fresh temp dirs without their own node_modules. Symlinking
 // cladding's installed devDeps into each fixture lets npx resolve tsc /
@@ -227,12 +249,12 @@ const fixtures: readonly Fixture[] = [
     stage: 'stage_1.4',
     expectedPass: true,
     setup(d) {
-      execaSync('git', ['init', '-q'], {cwd: d});
-      execaSync('git', ['config', 'user.email', 'c@l'], {cwd: d});
-      execaSync('git', ['config', 'user.name', 'c'], {cwd: d});
+      setupCommand(d, 'git', 'init', '-q');
+      setupCommand(d, 'git', 'config', 'user.email', 'c@l');
+      setupCommand(d, 'git', 'config', 'user.name', 'c');
       writeFileSync(join(d, 'README'), 'ok\n');
-      execaSync('git', ['add', '.'], {cwd: d});
-      execaSync('git', ['commit', '-q', '-m', 'init'], {cwd: d});
+      setupCommand(d, 'git', 'add', '.');
+      setupCommand(d, 'git', 'commit', '-q', '-m', 'init');
     },
     run(d) {
       return runCommit({cwd: d});
@@ -243,12 +265,12 @@ const fixtures: readonly Fixture[] = [
     stage: 'stage_1.4',
     expectedPass: false,
     setup(d) {
-      execaSync('git', ['init', '-q'], {cwd: d});
-      execaSync('git', ['config', 'user.email', 'c@l'], {cwd: d});
-      execaSync('git', ['config', 'user.name', 'c'], {cwd: d});
+      setupCommand(d, 'git', 'init', '-q');
+      setupCommand(d, 'git', 'config', 'user.email', 'c@l');
+      setupCommand(d, 'git', 'config', 'user.name', 'c');
       writeFileSync(join(d, 'README'), 'ok\n');
-      execaSync('git', ['add', '.'], {cwd: d});
-      execaSync('git', ['commit', '-q', '-m', 'init'], {cwd: d});
+      setupCommand(d, 'git', 'add', '.');
+      setupCommand(d, 'git', 'commit', '-q', '-m', 'init');
       writeFileSync(join(d, 'README'), 'dirty\n');
     },
     run(d) {

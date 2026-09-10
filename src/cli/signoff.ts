@@ -1,6 +1,6 @@
 // Cladding · Spec 0.2 F5/F9d · CLI adapter for asserted and verified signoff.
 
-import {createInterface} from 'node:readline/promises';
+import {createInterface} from 'node:readline';
 import process from 'node:process';
 
 import {
@@ -73,10 +73,16 @@ export async function runVerifiedSignoffCommand(
   }), options);
 }
 
-/** Reads the confirmation from the real terminal; nothing is defaulted for the user. */
+/** Reads the confirmation from the real terminal; nothing is defaulted for the user.
+ *
+ *  Uses the callback form of readline rather than `node:readline/promises`: the
+ *  promise-flavoured module only exists from Node 17, and a static import of it
+ *  made the whole bundle unloadable on Node 16 (F-203a3114) — for one prompt. */
 const terminalConfirmation: SignoffConfirmation = async (prompt) => {
   const rl = createInterface({input: process.stdin, output: process.stderr});
-  try { return await rl.question(prompt); } finally { rl.close(); }
+  try {
+    return await new Promise<string>((resolve) => { rl.question(prompt, resolve); });
+  } finally { rl.close(); }
 };
 
 function valid(options: SignoffCommandOptions): boolean {

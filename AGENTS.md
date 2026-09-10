@@ -20,7 +20,8 @@ Contributor install (clones the repo and pulls dev dependencies):
 git clone https://github.com/qwerfunch/cladding && cd cladding && npm install
 ```
 
-Requires Node ≥ 20.
+Requires Node ≥ 20 to develop — the test runner and linter need it. The published tool itself
+runs on Node ≥ 16.
 
 ## 3. Verify before pushing
 

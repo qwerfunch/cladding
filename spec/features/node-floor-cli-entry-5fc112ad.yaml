@@ -37,17 +37,26 @@ acceptance_criteria:
       declared floor, the system shall report the required version, the running
       version and the upgrade action, and exit non-zero before importing the
       engine bundle.
+    evidence_refs:
+      - .github/workflows/ci.yml
     notes: >-
       ## Why
 
 
       The bundle is what would otherwise throw, so the check has to run before
-      the import or it never runs at all. The floor is Node 20: the bundled
-      command-line parser declares it and the build already targets it. This
-      adds no support for older releases — it converts a crash into an
-      instruction.
-    evidence_refs:
-      - .github/workflows/ci.yml
+      the import or it never runs at all. It converts a crash into an
+      instruction; it does not decide where the floor sits.
+
+
+      ## Correction
+
+
+      This criterion originally justified a floor of Node 20 by citing a
+      dependency declaration. That was wrong: measured against the running
+      releases, nothing the code needed was above Node 16, and three of the four
+      blocking surfaces came from one spawning dependency. The floor moved to 16
+      by removing that dependency (F-203a3114). The refusal path stays for
+      releases genuinely below the floor.
   - id: AC-e5fce752
     kind: constraint
     statement: The Node floor declared in the package manifest engines field and the

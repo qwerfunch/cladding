@@ -9,19 +9,19 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
-vi.mock('execa', () => ({
-  execaSync: vi.fn(),
+vi.mock('../../src/core/run-sync.js', () => ({
+  runSync: vi.fn(),
 }));
 
 const {runVisual} = await import('../../src/stages/visual.js');
-const execaMod = await import('execa');
-const execaSyncMock = execaMod.execaSync as unknown as ReturnType<typeof vi.fn>;
+const runSyncMod = await import('../../src/core/run-sync.js');
+const runSyncMock = runSyncMod.runSync as unknown as ReturnType<typeof vi.fn>;
 
 describe('runVisual (stage_3.3)', () => {
   let dir: string;
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'clad-visual-stage-'));
-    execaSyncMock.mockReset();
+    runSyncMock.mockReset();
   });
   afterEach(() => {
     rmSync(dir, {recursive: true, force: true});
@@ -39,7 +39,7 @@ describe('runVisual (stage_3.3)', () => {
     const r = runVisual({cwd: dir});
     expect(r.exitCode).toBe(2);
     expect(r.stderr).toContain('visual npm script not defined');
-    expect(execaSyncMock).not.toHaveBeenCalled();
+    expect(runSyncMock).not.toHaveBeenCalled();
   });
 
   test('[covers:F-061/AC-149] visual descriptor reports a successful runner outcome', () => {
@@ -47,7 +47,7 @@ describe('runVisual (stage_3.3)', () => {
       join(dir, 'package.json'),
       JSON.stringify({name: 'x', scripts: {visual: 'echo ok'}}),
     );
-    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     expect(runVisual({cwd: dir}).pass).toBe(true);
   });
 
@@ -56,7 +56,7 @@ describe('runVisual (stage_3.3)', () => {
       join(dir, 'package.json'),
       JSON.stringify({name: 'x', scripts: {visual: 'false'}}),
     );
-    execaSyncMock.mockReturnValueOnce({
+    runSyncMock.mockReturnValueOnce({
       exitCode: 1,
       stdout: '',
       stderr: '3 snapshots diverged',
@@ -73,7 +73,7 @@ describe('runVisual (stage_3.3)', () => {
     );
     // execaSync(reject:false) does NOT throw on a missing binary — it RETURNS
     // {exitCode: undefined, failed: true, code: 'ENOENT'} (verified empirically).
-    execaSyncMock.mockReturnValueOnce({exitCode: undefined, failed: true, code: 'ENOENT', stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: undefined, failed: true, code: 'ENOENT', stdout: '', stderr: ''});
     const r = runVisual({cwd: dir});
     expect(r.exitCode).toBe(2);
     expect(r.stderr).toContain('not installed');
@@ -86,7 +86,7 @@ describe('runVisual (stage_3.3)', () => {
     );
     const err = new Error('EACCES') as NodeJS.ErrnoException;
     err.code = 'EACCES';
-    execaSyncMock.mockImplementationOnce(() => {
+    runSyncMock.mockImplementationOnce(() => {
       throw err;
     });
     expect(() => runVisual({cwd: dir})).toThrow('EACCES');
@@ -97,13 +97,13 @@ describe('runVisual (stage_3.3)', () => {
       join(dir, 'package.json'),
       JSON.stringify({name: 'x', scripts: {visual: 'echo'}}),
     );
-    execaSyncMock.mockReturnValueOnce({exitCode: null, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: null, stdout: '', stderr: ''});
     expect(runVisual({cwd: dir}).exitCode).toBe(1);
   });
 
   test('[covers:F-061/AC-149] visual descriptor override bypasses fallback selection', () => {
-    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     runVisual({cwd: dir, cmd: 'myvisual', args: ['compare']});
-    expect(execaSyncMock).toHaveBeenCalledWith('myvisual', ['compare'], expect.any(Object));
+    expect(runSyncMock).toHaveBeenCalledWith('myvisual', ['compare'], expect.any(Object));
   });
 });

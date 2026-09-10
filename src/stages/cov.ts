@@ -11,7 +11,7 @@
 
 import process from 'node:process';
 
-import {execaSync} from 'execa';
+import {runSync} from '../core/run-sync.js';
 
 import {peekSharedRun} from './test-run-cache.js';
 import {resolveStageCommand} from './toolchain/scoped-command.js';
@@ -45,7 +45,7 @@ export function runCov(opts: CommandStageOptions = {}): StageResult {
   // of spawning `vitest run --coverage` a second time. Unprimed / no shared run
   // (non-vitest project, or unit fell through) → spawn as before, byte-for-byte.
   const shared = peekSharedRun(cwd);
-  const proc = shared ? shared.proc : execaSync(cmd, [...args], {cwd, reject: false});
+  const proc = shared ? shared.proc : runSync(cmd, [...args], {cwd});
   // execaSync(reject:false) RETURNS (does not throw) on a missing binary;
   // detect ENOENT on the result so a missing tool skips, not false-fails.
   const skip = missingToolSkip(STAGE, cmd, proc, args);

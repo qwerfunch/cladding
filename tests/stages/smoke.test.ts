@@ -20,19 +20,19 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
-vi.mock('execa', () => ({
-  execaSync: vi.fn(),
+vi.mock('../../src/core/run-sync.js', () => ({
+  runSync: vi.fn(),
 }));
 
 const {runSmoke} = await import('../../src/stages/smoke.js');
-const execaMod = await import('execa');
-const execaSyncMock = execaMod.execaSync as unknown as ReturnType<typeof vi.fn>;
+const runSyncMod = await import('../../src/core/run-sync.js');
+const runSyncMock = runSyncMod.runSync as unknown as ReturnType<typeof vi.fn>;
 
 describe('runSmoke (stage_3.1)', () => {
   let dir: string;
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'clad-smoke-stage-'));
-    execaSyncMock.mockReset();
+    runSyncMock.mockReset();
   });
   afterEach(() => {
     rmSync(dir, {recursive: true, force: true});
@@ -44,7 +44,7 @@ describe('runSmoke (stage_3.1)', () => {
     expect(r.exitCode).toBe(2);
     expect(r.stage).toBe('stage_3.1');
     expect(r.stderr).toContain('no smoke runner registered');
-    expect(execaSyncMock).not.toHaveBeenCalled();
+    expect(runSyncMock).not.toHaveBeenCalled();
   });
 
   test('npm script missing from package.json → skipped before spawning', () => {
@@ -52,7 +52,7 @@ describe('runSmoke (stage_3.1)', () => {
     const r = runSmoke({cwd: dir});
     expect(r.exitCode).toBe(2);
     expect(r.stderr).toContain('npm script not defined');
-    expect(execaSyncMock).not.toHaveBeenCalled();
+    expect(runSyncMock).not.toHaveBeenCalled();
   });
 
   test('npm script defined + exits 0 → pass=true', () => {
@@ -60,7 +60,7 @@ describe('runSmoke (stage_3.1)', () => {
       join(dir, 'package.json'),
       JSON.stringify({name: 'x', scripts: {smoke: 'echo ok'}}),
     );
-    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     expect(runSmoke({cwd: dir}).pass).toBe(true);
   });
 
@@ -69,7 +69,7 @@ describe('runSmoke (stage_3.1)', () => {
       join(dir, 'package.json'),
       JSON.stringify({name: 'x', scripts: {smoke: 'false'}}),
     );
-    execaSyncMock.mockReturnValueOnce({
+    runSyncMock.mockReturnValueOnce({
       exitCode: 1,
       stdout: '',
       stderr: 'smoke command failed',
@@ -87,7 +87,7 @@ describe('runSmoke (stage_3.1)', () => {
     );
     // execaSync(reject:false) does NOT throw on a missing binary — it RETURNS
     // {exitCode: undefined, failed: true, code: 'ENOENT'} (verified empirically).
-    execaSyncMock.mockReturnValueOnce({exitCode: undefined, failed: true, code: 'ENOENT', stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: undefined, failed: true, code: 'ENOENT', stdout: '', stderr: ''});
     const r = runSmoke({cwd: dir});
     expect(r.exitCode).toBe(2);
     expect(r.stderr).toContain('not installed');
@@ -100,7 +100,7 @@ describe('runSmoke (stage_3.1)', () => {
     );
     const err = new Error('EACCES') as NodeJS.ErrnoException;
     err.code = 'EACCES';
-    execaSyncMock.mockImplementationOnce(() => {
+    runSyncMock.mockImplementationOnce(() => {
       throw err;
     });
     expect(() => runSmoke({cwd: dir})).toThrow('EACCES');
@@ -111,13 +111,13 @@ describe('runSmoke (stage_3.1)', () => {
       join(dir, 'package.json'),
       JSON.stringify({name: 'x', scripts: {smoke: 'echo ok'}}),
     );
-    execaSyncMock.mockReturnValueOnce({exitCode: null, stdout: '', stderr: 'killed'});
+    runSyncMock.mockReturnValueOnce({exitCode: null, stdout: '', stderr: 'killed'});
     expect(runSmoke({cwd: dir}).exitCode).toBe(1);
   });
 
   test('explicit cmd override (non-npm) bypasses script lookup', () => {
-    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     runSmoke({cwd: dir, cmd: 'mysmoke', args: ['run']});
-    expect(execaSyncMock).toHaveBeenCalledWith('mysmoke', ['run'], expect.any(Object));
+    expect(runSyncMock).toHaveBeenCalledWith('mysmoke', ['run'], expect.any(Object));
   });
 });

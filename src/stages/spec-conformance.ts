@@ -31,7 +31,7 @@ import {
 import {join} from 'node:path';
 import process from 'node:process';
 
-import {execaSync} from 'execa';
+import {runSync, type RunSyncResult} from '../core/run-sync.js';
 
 import {detectToolchain} from './toolchain/detect.js';
 import {testReportCandidatePaths} from './toolchain/gate-config.js';
@@ -158,11 +158,11 @@ export function runSpecConformance(opts: CommandStageOptions = {}): StageResult 
       stderr: `could not preserve the full test report before the scoped oracle run: ${(error as Error).message}`,
     };
   }
-  let proc: ReturnType<typeof execaSync> | undefined;
+  let proc: RunSyncResult | undefined;
   let runError: unknown;
   const runArgs = [...test.args, ORACLE_DIR];
   try {
-    proc = execaSync(test.cmd, runArgs, {cwd, reject: false});
+    proc = runSync(test.cmd, runArgs, {cwd});
   } catch (error) {
     runError = error;
   }

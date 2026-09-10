@@ -26,7 +26,7 @@ await build({
   entryPoints: ['src/cli/clad.ts'],
   bundle: true,
   platform: 'node',
-  target: 'node20',
+  target: 'node16',
   format: 'esm',
   outfile: 'dist/clad.js',
   banner: {js: banner},

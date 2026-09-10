@@ -52,6 +52,14 @@ jobs:
         # class the header warns about. Run them on every change.
         run: npm run conformance
 
+      - name: Platform-surface floor
+        # The published bundle must not import a platform surface the declared
+        # floor lacks. A dependency upgrade that reaches above it is how the
+        # original defect shipped, so enumerate the bundle's imports and resolve
+        # each one. This step runs on the build Node; the floor release itself is
+        # covered by the `entry` job's floor cell.
+        run: node scripts/check-node-surface.mjs
+
       - name: Self-drift gate (spec-native, strict)
         # cladding dogfoods its OWN drift gate under --strict: stale module
         # paths, hollow `done` features, and archived-but-live modules fail
@@ -64,18 +72,20 @@ jobs:
     # because an extensionless entry shipped and died inside Node's ESM loader
     # on an unsupported release, on a platform and a Node version this
     # workflow tested on neither axis. Smoke only: pack, global install, one
-    # command. Node 18 stands in for the release that broke — below the
-    # declared floor, so it proves the refusal speaks instead of crashing.
+    # command. The floor cell is the release a user actually reported from;
+    # the Node 14 cell sits below the floor, proving the refusal still speaks
+    # instead of crashing for a release the tool genuinely cannot support.
     name: entry · ${{ matrix.os }} · node ${{ matrix.node }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
+          - {os: ubuntu-latest, node: 16, expect: version}
           - {os: ubuntu-latest, node: 20, expect: version}
           - {os: ubuntu-latest, node: 22, expect: version}
           - {os: windows-latest, node: 22, expect: version}
-          - {os: ubuntu-latest, node: 18, expect: refusal}
+          - {os: ubuntu-latest, node: 14, expect: refusal}
     steps:
       - uses: actions/checkout@v4
 
@@ -108,6 +118,34 @@ jobs:
           set -euo pipefail
           clad --version
 
+      - name: Every platform surface the bundle needs exists on this release
+        if: matrix.expect == 'version'
+        shell: bash
+        run: node scripts/check-node-surface.mjs dist/clad.js
+
+      - name: Real work on the floor release, not just a version string
+        # The surface check reads static imports only, so a bundled CommonJS
+        # dependency reaching for a newer surface through `require` slips past it.
+        # Running actual commands on the floor release is what catches that. The
+        # gate is deliberately not run here: this project's own eslint needs
+        # Node 18, which is the user's toolchain rather than cladding's floor.
+        if: matrix.expect == 'version' && matrix.node == 16
+        shell: bash
+        run: |
+          set -euo pipefail
+          clad sync
+          # Not `clad status | head -3`: head closes the pipe, the writer takes
+          # EPIPE, and pipefail turns a healthy run red.
+          clad status > status.txt
+          head -3 status.txt
+
+      - name: The spawn runner behaves the same on this platform
+        # `npm` is `npm.cmd` on Windows and the previous spawning dependency hid
+        # that. These tests drive real child processes, so this cell is the only
+        # place the Windows path is actually executed.
+        if: matrix.expect == 'version' && runner.os == 'Windows'
+        run: npx vitest run tests/core/run-sync.test.ts
+
       - name: The entry point refuses an unsupported Node with a sentence
         if: matrix.expect == 'refusal'
         shell: bash
@@ -118,5 +156,5 @@ jobs:
           set -e
           echo "$output"
           test "$status" -ne 0 || { echo "expected a non-zero exit below the floor"; exit 1; }
-          grep -q 'requires Node 20 or newer' <<<"$output"
+          grep -q 'requires Node 16 or newer' <<<"$output"
           grep -q 'Upgrade Node' <<<"$output"

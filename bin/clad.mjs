@@ -24,9 +24,12 @@ import {spawnSync} from 'node:child_process';
 import process from 'node:process';
 
 // Keep in step with `engines.node` in package.json — a source-level test pins
-// the two together. The bundled command-line parser (commander) declares
-// `>=20` and the esbuild target is `node20`, so this is the honest floor.
-const NODE_FLOOR = 20;
+// the two together. The floor is measured, not declared: a container check
+// resolves every platform-module surface the bundle imports against this
+// release (scripts/check-node-surface.mjs), and the esbuild target matches.
+// Dropping it from 20 to 16 meant removing the dependencies that reached above
+// it, not relaxing a number (F-203a3114).
+const NODE_FLOOR = 16;
 
 // Runs BEFORE the bundle import on purpose: the bundle is what throws on an
 // unsupported release, so a check placed after it would never be reached.

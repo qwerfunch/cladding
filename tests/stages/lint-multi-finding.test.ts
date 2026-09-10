@@ -14,10 +14,10 @@ import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 import {parseToolFindings} from '../../src/stages/finding-parser.js';
 
-vi.mock('execa', () => ({execaSync: vi.fn()}));
+vi.mock('../../src/core/run-sync.js', () => ({runSync: vi.fn()}));
 const {runLint} = await import('../../src/stages/lint.js');
-const execaMod = await import('execa');
-const execaSyncMock = execaMod.execaSync as unknown as ReturnType<typeof vi.fn>;
+const runSyncMod = await import('../../src/core/run-sync.js');
+const runSyncMock = runSyncMod.runSync as unknown as ReturnType<typeof vi.fn>;
 
 describe('F-4643d99d — check-only formatter lint findings', () => {
   test('[covers:F-4643d99d/AC-7b620bf4] AC-7b620bf4 — dart `Changed <path>` lines → one finding per file, each with a path', () => {
@@ -50,12 +50,12 @@ describe('F-4643d99d — check-only formatter lint findings', () => {
     beforeEach(() => {
       dir = mkdtempSync(join(tmpdir(), 'clad-lint-mf-'));
       writeFileSync(join(dir, 'pubspec.yaml'), 'name: x\nversion: 0.0.0\n'); // plain dart → `dart format`
-      execaSyncMock.mockReset();
+      runSyncMock.mockReset();
     });
     afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
     test('[covers:F-4643d99d/AC-6c16b63e] dart format failure → hint `dart format .` and every dirty file listed', () => {
-      execaSyncMock.mockReturnValue({
+      runSyncMock.mockReturnValue({
         exitCode: 1,
         stdout: 'Changed lib/a.dart\nChanged lib/b.dart\nFormatted 5 files (2 changed).',
         stderr: '',
@@ -67,7 +67,7 @@ describe('F-4643d99d — check-only formatter lint findings', () => {
     });
 
     test('a green dart run → no hint, no findings', () => {
-      execaSyncMock.mockReturnValue({exitCode: 0, stdout: 'Formatted 5 files (0 changed).', stderr: ''});
+      runSyncMock.mockReturnValue({exitCode: 0, stdout: 'Formatted 5 files (0 changed).', stderr: ''});
       const r = runLint({cwd: dir});
       expect(r.pass).toBe(true);
       expect(r.hint).toBeUndefined();

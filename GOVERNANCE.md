@@ -98,7 +98,7 @@ A reviewer (the maintainer or a delegated independent agent — never the PR aut
 
 If this is your first time touching cladding, the path from clone to opened PR is intentionally short. Read this section once and you should be able to land a small fix without further hand-holding:
 
-1. **Clone and install.** `git clone https://github.com/qwerfunch/cladding && cd cladding && npm install`. Node ≥ 20.
+1. **Clone and install.** `git clone https://github.com/qwerfunch/cladding && cd cladding && npm install`. Node ≥ 20 for the development toolchain; the published tool runs on Node ≥ 16.
 2. **Pick a starting point.** Browse [issues tagged `good-first-issue`](https://github.com/qwerfunch/cladding/issues?q=is%3Aissue+is%3Aopen+label%3A%22good-first-issue%22) or, if you have your own idea, open an issue first to confirm the proposal fits §4.1 / §4.2 before writing code.
 3. **Branch off `develop`**, not `main`. Convention: `feature/<slug>` or `fix/<slug>`. Never push to `main` — releases ship via §3.
 4. **Run the four-check loop before pushing**: `npm test && npm run typecheck && npm run lint && node bin/clad.mjs check`. The first three must be clean; `clad check` must be green (15-stage gate) on a clean working tree.
