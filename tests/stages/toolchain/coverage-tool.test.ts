@@ -35,13 +35,13 @@ function writeGateConfig(coverage: string): void {
 }
 
 describe('resolveKotlinCoverageTool — explicit config wins', () => {
-  test('gate.coverage: kover', () => {
+  test('[covers:F-c6c3daaf/AC-c0f5a1b2] gate.coverage: kover', () => {
     write('build.gradle.kts'); // no kover token anywhere
     writeGateConfig('kover');
     expect(resolveKotlinCoverageTool(dir)).toBe('kover');
   });
 
-  test('gate.coverage: jacoco overrides Kover auto-detect', () => {
+  test('[covers:F-c6c3daaf/AC-c0f5a1b2] gate.coverage: jacoco overrides Kover auto-detect', () => {
     write('build.gradle.kts', 'plugins { id("org.jetbrains.kotlinx.kover") }');
     writeGateConfig('jacoco');
     expect(resolveKotlinCoverageTool(dir)).toBe('jacoco');
@@ -49,37 +49,49 @@ describe('resolveKotlinCoverageTool — explicit config wins', () => {
 });
 
 describe('resolveKotlinCoverageTool — auto-detect', () => {
-  test('Kover in the root build script', () => {
+  test('[covers:F-c6c3daaf/AC-c0f5a1b2] Kover in the root build script', () => {
     write('build.gradle.kts', 'plugins { id("org.jetbrains.kotlinx.kover") }');
     expect(resolveKotlinCoverageTool(dir)).toBe('kover');
   });
 
-  test('Kover declared only in the version catalog (gradle/libs.versions.toml)', () => {
+  test('[covers:F-c6c3daaf/AC-c0f5a1b2] Kover declared only in settings.gradle.kts', () => {
+    write('build.gradle.kts', 'plugins { kotlin("jvm") }');
+    write('settings.gradle.kts', 'plugins { id("org.jetbrains.kotlinx.kover") }');
+    expect(resolveKotlinCoverageTool(dir)).toBe('kover');
+  });
+
+  test('[covers:F-c6c3daaf/AC-c0f5a1b2] Kover declared only in the version catalog (gradle/libs.versions.toml)', () => {
     write('build.gradle.kts', 'plugins { kotlin("jvm") }');
     write('gradle/libs.versions.toml', 'kover = { id = "org.jetbrains.kotlinx.kover", version = "0.9.3" }');
     expect(resolveKotlinCoverageTool(dir)).toBe('kover');
   });
 
-  test('Kover declared only in a buildSrc convention plugin', () => {
+  test('[covers:F-c6c3daaf/AC-c0f5a1b2] Kover declared only in a buildSrc convention plugin', () => {
     write('build.gradle.kts', 'plugins { kotlin("jvm") }');
     write('buildSrc/src/main/kotlin/kotlin-library.gradle.kts', 'plugins { id("org.jetbrains.kotlinx.kover") }');
     expect(resolveKotlinCoverageTool(dir)).toBe('kover');
   });
 
-  test('no Kover anywhere → jacoco default', () => {
+  test('[covers:F-c6c3daaf/AC-c0f5a1b2] Kover declared only in a build-logic convention plugin', () => {
+    write('build.gradle.kts', 'plugins { kotlin("jvm") }');
+    write('build-logic/src/main/kotlin/coverage.gradle.kts', 'plugins { id("org.jetbrains.kotlinx.kover") }');
+    expect(resolveKotlinCoverageTool(dir)).toBe('kover');
+  });
+
+  test('[covers:F-c6c3daaf/AC-c0f5a1b2] no Kover anywhere → jacoco default', () => {
     write('build.gradle.kts', 'plugins { kotlin("jvm") }');
     expect(resolveKotlinCoverageTool(dir)).toBe('jacoco');
   });
 });
 
 describe('task + report path mapping', () => {
-  test('kover → koverXmlReport + kover report path', () => {
+  test('[covers:F-c6c3daaf/AC-c0f5a1b2] kover → koverXmlReport + kover report path', () => {
     writeGateConfig('kover');
     expect(kotlinCoverageTask(dir)).toBe('koverXmlReport');
     expect(kotlinCoverageReport(dir)).toBe('build/reports/kover/report.xml');
   });
 
-  test('jacoco → jacocoTestReport + jacoco report path', () => {
+  test('[covers:F-c6c3daaf/AC-c0f5a1b2] jacoco → jacocoTestReport + jacoco report path', () => {
     writeGateConfig('jacoco');
     expect(kotlinCoverageTask(dir)).toBe('jacocoTestReport');
     expect(kotlinCoverageReport(dir)).toBe('build/reports/jacoco/test/jacocoTestReport.xml');

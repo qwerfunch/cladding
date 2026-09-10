@@ -6,13 +6,11 @@ modules:
 depends_on:
   - F-004
   - F-009
+capability_refs: []
 acceptance_criteria:
   - id: AC-012
-    ears: ubiquitous
-    action: invoke the toolchain's architecture validator via the
-      ARCHITECTURE_VIOLATION detector
-    response: returns a stage_1.5 StageResult folded from detector findings
-    text: The system shall invoke the toolchain's architecture validator via the
-      ARCHITECTURE_VIOLATION detector and fold the findings into a stage_1.5
+    statement: The system shall invoke the toolchain's architecture validator via
+      the ARCHITECTURE_VIOLATION detector and fold the findings into a stage_1.5
       result.
-    evidence_refs: [self-dogfood:stage:arch]
+    evidence_refs:
+      - self-dogfood:stage:arch

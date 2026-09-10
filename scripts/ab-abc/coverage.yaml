@@ -1,0 +1,176 @@
+# Cladding · scripts/ab-abc/coverage.yaml — the coverage ledger for 0.10.0
+#
+# "Every feature was checked" is a claim, and a claim needs something that fails
+# when it stops being true. This file is that something: one entry per item the
+# 0.10.0 release notes put in front of a user — every bold lead in the Added /
+# Changed / Removed / Fixed lists, every sentence of the heads-up paragraph, and
+# every feature entry added since 0.9.4 — mapped to the deterministic side-table
+# rows that exercise it, to a live host probe, or to a written reason why it is
+# not a scenario at all.
+#
+# `tests/scripts/ab-abc-coverage.test.ts` reads only this file, the release
+# notes, the side-table rows and the feature entries, and fails when the mapping
+# stops holding. It runs in CI with no engine, no fixtures and no network, so the
+# coverage claim is checked on every commit rather than on the day it was made.
+#
+# An entry carries at least one of:
+#   rows:           side-table row ids that exercise the item
+#   host_probe:     true — the item is about a live host, checked in §Host probes
+#   not_a_scenario: why a black-box row would measure nothing here
+#
+# Keys are verbatim: a changelog key is the bold lead exactly as written, and a
+# heads-up key is a literal fragment of the sentence it stands for. Rewording the
+# release notes therefore breaks the test, which is the point — the ledger tracks
+# what the notes actually say, not what they said when it was written.
+
+changelog:
+  "Spec schema 0.2.":
+    rows: [S-A1, S-B1, S-B2, S-B3, S-C2, L0-11]
+  "One compiled model now answers the questions that used to be asked of four,":
+    rows: [S-E1, S-E2, L3-2]
+  "The count sync covers feature counts too.":
+    not_a_scenario: >-
+      A repository maintenance script for this project's own readme totals. It
+      touches no adopter surface, and its behaviour is fixed by the repo's own
+      tests under tests/scripts.
+  "`clad relocate-generated` moves the generated files under `spec/generated/`.":
+    rows: [S-F1]
+  "A schema 0.2 workspace explains its own generated files.":
+    rows: [S-A4]
+  "A release gate for the 0.2 validation work.":
+    not_a_scenario: >-
+      The validation ledger governs this release's own evidence, not an adopter
+      workspace. Its blocking behaviour is fixed by release-boundary.test.ts and
+      by the release-scoped validator, both of which run in CI.
+  "The release was measured against the engine it replaces, and against no engine at all.":
+    not_a_scenario: >-
+      This lead describes the previous campaign. Making it a row would be the
+      side-table measuring itself.
+  "Completeness is judged from structure alone.":
+    rows: [S-C3, S-C4, S-D6]
+  "The authoritative profiles block on warnings.":
+    rows: [S-C1, S-B6, L0-1]
+  "A project's own instructions now say how a test claims a criterion.":
+    rows: [S-A1, S-A3, L0-2]
+  "An archived feature whose successor is not done yet":
+    rows: [S-B6]
+  "`clad done` reports how independently the work was verified.":
+    rows: [S-D4, L0-6, L0-6b]
+  "The experimental headless loop and its `run` command.":
+    rows: [S-G1]
+  "The parts that existed only to serve that loop:":
+    rows: [S-G1]
+  "The `run` skill,":
+    rows: [S-G1]
+  "The host support table was refreshed against live runs for this release.":
+    host_probe: true
+  "Graph code no longer reaches into gate code,":
+    not_a_scenario: >-
+      An import rule inside this project's own architecture, enforced by its own
+      architecture gate. Nothing an adopter can observe from outside.
+  "A renamed test keeps its binding.":
+    rows: [L0-11, S-F2]
+    note: >-
+      PROVISIONAL. The battery's own list leaves this lead unmapped; it is placed
+      with the migration rows because the bindings it repairs are the ones the
+      migration carries forward. The main agent decides whether it earns a row of
+      its own.
+  "Patched dependencies.":
+    not_a_scenario: >-
+      A dependency version bump. The observable fact is what `npm audit` reports
+      against this repository's lockfile, which the frozen engines do not carry.
+  "A workspace holding a signed review could never record a verification.":
+    rows: [S-D2, S-D3]
+  "Asking for a different level of assurance for one run now says why it was refused.":
+    rows: [S-C3]
+    note: repaired by F-18a5883a during the battery; row re-run after repack
+  "A receipt imported on the command line is now checked against the project's registered signers,":
+    rows: [S-D5]
+    note: repaired by F-18a5883a during the battery; row re-run after repack
+  "An attestation stamped on a working machine now matches the one a clean checkout computes.":
+    rows: [S-C5]
+
+heads_up:
+  "the migration refuses to touch a path with uncommitted changes on it":
+    rows: [L0-11, S-F2]
+  "One of those decisions asks whether your already-completed features may carry their existing proof forward.":
+    rows: [L0-11]
+  "Answer no and they carry nothing":
+    rows: [L0-11]
+  "changing your mind means undoing the migration and applying it again":
+    rows: [S-F2]
+  "The headless loop is gone — start the server with `clad serve`":
+    rows: [S-G1]
+  "Moving the generated files into one folder is opt-in through `clad relocate-generated`":
+    rows: [S-F1]
+  "the pre-push check rewrites the sealed record of what was verified every time it passes":
+    rows: [S-C2]
+  "has to come at the very start of the test's title":
+    rows: [L0-2, S-A1, S-A3]
+
+features:
+  F-6349870d:
+    rows: [S-A1, S-A3]
+  F-6f0a2106:
+    rows: [S-C1, S-C2, S-C3]
+  F-1a87a6bd:
+    not_a_scenario: >-
+      The context envelope is production code with no dispatch wiring in front of
+      it yet, so no adopter surface reaches it. Recorded as a known orphan rather
+      than dressed up as a scenario.
+  F-0a29d024:
+    not_a_scenario: >-
+      A design-validation ledger for this release's own work. Its state is fixed
+      by release-boundary.test.ts, not by anything an adopter runs.
+  F-8e7f399b:
+    rows: [S-D4]
+  F-9fcdd0a0:
+    rows: [S-G1]
+  F-f4cfd533:
+    rows: [S-D1, S-D2, S-D5]
+  F-b8d77abf:
+    not_a_scenario: >-
+      The closure audit for this release's own criteria. A repository fact,
+      checked by this repository's gate.
+  F-208eaa79:
+    rows: [S-E1, S-E2]
+  F-c4df5fb4:
+    rows: [S-A1, S-A2]
+  F-14c9d647:
+    rows: [S-F2]
+  F-94285dd8:
+    rows: [S-B5]
+  F-2883ff4d:
+    rows: [L0-2, L0-9, S-D2, S-D3]
+    not_a_scenario: >-
+      The proof kernel has no surface of its own — it is what the binding, the
+      vacuous-green and the evidence rows are all reading through. Listed with the
+      rows that consume it rather than given one that would only re-ask their
+      questions.
+  F-a0bd9c5a:
+    rows: [S-D3]
+  F-c2d7dc78:
+    not_a_scenario: >-
+      The release ledger for this repository's own validation work.
+  F-0dafcf9d:
+    rows: [S-F1]
+  F-0b8f23c5:
+    rows: [S-B4]
+  F-2bbecd83:
+    not_a_scenario: >-
+      A test suite. Its subject is this repository's own topology invariance, and
+      running it is what checks it.
+  F-4f4a12c3:
+    rows: [S-B3, L0-8]
+  F-2f840a6c:
+    not_a_scenario: >-
+      A refinement of how this release's own validation findings are reported.
+  F-182eaa53:
+    not_a_scenario: >-
+      The compiler registry every other row reads through. Nothing observable
+      sits on top of it that some other row does not already ask about.
+  F-18a5883a:
+    rows: [S-C3, S-D5]
+    note: the repair the battery itself demanded — both rows re-ran on the shipped build and are locked on it
+  F-71da4292:
+    rows: [S-C5]

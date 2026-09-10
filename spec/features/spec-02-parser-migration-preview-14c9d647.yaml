@@ -1,0 +1,63 @@
+id: F-14c9d647
+title: Spec 0.2 parser and migration preview
+status: done
+modules:
+  - src/spec/statement-parser.ts
+  - src/spec/legacy-statement-scanner.ts
+  - src/spec/compiler/compile.ts
+  - src/spec/compiler/types.ts
+  - src/spec/compiler/migration-baseline.ts
+  - src/spec/compiler/migration-preview.ts
+  - src/cli/migrate.ts
+  - src/cli/clad.ts
+  - scripts/spec-0.2-validate.ts
+  - tests/spec/statement-parser.test.ts
+  - tests/spec/legacy-statement-scanner.test.ts
+  - tests/spec/compiler/schema-02.test.ts
+  - tests/spec/compiler/migration-preview.test.ts
+  - tests/cli/migrate.test.ts
+  - tests/design/spec-0.2/requirements.yaml
+  - tests/design/spec-0.2/design-validation.test.ts
+  - docs/conventions.md
+  - docs/glossary.md
+  - spec/index.yaml
+  - spec/_doc-links.yaml
+  - tests/spec/compiler/fixtures/self-corpus.snapshot.json
+depends_on: []
+capability_refs: []
+acceptance_criteria:
+  - id: AC-b431ecb1
+    statement: The specification compiler shall parse one strict schema 0.2 EARS
+      statement with exactly one unprotected `shall` modal and report atomicity
+      signals without blocking valid authoring.
+    notes: >-
+      ## Why
+
+      Schema 0.2 needs an unambiguous criterion boundary before it can replace
+      legacy structured EARS fields.
+  - id: AC-fba49136
+    statement: The migration preview shall preserve each authored schema 0.1 text
+      and proof spelling while reporting unresolved migration meaning without
+      writing workspace bytes.
+    notes: >-
+      ## Why
+
+      D14 retains source text and human confirmation rather than fabricating
+      meaning from partial legacy fields.
+  - id: AC-6413ee0c
+    statement: When an operator requests a schema 0.2 migration preview, the clad
+      command shall return a deterministic read-only proposal and explain that
+      apply awaits the transactional migration feature.
+    kind: behavior
+    notes: >-
+      ## Why
+
+      The preview is useful now, while F4 remains the sole authority for
+      journaled writes.
+design_impact:
+  classification: additive
+  rationale: F2 extends the additive compiler boundary with strict 0.2 read
+    validation and a read-only migration proposal; shipped schema 0.1 consumers
+    remain unchanged.
+  status: resolved
+  artifacts: []

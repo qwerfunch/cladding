@@ -179,7 +179,7 @@ describe('AC-2c63b999 — zero MCP tool names, zero the retired term, on every u
     );
   }
 
-  test('SessionStart — the full rendered card (counts, in-progress, gate, stop-block, prefer, context, policy) is entirely human-first', () => {
+  test('[covers:F-f46d5c61/AC-2c63b999] SessionStart — the full rendered card (counts, in-progress, gate, stop-block, prefer, context, policy) is entirely human-first', () => {
     seedRichSessionStart();
     const card = runHookEvent('SessionStart', {}, cwd);
     // vacuous-render guard: this must actually be the RICH multi-line card, not a degenerate one.
@@ -198,7 +198,7 @@ describe('AC-2c63b999 — zero MCP tool names, zero the retired term, on every u
     completion: 'looks done, wrap it up',
   };
 
-  test('UserPromptSubmit — every classified suggestion (run/check/sync/init/completion-claim) is human-first', () => {
+  test('[covers:F-f46d5c61/AC-2c63b999] UserPromptSubmit — every classified suggestion (run/check/sync/init/completion-claim) is human-first', () => {
     let sawAtLeastOneSuggestion = false;
     for (const [kind, prompt] of Object.entries(PROMPT_SAMPLES)) {
       const out = runHookEvent('UserPromptSubmit', {prompt}, cwd);
@@ -209,7 +209,7 @@ describe('AC-2c63b999 — zero MCP tool names, zero the retired term, on every u
     expect(sawAtLeastOneSuggestion).toBe(true); // vacuous-loop guard
   });
 
-  test('PreToolUse — both structural block reasons (done-flip, hash-id) are human-first', () => {
+  test('[covers:F-f46d5c61/AC-2c63b999] PreToolUse — both structural block reasons (done-flip, hash-id) are human-first', () => {
     const doneFlip = runHookEvent(
       'PreToolUse',
       {
@@ -233,7 +233,7 @@ describe('AC-2c63b999 — zero MCP tool names, zero the retired term, on every u
     expectHumanFirst(hashReason, 'HASH_ID_REASON');
   });
 
-  test('impact cards — formatImpactCard/formatPushOneLiner/formatWorkingSetCard are human-first across representative fixtures', () => {
+  test('[covers:F-f46d5c61/AC-2c63b999] impact cards — formatImpactCard/formatPushOneLiner/formatWorkingSetCard are human-first across representative fixtures', () => {
     const slices: ImpactSlice[] = [
       {
         focus: {id: 'F-abc123', title: 'Login'},
@@ -269,7 +269,7 @@ describe('AC-2c63b999 — zero MCP tool names, zero the retired term, on every u
     expectHumanFirst(formatWorkingSetCard(ws, 'src/focus.ts'), 'formatWorkingSetCard');
   });
 
-  test('the sweep has teeth — a planted tool name, a planted clad_-shaped name, and the retired term are each caught (negative control)', () => {
+  test('[covers:F-f46d5c61/AC-2c63b999] the sweep has teeth — a planted tool name, a planted clad_-shaped name, and the retired term are each caught (negative control)', () => {
     expect(MCP_NEEDLES.length).toBeGreaterThan(0); // vacuous-needle-list guard
     expect(findInternalNameHits(`ask ${TOOL_NAMES[0]} to do it`).length).toBeGreaterThan(0);
     expect(findInternalNameHits('a brand-new clad_something_new tool').length).toBeGreaterThan(0);
@@ -277,7 +277,7 @@ describe('AC-2c63b999 — zero MCP tool names, zero the retired term, on every u
     expect(findInternalNameHits('nothing suspicious in this plain sentence')).toEqual([]);
   });
 
-  test('user-typeable CLI commands stay allowed — clad check --strict / clad done survive the sweep unflagged', () => {
+  test('[covers:F-f46d5c61/AC-2c63b999] user-typeable CLI commands stay allowed — clad check --strict / clad done survive the sweep unflagged', () => {
     expect(findInternalNameHits('verify with clad check --strict')).toEqual([]);
     expect(findInternalNameHits('run `clad done <F-id>`')).toEqual([]);
   });
@@ -293,7 +293,7 @@ describe('AC-37b6d2d6 — plain English single source; instruction-led, not dete
   }
 
   describe('prefix + phrasing invariants', () => {
-    test('POLICY_LINE keeps the "policy:" prefix and states the source-of-truth phrasing', () => {
+    test('[covers:F-f46d5c61/AC-37b6d2d6] POLICY_LINE keeps the "policy:" prefix and states the source-of-truth phrasing', () => {
       seedMinimalProject();
       const lines = runHookEvent('SessionStart', {}, cwd).split('\n');
       const policy = lines.find((l) => l.startsWith('policy:'));
@@ -302,7 +302,7 @@ describe('AC-37b6d2d6 — plain English single source; instruction-led, not dete
       expectHumanFirst(policy as string, 'POLICY_LINE');
     });
 
-    test('the context line keeps its "context:" prefix and names no tool', () => {
+    test('[covers:F-f46d5c61/AC-37b6d2d6] the context line keeps its "context:" prefix and names no tool', () => {
       seedMinimalProject();
       const lines = runHookEvent('SessionStart', {}, cwd).split('\n');
       const ctx = lines.find((l) => l.startsWith('context:'));
@@ -311,7 +311,7 @@ describe('AC-37b6d2d6 — plain English single source; instruction-led, not dete
       expectHumanFirst(ctx as string, 'CONTEXT_LINE');
     });
 
-    test('DONE_BLOCK_REASON is action-guiding plain English: names clad done, not an MCP tool', () => {
+    test('[covers:F-f46d5c61/AC-37b6d2d6] DONE_BLOCK_REASON is action-guiding plain English: names clad done, not an MCP tool', () => {
       const out = runHookEvent(
         'PreToolUse',
         {
@@ -330,7 +330,7 @@ describe('AC-37b6d2d6 — plain English single source; instruction-led, not dete
       expectHumanFirst(reason, 'DONE_BLOCK_REASON');
     });
 
-    test('HASH_ID_REASON is action-guiding plain English: no MCP tool, still tells the agent what to do', () => {
+    test('[covers:F-f46d5c61/AC-37b6d2d6] HASH_ID_REASON is action-guiding plain English: no MCP tool, still tells the agent what to do', () => {
       const out = runHookEvent(
         'PreToolUse',
         {tool_name: 'Write', tool_input: {file_path: 'spec/features/F-778.yaml', content: 'id: F-778\nstatus: planned\n'}},
@@ -354,27 +354,27 @@ describe('AC-37b6d2d6 — plain English single source; instruction-led, not dete
       return hookSrc.slice(start, end);
     }
 
-    test('the UserPromptSubmit suggestion section (INTENT_HINTS + the classifier) carries no locale-sidecar write', () => {
+    test('[covers:F-f46d5c61/AC-37b6d2d6] the UserPromptSubmit suggestion section (INTENT_HINTS + the classifier) carries no locale-sidecar write', () => {
       const section = sliceBetween('// --- UserPromptSubmit', '// --- PreToolUse');
       expect(section).not.toContain('user-locale');
       expect(section).not.toContain('resolveLocale');
       expect(section).not.toContain('writeFileSync');
     });
 
-    test('the UserPromptSubmit dispatch case carries no locale-sidecar write either', () => {
+    test('[covers:F-f46d5c61/AC-37b6d2d6] the UserPromptSubmit dispatch case carries no locale-sidecar write either', () => {
       const section = sliceBetween("case 'UserPromptSubmit':", "case 'PreToolUse':");
       expect(section).not.toContain('user-locale');
       expect(section).not.toContain('writeFileSync');
     });
 
-    test('corroborating whole-file pin — src/cli/hook.ts references the user-locale sidecar nowhere at all', () => {
+    test('[covers:F-f46d5c61/AC-37b6d2d6] corroborating whole-file pin — src/cli/hook.ts references the user-locale sidecar nowhere at all', () => {
       // Stronger than the two scoped slices above: proves no detection-write
       // code was tucked in ANY lane of this file, not just the one the
       // original (pre-pivot) brief targeted.
       expect(hookSrc).not.toContain('user-locale');
     });
 
-    test('post-pivot (F-9af291fa) — src/cli/hook.ts references resolveLocale nowhere at all', () => {
+    test('[covers:F-f46d5c61/AC-37b6d2d6] post-pivot (F-9af291fa) — src/cli/hook.ts references resolveLocale nowhere at all', () => {
       // The locale machinery is gone: hook text is an agent-delivered channel,
       // and the host agent renders the user's language from the English source.
       expect(hookSrc).not.toContain('resolveLocale');
@@ -387,7 +387,7 @@ describe('AC-37b6d2d6 — plain English single source; instruction-led, not dete
 // "depend on this" phrasing, within the existing line/byte caps.
 // ═══════════════════════════════════════════════════════════════════════
 describe('AC-2a7fed0c — impact cards name what a person means: id + title, "depend on this", within caps', () => {
-  test('formatImpactCard: focus renders as "id title"; plural dependents read "depend on this" and tests "guard it"', () => {
+  test('[covers:F-f46d5c61/AC-2a7fed0c] formatImpactCard: focus renders as "id title"; plural dependents read "depend on this" and tests "guard it"', () => {
     const slice: ImpactSlice = {
       focus: {id: 'F-abc123', title: 'Login'},
       impacted: [{id: 'F-one', title: 'One'}, {id: 'F-two', title: 'Two'}],
@@ -401,7 +401,7 @@ describe('AC-2a7fed0c — impact cards name what a person means: id + title, "de
     expect(card).toContain('guard it');
   });
 
-  test('formatPushOneLiner / formatWorkingSetCard: focus renders as "id title"; caps (<=5 lines, <=600 chars) hold at a stress fixture', () => {
+  test('[covers:F-f46d5c61/AC-2a7fed0c] formatPushOneLiner / formatWorkingSetCard: focus renders as "id title"; caps (<=5 lines, <=600 chars) hold at a stress fixture', () => {
     // Mirrors tests/optimizer/push-card.test.ts's own 600-char-ceiling fixture
     // shape (long titles + several impacted/tests/risk rows) — reproduced
     // locally since that file's makeWs/impactedList are not exported — proving
@@ -439,7 +439,7 @@ describe('AC-2a7fed0c — impact cards name what a person means: id + title, "de
 describe('AC-ed9d8a26 — detector catalog doc matches the shipped MISSING_IMPLEMENTATION status policy', () => {
   const readme = read('src/stages/detectors/README.md');
 
-  test('the MISSING_IMPLEMENTATION catalog row says aware + spec-first window, not blind', () => {
+  test('[covers:F-f46d5c61/AC-ed9d8a26] the MISSING_IMPLEMENTATION catalog row says aware + spec-first window, not blind', () => {
     const row = readme
       .split('\n')
       .find((l) => l.includes('`MISSING_IMPLEMENTATION`') && l.includes('missing-implementation.ts'));
@@ -449,7 +449,7 @@ describe('AC-ed9d8a26 — detector catalog doc matches the shipped MISSING_IMPLE
     expect(row as string).not.toContain('blind');
   });
 
-  test('the status-policy narrative documents the graduated severity behavior, not the stale status-blind claim', () => {
+  test('[covers:F-f46d5c61/AC-ed9d8a26] the status-policy narrative documents the graduated severity behavior, not the stale status-blind claim', () => {
     expect(readme).toContain('graduates severity by status');
     expect(readme).toContain('an `error` for a `done`/`archived`/`blocked` feature');
     expect(readme).toContain('only `info` for a `planned`/`in_progress` one');

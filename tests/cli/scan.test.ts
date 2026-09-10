@@ -1,15 +1,17 @@
-// Cladding · unit tests for cli/scan.ts (v0.3.24, F-x)
+// Cladding · unit tests for cli/scan/ (v0.3.24, F-x)
 //
-// Deterministic 14-convention extractor. Each branch is exercised on
+// Deterministic convention extractor. Each branch is exercised on
 // a synthetic source tree under tmpdir, then asserted against the
 // recorded heuristic (majority rule for most signals).
 
-import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {basename, join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {scanRoot} from '../../src/cli/scan/index.js';
+import {scanRoot, walk} from '../../src/cli/scan/index.js';
+import {groupByLayer} from '../../src/cli/scan/architecture.js';
+import type {Conventions, ScanResult} from '../../src/cli/scan/types.js';
 
 function seed(dir: string, layout: Record<string, string>): void {
   for (const [path, content] of Object.entries(layout)) {
@@ -35,7 +37,57 @@ describe('scanRoot', () => {
     expect(r.scenarios).toEqual([]);
   });
 
-  test('detects two-space indent majority', () => {
+  test('[covers:F-1edb38/AC-001] scanRoot composes the public scan result without a legacy entrypoint', () => {
+    seed(dir, {
+      'src/core/a.ts': 'export const a = 1;\n',
+      'src/cli/b.ts': "import {a} from '../core/a.js';\nexport const b = a;\n",
+    });
+
+    const result = scanRoot({cwd: dir});
+    expect(result.conventions.namingExports).toBe('camelCase');
+    expect(result.architecture.layers.map((layer) => layer.name).sort()).toEqual(['cli', 'core']);
+    expect(result.architecture.importGraph).toContainEqual({from: 'cli', to: 'core', count: 1});
+    expect(result.examples.map((example) => example.layer).sort()).toEqual(['cli', 'core']);
+    expect(existsSync(join(process.cwd(), 'src/cli/scan.ts'))).toBe(false);
+  });
+
+  test('[covers:F-1edb38/AC-003] scanRoot composes typed analyzer records and architecture candidates', () => {
+    seed(dir, {
+      'README.md': '# Scan fixture\n\nTyped analyzer composition.\n',
+      'src/cli/a.ts': "import {core} from '../core/a.js';\nexport const cli = core;\n",
+      'src/cli/b.ts': 'export const cliHelper = true;\n',
+      'src/cli/c.ts': 'export const cliValue = 3;\n',
+      'src/core/a.ts': 'export const core = 1;\n',
+      'src/core/b.ts': 'export const coreHelper = true;\n',
+      'src/core/c.ts': 'export const coreValue = 3;\n',
+      'src/ui/a.ts': 'export const view = 1;\n',
+      'src/ui/b.ts': 'export const viewHelper = true;\n',
+      'src/ui/c.ts': 'export const viewValue = 3;\n',
+    });
+
+    const result: ScanResult = scanRoot({cwd: dir});
+    expect(Object.keys(result).sort()).toEqual([
+      'architecture',
+      'conventions',
+      'examples',
+      'projectContext',
+      'scenarios',
+      'stats',
+    ]);
+    expect(result.conventions.namingExports).toBe('camelCase');
+    expect(result.architecture.importGraph).toContainEqual({from: 'cli', to: 'core', count: 1});
+    expect(result.architecture.forbiddenImportCandidates.cli).toEqual(['ui']);
+    expect(result.scenarios).toEqual([]);
+    expect(result.examples.map((example) => example.layer).sort()).toEqual(['cli', 'core', 'ui']);
+    expect(result.stats).toMatchObject({
+      filesScanned: 9,
+      dominantLanguage: 'typescript',
+      languageCounts: {typescript: 9},
+    });
+    expect(result.projectContext?.readmeFirstParagraph).toContain('Typed analyzer composition');
+  });
+
+  test('[covers:F-9b643e/AC-001] extracts indentation from observed source files', () => {
     seed(dir, {
       'src/a/x.ts': 'export const x = 1;\nfunction y() {\n  return 2;\n}\n',
       'src/a/y.ts': 'function z() {\n  return 3;\n}\n',
@@ -101,7 +153,82 @@ describe('scanRoot', () => {
     expect(scanRoot({cwd: dir}).conventions.testLocation).toBe('tests-dir');
   });
 
-  test('layers reflect top-level src/ directories', () => {
+  test('[covers:F-9b643e/AC-0c18509d] extracts quote, semicolon, export, and constant naming conventions from observed source files', () => {
+    seed(dir, {
+      'src/a/x.ts': [
+        "export const FIRST_VALUE = 'one';",
+        "export const SECOND_VALUE = 'two';",
+        "export const thirdValue = 'three';",
+        "export const fourthValue = 'four';",
+        "export const fifthValue = 'five';",
+        "export const sixthValue = 'six';",
+        "export const seventhValue = 'seven';",
+      ].join('\n'),
+    });
+
+    const conventions = scanRoot({cwd: dir}).conventions;
+    expect(conventions.quote).toBe('single');
+    expect(conventions.semicolon).toBe('present');
+    expect(conventions.namingExports).toBe('camelCase');
+    expect(conventions.namingConstants).toBe('UPPER_SNAKE');
+  });
+
+  test('[covers:F-9b643e/AC-499af50d] extracts documentation, imports, exports, errors, types, headers, test location, and boilerplate conventions from observed source files', () => {
+    seed(dir, {
+      'src/a/module.ts': [
+        '// Cladding · fixture module',
+        "import {readFileSync} from 'node:fs';",
+        "import {z} from 'zod';",
+        '/**',
+        ' * Uses a dependency.',
+        ' * @param input source input.',
+        ' * @returns processed output.',
+        ' */',
+        'export function processInput(input: string): string {',
+        "  if (!input) throw new Error('input required');",
+        '  return z.string().parse(readFileSync(input, \'utf8\'));',
+        '}',
+      ].join('\n'),
+      'src/a/types.ts': 'export interface Input { readonly value: string; }\n',
+      'src/b/types.ts': 'export interface Output { readonly value: string; }\n',
+      'tests/process.test.ts': "import {processInput} from '../src/a/module.js';\nprocessInput;\n",
+    });
+
+    const conventions = scanRoot({cwd: dir}).conventions;
+    expect(conventions.docBlockRatio).toBeGreaterThan(0);
+    expect(conventions.docTagCounts).toMatchObject({'@param': 1, '@returns': 1});
+    expect(conventions.importOrder).toBe('node-first');
+    expect(conventions.exportPattern).toBe('named-only');
+    expect(conventions.errorHandling).toBe('throw-primary');
+    expect(conventions.typeDefLocation).toBe('types-file');
+    expect(conventions.fileHeaderPattern).toContain('// Cladding · fixture module');
+    expect(conventions.testLocation).toBe('tests-dir');
+    expect(conventions.moduleBoilerplate).toContain('export function processInput');
+  });
+
+  test('[covers:F-9b643e/AC-d268d58a] the Conventions type and extractor expose one exact emitted field set', () => {
+    seed(dir, {'src/a/module.ts': 'export const moduleValue = 1;\n'});
+
+    const conventions: Conventions = scanRoot({cwd: dir}).conventions;
+    expect(Object.keys(conventions).sort()).toEqual([
+      'docBlockRatio',
+      'docTagCounts',
+      'errorHandling',
+      'exportPattern',
+      'fileHeaderPattern',
+      'importOrder',
+      'indent',
+      'moduleBoilerplate',
+      'namingConstants',
+      'namingExports',
+      'quote',
+      'semicolon',
+      'testLocation',
+      'typeDefLocation',
+    ]);
+  });
+
+  test('[covers:F-9b643e/AC-002] layers reflect top-level src/ directories', () => {
     seed(dir, {
       'src/core/a.ts': 'export const a = 1;\n',
       'src/cli/b.ts': 'export const b = 2;\n',
@@ -118,7 +245,7 @@ describe('scanRoot', () => {
   // code. They register through `clad_create_feature` (user intent)
   // so adoption-time output is intentionally empty even when layers
   // were detected.
-  test('scenarios are not auto-extracted (v0.3.30 paradigm)', () => {
+  test('[covers:F-cfba0c/AC-001] scenarios are not auto-extracted (v0.3.30 paradigm)', () => {
     seed(dir, {
       'src/core/a.ts': 'export const a = 1;\n',
       'src/cli/b.ts': 'export const b = 2;\n',
@@ -128,7 +255,21 @@ describe('scanRoot', () => {
     expect(r.scenarios).toEqual([]);
   });
 
-  test('examples pick the longest non-test module per layer', () => {
+  test('[covers:F-cfba0c/AC-005] intent-free scan retains architecture and empty scenarios', () => {
+    seed(dir, {
+      'src/cli/command.ts': 'export const command = true;\n',
+      'src/core/service.ts': 'export const service = true;\n',
+    });
+
+    const result = scanRoot({cwd: dir});
+    expect(result.architecture.layers).toEqual([
+      {name: 'cli', dir: 'src/cli', moduleCount: 1},
+      {name: 'core', dir: 'src/core', moduleCount: 1},
+    ]);
+    expect(result.scenarios).toEqual([]);
+  });
+
+  test('[covers:F-9b643e/AC-003] examples pick the longest non-test module per layer', () => {
     seed(dir, {
       'src/core/short.ts': 'export const s = 1;\n',
       'src/core/long.ts': 'export const l = 1;\n' + '// line\n'.repeat(40),
@@ -171,11 +312,50 @@ describe('scanRoot', () => {
     expect(r.architecture.layers.map((l) => l.name)).not.toContain('pkg');
   });
 
+  test('[covers:F-94dda4/AC-001] all nine supported external-language extensions produce architecture layers', () => {
+    seed(dir, {
+      'go/main.go': 'package main\nfunc main() {}\n',
+      'rust/lib.rs': 'pub fn lib() {}\n',
+      'java/App.java': 'class App {}\n',
+      'kotlin/App.kt': 'fun main() {}\n',
+      'csharp/App.cs': 'class App {}\n',
+      'ruby/app.rb': 'def app; end\n',
+      'php/app.php': '<?php function app() {}\n',
+      'swift/App.swift': 'func app() {}\n',
+      'dart/app.dart': 'void main() {}\n',
+    });
+
+    const names = scanRoot({cwd: dir}).architecture.layers.map((layer) => layer.name).sort();
+    expect(names).toEqual(['csharp', 'dart', 'go', 'java', 'kotlin', 'php', 'ruby', 'rust', 'swift']);
+  });
+
+  test('[covers:F-94dda4/AC-005] default polyglot files preserve flat layer records and add a language layer', () => {
+    seed(dir, {
+      'src/cli/command.ts': 'export const command = true;\n',
+      'src/core/service.ts': 'export const service = true;\n',
+    });
+    const flatLayerProjection = (result: ScanResult) =>
+      result.architecture.layers
+        .filter((layer) => layer.name === 'cli' || layer.name === 'core')
+        .map(({name, dir: layerDir, moduleCount}) => ({name, dir: layerDir, moduleCount}));
+    const before = flatLayerProjection(scanRoot({cwd: dir}));
+
+    seed(dir, {
+      'src/worker/handler.go': 'package worker\n\nfunc Handle() {}\n',
+      'tests/worker_test.go': 'package tests\n\nfunc TestHandle() {}\n',
+    });
+    const after = scanRoot({cwd: dir});
+
+    expect(flatLayerProjection(after)).toEqual(before);
+    expect(after.architecture.layers).toContainEqual({name: 'worker', dir: 'src/worker', moduleCount: 1});
+    expect(after.architecture.layers.map((layer) => layer.name)).not.toContain('tests');
+  });
+
   // v0.3.25 (F-x) — source root inference: layerOf must collapse
   // src/<layer>/ across flat projects, monorepo workspaces, and CLI
   // overrides without losing the workspace prefix on monorepo layers.
   describe('source root inference (v0.3.25)', () => {
-    test('monorepo packages/<ws>/src/<layer> produces <ws>:<layer> labels', () => {
+    test('[covers:F-c48eb2/AC-002] monorepo packages/<ws>/src/<layer> produces <ws>:<layer> labels', () => {
       seed(dir, {
         'package.json': JSON.stringify({workspaces: ['packages/*']}),
         'packages/a/src/core/x.ts': 'export const x = 1;\n',
@@ -197,19 +377,32 @@ describe('scanRoot', () => {
       expect(names).toContain('widget');
     });
 
-    test('flat src/ project still maps src/<layer> to <layer> (no regression)', () => {
+    test('[covers:F-c48eb2/AC-004] inferred and explicit roots preserve flat layer records', () => {
       seed(dir, {
         'src/core/a.ts': 'export const a = 1;\n',
         'src/cli/b.ts': 'export const b = 2;\n',
       });
-      const names = scanRoot({cwd: dir}).architecture.layers.map((l) => l.name).sort();
-      expect(names).toEqual(['cli', 'core']);
+      const projection = (roots?: readonly string[]) => {
+        const result = roots === undefined ? scanRoot({cwd: dir}) : scanRoot({cwd: dir, roots});
+        return result.architecture.layers.map(({name, dir: layerDir, moduleCount}) => ({
+          name,
+          dir: layerDir,
+          moduleCount,
+        }));
+      };
+      const inferred = projection();
+
+      expect(inferred).toEqual([
+        {name: 'cli', dir: 'src/cli', moduleCount: 1},
+        {name: 'core', dir: 'src/core', moduleCount: 1},
+      ]);
+      expect(projection(['src'])).toEqual(inferred);
     });
   });
 
   // v0.3.28 — BFS walk + per-directory soft cap + entrypoint priority (I14)
   describe('walk BFS strategy (v0.3.28)', () => {
-    test('BFS reaches sibling directories even when the first one is huge', () => {
+    test('[covers:F-31eeb8/AC-001] BFS reaches sibling directories even when the first one is huge', () => {
       // Simulate react's compiler/ (large) vs packages/ (small)
       // imbalance. With DFS walk this scenario starved the small
       // sibling entirely; BFS + per-directory soft cap admits both.
@@ -229,20 +422,22 @@ describe('scanRoot', () => {
       expect(names.some((n) => n === 'a' || n === 'b' || n === 'packages')).toBe(true);
     });
 
-    test('per-directory soft cap stops at 50 files in one directory', () => {
+    test('[covers:F-31eeb8/AC-003] per-directory soft cap stops at 50 files in one directory', () => {
       const layout: Record<string, string> = {};
       for (let i = 0; i < 75; i++) {
         layout[`big/file${i}.ts`] = `export const v${i} = ${i};\n`;
       }
+      layout['small/kept.ts'] = 'export const kept = true;\n';
       seed(dir, layout);
-      const r = scanRoot({cwd: dir, maxFiles: 500});
-      // Soft cap = 50, so at most 50 files from `big/` should appear.
+      const r = scanRoot({cwd: dir, maxFiles: 51});
+      // The 50-file soft cap leaves the final slot for the sibling.
       const bigLayer = r.architecture.layers.find((l) => l.name === 'big');
       expect(bigLayer).toBeDefined();
-      expect(bigLayer!.moduleCount).toBeLessThanOrEqual(50);
+      expect(bigLayer!.moduleCount).toBe(50);
+      expect(r.architecture.layers.find((layer) => layer.name === 'small')?.moduleCount).toBe(1);
     });
 
-    test('entrypoint files sort to the head of their directory', () => {
+    test('[covers:F-31eeb8/AC-002] entrypoint files sort to the head of their directory', () => {
       // Files named `a.ts`/`b.ts`/`index.ts` — with entrypoint
       // priority `index.ts` should appear in the first quoted
       // example slice even if maxFiles=2 cut the tail.
@@ -251,42 +446,31 @@ describe('scanRoot', () => {
         'src/lib/index.ts': 'export const main = 1;\n',
         'src/lib/zebra.ts': 'export const z = 1;\n',
       });
-      const r = scanRoot({cwd: dir, maxFiles: 2});
-      // Two files admitted; index.ts must be among them.
-      const paths = r.examples.flatMap((e) => [e.modulePath, e.testPath]).filter(Boolean);
-      // The convention analyzer reads all admitted files; assert
-      // at least the index file made it via examples view or via
-      // the broader file count.
-      expect(r.stats.filesScanned).toBe(2);
-      const hasIndex =
-        paths.some((p) => p?.includes('index.ts')) ||
-        Object.keys(r.stats.languageCounts).length > 0; // sanity
-      expect(hasIndex).toBe(true);
+      const files = walk({root: dir, maxFiles: 2});
+      // Two files admitted; index.ts must displace lexical tail files.
+      expect(files.map((file) => file.relPath)).toEqual([
+        'src/lib/index.ts',
+        'src/lib/aardvark.ts',
+      ]);
     });
 
-    test('Python __init__.py is treated as an entrypoint', () => {
+    test('[covers:F-31eeb8/AC-004] Python __init__.py is admitted as an entrypoint before lexical siblings', () => {
       seed(dir, {
         'src/pkg/aaa.py': 'def a(): pass\n',
         'src/pkg/__init__.py': 'from .aaa import a\n',
         'src/pkg/zzz.py': 'def z(): pass\n',
       });
-      const r = scanRoot({cwd: dir, maxFiles: 2});
-      // Only 2 admitted; one of them must be __init__.py.
-      expect(r.stats.filesScanned).toBe(2);
-      // Convention analyzer read the contents — language stays python.
-      expect(r.stats.dominantLanguage).toBe('python');
+      const files = walk({root: dir, maxFiles: 2});
+      // The cap would otherwise admit aaa.py and zzz.py alphabetically.
+      expect(files.map((file) => file.relPath)).toEqual([
+        'src/pkg/__init__.py',
+        'src/pkg/aaa.py',
+      ]);
     });
   });
 
-  // v0.3.27 — flat single-package (Go cobra-style) handling.
-  // Reworked by F-<init-scan-layer-glob>: a flat project's cwd-direct files
-  // form NO architecture sub-layer. The old `_root`→basename(cwd) promotion
-  // produced a layer named after the project directory with a `<basename>/**`
-  // glob that matched nothing (the object-form architecture the detector
-  // consumes resolves each layer as `<mainRoot>/<name>`, and no name resolves
-  // back to the root itself). A flat project honestly has zero layers.
-  describe('flat single-package _root handling (v0.3.27, reworked)', () => {
-    test('cwd-direct files (≥5) do NOT promote to a bogus cwd-named layer', () => {
+  describe('flat single-package root handling', () => {
+    test('[covers:F-aee1da/AC-001] omits a qualifying flat root rather than emitting a bogus cwd-named layer', () => {
       seed(dir, {
         'a.go': 'package cobra\n\nfunc A() {}\n',
         'b.go': 'package cobra\n\nfunc B() {}\n',
@@ -296,10 +480,20 @@ describe('scanRoot', () => {
         'f.go': 'package cobra\n\nfunc F() {}\n',
       });
       const r = scanRoot({cwd: dir});
-      // No sub-layer to name → `layers: []` (renders as valid empty array).
-      // Previously this promoted to a layer named basename(cwd) with a
-      // `<basename>/**` glob matching zero files.
       expect(r.architecture.layers).toEqual([]);
+    });
+
+    test('[covers:F-aa7197/AC-001] root promotion uses the resolved workspace basename instead of dot', () => {
+      seed(dir, {
+        'a.go': 'package cobra\n',
+        'b.go': 'package cobra\n',
+        'c.go': 'package cobra\n',
+        'd.go': 'package cobra\n',
+        'e.go': 'package cobra\n',
+      });
+      const groups = groupByLayer(walk({root: dir}), [], {cwd: '.'});
+      expect([...groups.keys()]).not.toContain('.');
+      expect([...groups.keys()]).toContain(basename(process.cwd()));
     });
 
     test('cwd-direct files below threshold stay in _root and produce no layer', () => {
@@ -313,7 +507,7 @@ describe('scanRoot', () => {
 
   // v0.3.27 — workspace-direct files surface under the workspace name
   describe('workspace direct files (v0.3.27)', () => {
-    test('packages/<ws>/src/x.ts (no inner layer) maps to <ws>', () => {
+    test('[covers:F-aee1da/AC-002] packages/<ws>/src/x.ts (no inner layer) maps to <ws>', () => {
       seed(dir, {
         'package.json': JSON.stringify({workspaces: ['packages/*']}),
         'packages/react/src/ReactAct.ts': 'export const x = 1;\n',
@@ -338,7 +532,7 @@ describe('scanRoot', () => {
 
   // v0.3.27 — language counts + dominant language
   describe('language detection (v0.3.27)', () => {
-    test('languageCounts records per-language file count', () => {
+    test('[covers:F-aee1da/AC-003] languageCounts records per-language file count', () => {
       seed(dir, {
         'src/a.py': 'def hello(): pass\n',
         'src/b.py': 'def world(): pass\n',
@@ -349,7 +543,7 @@ describe('scanRoot', () => {
       expect(r.stats.languageCounts['typescript']).toBe(1);
     });
 
-    test('dominantLanguage picks the majority by file count', () => {
+    test('[covers:F-aee1da/AC-003] dominantLanguage picks the majority by file count', () => {
       seed(dir, {
         'src/a.rb': '# a\n',
         'src/b.rb': '# b\n',
@@ -357,6 +551,24 @@ describe('scanRoot', () => {
         'src/d.ts': 'export const x = 1;\n',
       });
       expect(scanRoot({cwd: dir}).stats.dominantLanguage).toBe('ruby');
+    });
+
+    test('[covers:F-aee1da/AC-005] residual root handling retains flat layer records and language statistics', () => {
+      seed(dir, {
+        'src/cli/command.ts': 'export const command = true;\n',
+        'src/core/model.rb': 'class Model; end\n',
+        'src/core/store.rb': 'class Store; end\n',
+      });
+
+      const result = scanRoot({cwd: dir});
+      expect(result.architecture.layers).toEqual([
+        {name: 'cli', dir: 'src/cli', moduleCount: 1},
+        {name: 'core', dir: 'src/core', moduleCount: 2},
+      ]);
+      expect(result.stats).toMatchObject({
+        dominantLanguage: 'ruby',
+        languageCounts: {ruby: 2, typescript: 1},
+      });
     });
 
     test('dominantLanguage falls back to "unknown" on empty walk', () => {
@@ -402,7 +614,7 @@ describe('scanRoot', () => {
   // must NOT show up as architectural layers. Case-insensitive
   // blacklist also covers Tests/, Playground/, etc.
   describe('layer blacklist (v0.3.26)', () => {
-    test('tests/ files feed testLocation but are excluded from layers', () => {
+    test('[covers:F-94dda4/AC-002] tests/ files feed testLocation but are excluded from layers', () => {
       seed(dir, {
         'src/core/x.ts': 'export const x = 1;\n',
         'tests/x.test.ts': "import {x} from '../src/core/x.js';\nx;\n",
@@ -414,7 +626,7 @@ describe('scanRoot', () => {
       expect(r.conventions.testLocation).toBe('tests-dir');
     });
 
-    test('docs/, examples/, typings/ are blacklisted from layers', () => {
+    test('[covers:F-94dda4/AC-002] docs/, examples/, typings/ are blacklisted from layers', () => {
       seed(dir, {
         'src/core/a.ts': 'export const a = 1;\n',
         'examples/demo.ts': 'export const demo = 1;\n',
@@ -425,7 +637,7 @@ describe('scanRoot', () => {
       expect(names).toEqual(['core']);
     });
 
-    test('case-insensitive blacklist hides Tests/ and Playground/', () => {
+    test('[covers:F-94dda4/AC-003] case-insensitive blacklist hides Tests/ and Playground/', () => {
       seed(dir, {
         'src/lib/a.swift': 'public func a() {}\n',
         'Tests/aTest.swift': 'func test() {}\n',
@@ -435,7 +647,7 @@ describe('scanRoot', () => {
       expect(names).toEqual(['lib']);
     });
 
-    test('monorepo blacklist drops <ws>:tests but keeps <ws>:src', () => {
+    test('[covers:F-94dda4/AC-003] monorepo blacklist drops <ws>:tests but keeps <ws>:src', () => {
       seed(dir, {
         'package.json': JSON.stringify({workspaces: ['packages/*']}),
         'packages/a/src/core/x.ts': 'export const x = 1;\n',
@@ -449,6 +661,38 @@ describe('scanRoot', () => {
 
   // v0.3.26 — language-specific docstring heuristics
   describe('multi-language docblock detection (v0.3.26)', () => {
+    test('[covers:F-94dda4/AC-004] six language-family docblock conventions produce nonzero evidence and language-specific tags', () => {
+      const fixtures = {
+        typescript: {
+          'src/a.ts': '/** @param value input\n * @returns output\n */\nexport function useValue(value: string) { return value; }\n',
+        },
+        python: {
+          'src/a.py': 'def use_value(value):\n    """Args:\n        value: input\n\n    Returns:\n        output\n    """\n    return value\n',
+        },
+        rust: {
+          'src/a.rs': '/// # Errors\n/// Fails when input is invalid.\npub fn use_value() {}\n',
+        },
+        go: {
+          'src/a.go': '// UseValue accepts input.\n// Deprecated: use NextValue.\nfunc UseValue() {}\n',
+        },
+        ruby: {
+          'src/a.rb': '# Use value.\ndef use_value\nend\n',
+        },
+        java: {
+          'src/A.java': 'public class A {\n  /** @param value input\n   * @returns output\n   */\n  public String useValue(String value) { return value; }\n}\n',
+        },
+      } as const;
+
+      for (const [language, layout] of Object.entries(fixtures)) {
+        const root = join(dir, language);
+        seed(root, layout);
+        expect(scanRoot({cwd: root}).conventions.docBlockRatio, language).toBeGreaterThan(0);
+      }
+      expect(scanRoot({cwd: join(dir, 'python')}).conventions.docTagCounts).toMatchObject({'Args:': 1, 'Returns:': 1});
+      expect(scanRoot({cwd: join(dir, 'rust')}).conventions.docTagCounts).toMatchObject({'# Errors': 1});
+      expect(scanRoot({cwd: join(dir, 'go')}).conventions.docTagCounts).toMatchObject({'Deprecated:': 1});
+    });
+
     test('Python triple-quoted docstrings count toward docBlockRatio', () => {
       seed(dir, {
         'src/lib/x.py': '"""module doc."""\n\ndef greet(name):\n    """Say hi."""\n    return f"hi {name}"\n',
@@ -488,7 +732,7 @@ describe('scanRoot', () => {
   // exercised; the candidate set surfaces in architecture.yaml as a
   // reviewer-pruned suggestion list.
   describe('forbidden_imports candidates (v0.3.25 + v0.3.31 prune)', () => {
-    test('layer pairs without observed edges become forbidden candidates (when both sides are non-trivial)', () => {
+    test('[covers:F-c48eb2/AC-003] [covers:F-aa7197/AC-002] layer pairs without observed edges become forbidden candidates with bounded non-trivial layers', () => {
       // v0.3.31 prune: FORBIDDEN_TRIVIAL_THRESHOLD = 2. Each layer
       // needs 3+ modules to participate as importer or target.
       seed(dir, {
@@ -509,7 +753,7 @@ describe('scanRoot', () => {
       expect(arch.forbiddenImportCandidates['core']).toEqual(['cli', 'ui']);
     });
 
-    test('trivial layers (≤2 files) drop out of the candidate matrix', () => {
+    test('[covers:F-aa7197/AC-002] trivial layers (≤2 files) drop out of the candidate matrix', () => {
       // v0.3.31 — layers with 1-2 modules carry no real import
       // policy. ripgrep HomebrewFormula / fuzz / pkg were noise
       // sources in the 5차 audit; the prune removes them.
@@ -522,6 +766,22 @@ describe('scanRoot', () => {
       const arch = scanRoot({cwd: dir}).architecture;
       expect(arch.forbiddenImportCandidates['big']).toBeUndefined();
       expect(arch.forbiddenImportCandidates['tiny']).toBeUndefined();
+    });
+
+    test('[covers:F-aa7197/AC-002] non-trivial candidate rows are capped at eight and exclude trivial targets', () => {
+      const layout: Record<string, string> = {};
+      for (const layer of ['source', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']) {
+        for (let index = 0; index < 3; index++) {
+          layout[`src/${layer}/file${index}.ts`] = `export const ${layer}${index} = ${index};\n`;
+        }
+      }
+      layout['src/tiny/only.ts'] = 'export const only = true;\n';
+      seed(dir, layout);
+
+      const candidates = scanRoot({cwd: dir}).architecture.forbiddenImportCandidates;
+      expect(candidates.source).toHaveLength(8);
+      expect(candidates.source).not.toContain('tiny');
+      expect(candidates.tiny).toBeUndefined();
     });
 
     test('all-to-all observed graph leaves no candidates', () => {
@@ -543,7 +803,7 @@ describe('scanRoot', () => {
   // representative interface signatures so AI maintainers always
   // see the project's Why before diving into code-level conventions.
   describe('project context extraction (v0.3.32)', () => {
-    test('README first paragraph is captured raw', () => {
+    test('[covers:F-c8aef8/AC-002] README first paragraph is captured raw', () => {
       seed(dir, {
         'README.md':
           '# Project\n\nThe one-line description sits here.\nMore on the second line.\n\n## Features\n- one\n',
@@ -554,7 +814,7 @@ describe('scanRoot', () => {
       expect(ctx!.readmeFirstParagraph).toContain('one-line description');
     });
 
-    test('README headings list (## level) is captured in order', () => {
+    test('[covers:F-c8aef8/AC-002] README headings list (## level) is captured in order', () => {
       seed(dir, {
         'README.md': '# X\n\nintro\n\n## Install\n## Usage\n## Contributing\n',
         'src/lib/a.ts': 'export const a = 1;\n',
@@ -563,7 +823,7 @@ describe('scanRoot', () => {
       expect(ctx!.readmeHeadings).toEqual(['Install', 'Usage', 'Contributing']);
     });
 
-    test('sibling docs (ARCHITECTURE / CONTRIBUTING) surface with first line', () => {
+    test('[covers:F-c8aef8/AC-002] sibling docs (ARCHITECTURE / CONTRIBUTING) surface with first line', () => {
       seed(dir, {
         'README.md': '# X\n\nintro\n',
         'ARCHITECTURE.md': '# Architecture\n\nLayered diagram below.\n',
@@ -576,7 +836,7 @@ describe('scanRoot', () => {
       expect(paths).toContain('CONTRIBUTING.md');
     });
 
-    test('interface signatures from the largest layer are quoted', () => {
+    test('[covers:F-c8aef8/AC-002] interface signatures from the largest layer are quoted', () => {
       seed(dir, {
         'README.md': '# X\n\nintro\n',
         'src/core/a.ts': 'export interface Foo { bar: string }\nexport const x = 1;\n',
@@ -589,7 +849,7 @@ describe('scanRoot', () => {
       expect(all).toContain('class Baz');
     });
 
-    test('absent README + absent docs + empty source produces null', () => {
+    test('[covers:F-c8aef8/AC-003] absent README + absent docs + empty source produces null', () => {
       // Empty cwd (just the scratch dir).
       const ctx = scanRoot({cwd: dir}).projectContext;
       expect(ctx).toBeNull();
@@ -605,10 +865,21 @@ describe('scanRoot', () => {
     });
   });
 
+  test('[covers:F-c8aef8/AC-004] README extraction skips decorative wrappers and badges before prose', () => {
+    seed(dir, {
+      'README.md': '# Project\n\n<div align="center">\n<img src="logo.svg" />\n</div>\n[![build](https://img.example/badge.svg)](https://example.test)\n\nUseful project prose survives.\n',
+      'src/lib/a.ts': 'export const a = 1;\n',
+    });
+    const paragraph = scanRoot({cwd: dir}).projectContext!.readmeFirstParagraph;
+    expect(paragraph).toBe('Useful project prose survives.');
+    expect(paragraph).not.toContain('<');
+    expect(paragraph).not.toContain('[![');
+  });
+
   // v0.3.31 — I18 LAYER_BLACKLIST expansion. HomebrewFormula,
   // docs_src, formulas, packaging directories used to surface as
   // layers, polluting the architecture view.
-  test('I18 expansion — HomebrewFormula / docs_src / formulas / packaging are not layers', () => {
+  test('[covers:F-aa7197/AC-003] I18 expansion — HomebrewFormula / docs_src / formulas / packaging are not layers', () => {
     seed(dir, {
       'src/core/a.ts': 'export const a = 1;\n',
       'HomebrewFormula/recipe.rb': '# brew formula\n',

@@ -49,7 +49,7 @@ describe('AC_DUPLICATE_WITHIN_FEATURE detector', () => {
     expect(acDuplicateWithinFeature.run({cwd: dir})).toEqual([]);
   });
 
-  test('two features sharing the same AC-001 → NOT a finding (feature-scope is the new model)', () => {
+  test('[covers:F-67e33f/AC-006] two features sharing the same AC-001 → NOT a finding (feature-scope is the new model)', () => {
     writeFeature(dir, 'F-001.yaml', {id: 'F-001', acIds: ['AC-001']});
     writeFeature(dir, 'F-002.yaml', {id: 'F-002', acIds: ['AC-001']});
     // v0.3.9 says AC ids are feature-scoped; F-001.AC-001 and
@@ -57,7 +57,7 @@ describe('AC_DUPLICATE_WITHIN_FEATURE detector', () => {
     expect(acDuplicateWithinFeature.run({cwd: dir})).toEqual([]);
   });
 
-  test('one feature duplicating AC-001 → error finding', () => {
+  test('[covers:F-67e33f/AC-006] one feature duplicating AC-001 → error finding', () => {
     writeFeature(dir, 'F-001.yaml', {id: 'F-001', acIds: ['AC-001', 'AC-001', 'AC-002']});
     const findings = acDuplicateWithinFeature.run({cwd: dir});
     expect(findings).toHaveLength(1);

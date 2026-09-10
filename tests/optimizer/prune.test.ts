@@ -41,4 +41,12 @@ describe('pruneToFeature', () => {
     const pruned = pruneToFeature(baseSpec, 'F-XXX');
     expect(pruned).toBe(baseSpec);
   });
+
+  test('[covers:F-041/AC-064] retains the focus closure and linked scenario while leaving an unknown focus unchanged', () => {
+    const pruned = pruneToFeature(baseSpec, 'F-003');
+    expect(pruned.features.map((feature) => feature.id).sort()).toEqual(['F-001', 'F-002', 'F-003']);
+    expect(pruned.features.find((feature) => feature.id === 'F-099')).toBeUndefined();
+    expect(pruned.scenarios?.map((scenario) => scenario.id)).toEqual(['S-001']);
+    expect(pruneToFeature(baseSpec, 'F-unknown')).toBe(baseSpec);
+  });
 });

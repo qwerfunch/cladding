@@ -15,9 +15,10 @@
 //     much of the true blast radius the surfaced regression set covers, and how honestly it
 //     reports partial coverage.
 //
-// Pure given (spec, file reader). Reuses buildWorkingSet / buildIterativeImpactSlice /
-// reverseIndexOf / estTokens — no new graph algorithm. The reader is injected (impure I/O stays
-// out, like code-excerpt.ts), so this is headless-testable.
+// Pure given (spec, file reader, graph view). Reuses buildWorkingSet / buildIterativeImpactSlice /
+// the one GraphConsumerView contract / estTokens — no new graph algorithm. The reader and the
+// graph view are both injected (impure I/O stays out, like code-excerpt.ts), so this is
+// headless-testable and a caller that wants the canonical GraphIR authority hands one in.
 //
 // HONEST SCOPE: this is the efficiency the infrastructure CAN provide (an upper bound vs one
 // naive baseline) — NOT proof that a strong agent adopts it (the A/Bs show strong agents grep
@@ -27,7 +28,7 @@ import {estTokens} from './code-excerpt.js';
 import type {ModuleReader} from './infer-depends-on.js';
 import {buildIterativeImpactSlice} from './iterative-slice.js';
 import {buildWorkingSet} from './working-set.js';
-import {reverseIndexOf} from '../spec/reverse-index.js';
+import {viewFor, type GraphConsumerView} from '../graph/consumers.js';
 import type {Spec} from '../spec/types.js';
 
 /**
@@ -108,6 +109,11 @@ export interface EfficiencyReport {
   readonly features: readonly FeatureEfficiency[];
 }
 
+/** Working-set size without the graph-provenance label the budget also excludes. */
+function payloadTokens(ws: {readonly authority?: unknown}): number {
+  return estTokens(JSON.stringify({...ws, authority: undefined}));
+}
+
 function median(xs: readonly number[]): number {
   if (xs.length === 0) return 0;
   const s = [...xs].sort((a, b) => a - b);
@@ -124,8 +130,16 @@ function percentile(xs: readonly number[], p: number): number {
  * Measures the search/context/stability efficiency the graph provides for every feature.
  * Deterministic given identical spec + file contents.
  */
-export function measureGraphEfficiency(spec: Spec, read: ModuleReader, cwd = '.'): EfficiencyReport {
-  const ri = reverseIndexOf(spec);
+export function measureGraphEfficiency(
+  spec: Spec,
+  read: ModuleReader,
+  cwd = '.',
+  graph?: GraphConsumerView,
+): EfficiencyReport {
+  // The view is built ONCE and threaded into every nested slice: one workspace read for the
+  // whole sweep instead of one per feature. `cwd` stays the excerpt root and never selects
+  // the lane, so a test measuring a synthetic spec is never charged a real workspace read.
+  const view = viewFor(spec, {graph});
   const features = spec.features ?? [];
   const rows: FeatureEfficiency[] = [];
 
@@ -133,15 +147,17 @@ export function measureGraphEfficiency(spec: Spec, read: ModuleReader, cwd = '.'
     // The injected reader feeds BOTH sides — slice and baseline read the same universe
     // (before this, buildWorkingSet read the real fs while the baseline read `read`,
     // so any virtual universe silently inflated the shrink factor).
-    const ws = buildWorkingSet(spec, f.id, {cwd, read});
+    const ws = buildWorkingSet(spec, f.id, {cwd, read, graph: view});
     if ('not_found' in ws) continue;
-    const structural = buildWorkingSet(spec, f.id, {cwd, read, maxTokens: Number.MAX_SAFE_INTEGER});
-    const it = buildIterativeImpactSlice(spec, f.id);
+    const structural = buildWorkingSet(spec, f.id, {cwd, read, maxTokens: Number.MAX_SAFE_INTEGER, graph: view});
+    const it = buildIterativeImpactSlice(spec, f.id, {graph: view});
     const itOk = !('not_found' in it);
 
-    // slice tokens = the assembled working-set payload.
-    const sliceTokens = estTokens(JSON.stringify(ws));
-    const structuralTokens = 'not_found' in structural ? sliceTokens : estTokens(JSON.stringify(structural));
+    // slice tokens = the assembled working-set payload. `authority` is the provenance label
+    // the facade attaches outside the budget, so it is excluded here too — otherwise the same
+    // corpus would measure differently on the two lanes purely because one label is longer.
+    const sliceTokens = payloadTokens(ws);
+    const structuralTokens = 'not_found' in structural ? sliceTokens : payloadTokens(structural);
     // naive baseline = the shard object + the full text of every module file.
     let naive = estTokens(JSON.stringify(f));
     for (const m of f.modules ?? []) {
@@ -149,7 +165,7 @@ export function measureGraphEfficiency(spec: Spec, read: ModuleReader, cwd = '.'
       if (src) naive += estTokens(src);
     }
     const forward = (f.depends_on ?? []).length;
-    const backward = ri.dependents.get(f.id)?.size ?? 0;
+    const backward = view.dependents([f.id], 1).ids.size;
 
     rows.push({
       id: f.id,

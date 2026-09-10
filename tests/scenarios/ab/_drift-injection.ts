@@ -2,7 +2,7 @@
 //
 // Outcome-quality dimension #1 — deterministic drift events injected
 // into both A (cladding-managed) and B (vanilla) tmpdirs at M2+. For
-// each scenario we run the 25-detector suite BEFORE injection, apply
+// each scenario we run the registered detector suite BEFORE injection, apply
 // the drift, run the suite AGAIN, then diff: any finding that emerged
 // counts as "cladding caught it." Vanilla typically catches only the
 // universal HARDCODED_SECRET; the rest are cladding-exclusive wins.
@@ -102,7 +102,7 @@ function fingerprint(f: StructuredFinding): string {
   return `${f.detector}|${f.severity}|${f.path ?? ''}|${f.message}`;
 }
 
-/** Runs all 25 detectors and returns their findings as a flat list. */
+/** Runs the current registered detectors and returns their findings as a flat list. */
 export function snapshotFindings(cwd: string): readonly StructuredFinding[] {
   const out: StructuredFinding[] = [];
   for (const det of allDetectors) {
@@ -274,7 +274,7 @@ export function makeHardcodedSecretDrift(fileRel: string): DriftScenario {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// DI-4 — Untested AC (cladding-exclusive by construction)
+// DI-4 — Unverified criterion (cladding-exclusive by construction)
 //
 // Add a new acceptance criterion to a feature shard WITHOUT adding a
 // corresponding test. Cladding's UNTESTED_AC catches this (when ACs
@@ -285,10 +285,10 @@ export function makeHardcodedSecretDrift(fileRel: string): DriftScenario {
 // the report renders N/A in that row.
 // ──────────────────────────────────────────────────────────────────
 
-export function makeUntestedAcDrift(featureShardRel: string, acId: string, acText: string): DriftScenario {
+export function makeUnverifiedCriterionDrift(featureShardRel: string, acId: string, acText: string): DriftScenario {
   return {
     id: 'DI-4',
-    name: `Untested AC (add ${acId} to ${featureShardRel} without test)`,
+    name: `Unverified criterion (add ${acId} to ${featureShardRel} without test)`,
     apply: (cwd: string) => {
       const abs = join(cwd, featureShardRel);
       if (!existsSync(abs)) return; // N/A for vanilla — silent no-op
@@ -303,3 +303,6 @@ export function makeUntestedAcDrift(featureShardRel: string, acId: string, acTex
     },
   };
 }
+
+/** @deprecated Use {@link makeUnverifiedCriterionDrift}; kept for extended-case compatibility. */
+export const makeUntestedAcDrift = makeUnverifiedCriterionDrift;

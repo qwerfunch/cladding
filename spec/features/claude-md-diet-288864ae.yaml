@@ -1,35 +1,37 @@
 id: F-288864ae
-slug: claude-md-diet
-title: "CLAUDE.md template diet — leaner adopter section, freshness literals preserved"
+title: CLAUDE.md template diet — leaner adopter section, freshness literals preserved
 status: done
 modules:
   - src/init/host-instructions.ts
   - CLAUDE.md
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-9bea7d88
-    ears: ubiquitous
-    text: "The emitted CLAUDE.md cladding section shall be materially lighter — about 430 bytes (~30%, an estimated 110-135 real-BPE tokens) — while preserving the five policy anchors (spec-is-SSoT, anti-self-cert, one-feature-at-a-time with done-via-gate, hash-id rule, drift detectors) — redundant phrasing goes, policy does not."
-    notes: "## Why\nBacklog B2 (audited): the section costs every adopter session ~1,477 bytes of standing instructions; the realistic diet is ~200-300 tokens once the two load-bearing literals are respected. AGENTS.md's similar prose is deliberate (sole policy surface for hookless hosts) and out of scope. The original ~200-300-token target was proven unreachable without shedding policy: a control draft that gutted the feature-cycle paragraph to its mandated core saved only marginally more — the diet stops where policy would start to go (adjudicated 2026-07-05)."
-    test_refs:
-      - tests/claude-md-diet.test.ts
+    statement: The emitted CLAUDE.md cladding section shall be materially lighter —
+      about 430 bytes (~30%, an estimated 110-135 real-BPE tokens) — while
+      preserving the five policy anchors (spec-is-SSoT, anti-self-cert,
+      one-feature-at-a-time with done-via-gate, hash-id rule, drift detectors) —
+      redundant phrasing goes, policy does not.
+    notes: >-
+      ## Why
+
+      Backlog B2 (audited): the section costs every adopter session ~1,477 bytes
+      of standing instructions; the realistic diet is ~200-300 tokens once the
+      two load-bearing literals are respected. AGENTS.md's similar prose is
+      deliberate (sole policy surface for hookless hosts) and out of scope. The
+      original ~200-300-token target was proven unreachable without shedding
+      policy: a control draft that gutted the feature-cycle paragraph to its
+      mandated core saved only marginally more — the diet stops where policy
+      would start to go (adjudicated 2026-07-05).
   - id: AC-b07dce5d
-    ears: unwanted
-    condition: "if either freshness literal (the anti-self-cert signature or the feature-cycle fresh marker) were dropped from the emitted template"
-    action: "isStaleInstructions would flag every freshly written section as stale and clad update would churn forever"
-    response: "both literals stay verbatim in the template, pinned by tests"
-    text: "If a freshness literal is missing from the emitted template, the pin tests shall fail before any adopter sees the churn."
-    test_refs:
-      - tests/claude-md-diet.test.ts
+    statement: If a freshness literal is missing from the emitted template, then the
+      pin tests shall fail before an adopter sees the churn.
+    kind: behavior
   - id: AC-a684ae50
-    ears: event
-    condition: "when a fresh section is emitted by the new template"
-    action: "isStaleInstructions evaluates it as NOT stale, and an old-template adopter section still evaluates as stale (upgrade path intact)"
-    response: "the write-then-check round trip holds in both directions"
-    text: "When emitted, the new section shall round-trip as fresh while pre-diet sections still read as stale-eligible for upgrade."
-    test_refs:
-      - tests/claude-md-diet.test.ts
+    statement: When emitted, the new section shall round-trip as fresh while
+      pre-diet sections still read as stale-eligible for upgrade.
   - id: AC-26e087d1
-    ears: ubiquitous
-    text: "The repository's own CLAUDE.md cladding section shall be the new template's output (dogfooding the emission), with the maintainer-guide sections above it untouched."
-    test_refs:
-      - tests/claude-md-diet.test.ts
+    statement: The repository's own CLAUDE.md cladding section shall be the new
+      template's output (dogfooding the emission), with the maintainer-guide
+      sections above it untouched.

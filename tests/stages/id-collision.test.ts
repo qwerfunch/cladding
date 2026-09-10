@@ -40,7 +40,7 @@ describe('ID_COLLISION detector', () => {
     expect(idCollision.run({cwd: dir})).toEqual([]);
   });
 
-  test('two files declaring the same id → error finding', () => {
+  test('[covers:F-67e33f/AC-005] two files declaring the same id → error finding', () => {
     // Distinct filenames, identical id field.
     writeFeature(dir, 'first.yaml', {id: 'F-a3f9c2'});
     writeFeature(dir, 'second.yaml', {id: 'F-a3f9c2'});

@@ -8,11 +8,13 @@
 // The block is counts only — an unchanged-count re-sync is
 // byte-identical, so parallel branches never conflict on it.
 
-import {existsSync, readFileSync, readdirSync, statSync, writeFileSync} from 'node:fs';
-import {join} from 'node:path';
+import {createHash} from 'node:crypto';
+import {existsSync, readFileSync, readdirSync, statSync} from 'node:fs';
+import {join, relative} from 'node:path';
 
 import yaml, {parse} from 'yaml';
 
+import {requiredRootSchema} from './transaction.js';
 import type {Inventory} from './types.js';
 
 /** Counts a directory's .yaml children, excluding README.md. */
@@ -26,9 +28,9 @@ function countYamlShards(dir: string): number {
 }
 
 /** Walks tests/ recursively for *.test.ts(x). */
-function countTestFiles(testsRoot: string): number {
-  if (!existsSync(testsRoot)) return 0;
-  let count = 0;
+function testFileNames(testsRoot: string, cwd: string): readonly string[] {
+  if (!existsSync(testsRoot)) return [];
+  const names: string[] = [];
   const queue: string[] = [testsRoot];
   while (queue.length > 0) {
     const dir = queue.pop()!;
@@ -50,11 +52,37 @@ function countTestFiles(testsRoot: string): number {
       if (s.isDirectory()) {
         queue.push(abs);
       } else if (name.endsWith('.test.ts') || name.endsWith('.test.tsx')) {
-        count++;
+        names.push(relative(cwd, abs).replace(/\\/g, '/'));
       }
     }
   }
-  return count;
+  return names.sort();
+}
+
+/** Returns the sorted test-file census used by the inventory projection. */
+export function inventoryTestFileNames(cwd: string = '.'): readonly string[] {
+  return testFileNames(join(cwd, 'tests'), cwd);
+}
+
+/** One coherent test-file census for migration review and derived inventory. */
+export interface InventoryTestFileCensus {
+  /** Sorted workspace-relative test names. */
+  readonly names: readonly string[];
+  /** Count from exactly the same names array. */
+  readonly count: number;
+  /** SHA-256 of exactly the same names array. */
+  readonly digest: string;
+}
+
+/** Takes the test census once so count and digest cannot describe different scans. */
+export function inventoryTestFileCensus(cwd: string = '.'): InventoryTestFileCensus {
+  const names = inventoryTestFileNames(cwd);
+  return {names, count: names.length, digest: createHash('sha256').update(JSON.stringify(names)).digest('hex')};
+}
+
+/** Returns the reviewed test-file-set digest used by a schema migration preview. */
+export function inventoryTestFileSetDigest(cwd: string = '.'): string {
+  return inventoryTestFileCensus(cwd).digest;
 }
 
 /** Parses spec/capabilities.yaml and counts the capabilities[] entries. */
@@ -78,30 +106,15 @@ export function computeInventory(cwd: string = '.'): Inventory {
   const features = countYamlShards(join(cwd, 'spec', 'features'));
   const scenarios = countYamlShards(join(cwd, 'spec', 'scenarios'));
   const capabilities = countCapabilities(cwd);
-  const test_files = countTestFiles(join(cwd, 'tests'));
+  const test_files = inventoryTestFileNames(cwd).length;
   return {features, scenarios, capabilities, test_files};
 }
 
 /**
- * Rewrites the `inventory:` block at the bottom of spec.yaml. If no
- * block exists, appends one. Preserves all other lines + comments.
- *
- * Strategy: split the file body at the first `^inventory:` line, drop
- * the inventory block (everything up to the next top-level key or EOF),
- * then re-emit. This is line-based to keep comments + ordering of
- * other top-level keys (`features:`, etc.) intact.
+ * Renders the `inventory:` block at the bottom of spec.yaml. If no block
+ * exists, appends one while preserving all other lines and comments. Product
+ * writes go through the F4 transaction boundary in `spec/edit.ts`.
  */
-export function writeInventoryToSpecYaml(cwd: string, inventory: Inventory): void {
-  const path = join(cwd, 'spec.yaml');
-  if (!existsSync(path)) return;
-  const body = readFileSync(path, 'utf8');
-  const rebuilt = upsertInventoryBlock(body, inventory);
-  if (rebuilt !== body) {
-    writeFileSync(path, rebuilt);
-  }
-}
-
-/** Pure function — used both by writeInventoryToSpecYaml and by tests. */
 export function upsertInventoryBlock(body: string, inventory: Inventory): string {
   // CRLF-safe: split on either ending so no `\r` survives on a line, do all the
   // line surgery in LF, then restore the file's original ending at the single
@@ -163,9 +176,12 @@ export function upsertInventoryBlock(body: string, inventory: Inventory): string
  * every sync; line-per-feature keeps git merges union-friendly. Unsharded
  * specs (no spec/features/ dir) get no index — they already fit in one file.
  */
-export function writeFeatureIndex(cwd: string = '.'): boolean {
+export function renderFeatureIndexYaml(cwd: string = '.'): string | null {
+  if (existsSync(join(cwd, 'spec.yaml')) && requiredRootSchema(cwd) === '0.2') {
+    throw new Error('Schema 0.2 feature indexes are compiler-owned; use the compiler transaction projection.');
+  }
   const featuresDir = join(cwd, 'spec', 'features');
-  if (!existsSync(featuresDir)) return false;
+  if (!existsSync(featuresDir)) return null;
   const rows: string[] = [];
   for (const file of readdirSync(featuresDir).sort()) {
     if (!file.endsWith('.yaml') && !file.endsWith('.yml')) continue;
@@ -184,13 +200,12 @@ export function writeFeatureIndex(cwd: string = '.'): boolean {
     }
   }
   rows.sort();
-  const body =
+  return (
     '# Cladding · Tier C — generated feature index (`clad sync`). Do not edit by hand.\n' +
     '# One line per feature → 1-file lookup + line-independent merges\n' +
     '# (suggested .gitattributes: `spec/index.yaml merge=union`).\n' +
     'features:\n' +
     rows.join('\n') +
-    '\n';
-  writeFileSync(join(cwd, 'spec', 'index.yaml'), body, 'utf8');
-  return true;
+    '\n'
+  );
 }

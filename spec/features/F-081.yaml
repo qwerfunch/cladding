@@ -5,37 +5,43 @@ modules:
   - scripts/build-plugin.mjs
   - plugins/gemini-cli/commands/init.toml
   - plugins/gemini-cli/commands/README.md
-depends_on: [F-078, F-076, F-077]
+depends_on:
+  - F-078
+  - F-076
+  - F-077
+capability_refs: []
 acceptance_criteria:
   - id: AC-246
-    ears: ubiquitous
-    action: transpile each user-facing repo-root skills/<verb>/SKILL.md into a Gemini CLI commands/<verb>.toml at build time
-    response: 'scripts/build-plugin.mjs adds a Phase C that splits each user-facing SKILL.md into YAML frontmatter and body, then emits plugins/gemini-cli/commands/<verb>.toml with `description` from the frontmatter and `prompt` from the body; v0.4.0 (F-80d19d) narrowed USER_FACING_VERBS to `init`, and the build prunes stale per-verb .toml files so only the user-facing set remains'
-    text: The system shall transpile each user-facing repo-root skills/<verb>/SKILL.md into a Gemini CLI commands/<verb>.toml at build time so the canonical SKILL.md source is the single source of truth and the TOML files are generated artifacts.
-    evidence_refs: [scripts/build-plugin.mjs]
+    statement: The system shall transpile each user-facing repo-root
+      skills/<verb>/SKILL.md into a Gemini CLI commands/<verb>.toml at build
+      time so the canonical SKILL.md source is the single source of truth and
+      the TOML files are generated artifacts.
+    evidence_refs:
+      - scripts/build-plugin.mjs
   - id: AC-247
-    ears: ubiquitous
-    action: emit the prompt body using TOML literal multi-line strings to avoid escape complexity
-    response: 'renderToml emits prompt = ''<newline>...body...<newline>''  by default; backticks, backslashes, and other markdown punctuation pass through unaltered because TOML literal multi-line strings do not interpret escape sequences'
-    text: The system shall emit the prompt body using TOML literal multi-line strings so backticks, backslashes, and other markdown punctuation in the SKILL.md body pass through unaltered.
-    evidence_refs: [scripts/build-plugin.mjs]
+    statement: The system shall emit the prompt body using TOML literal multi-line
+      strings so backticks, backslashes, and other markdown punctuation in the
+      SKILL.md body pass through unaltered.
+    evidence_refs:
+      - scripts/build-plugin.mjs
   - id: AC-248
-    ears: unwanted
-    condition: if a SKILL.md body contains the literal sequence `'''`
-    action: fall back to basic multi-line strings with escapes
-    response: 'renderToml detects the apostrophe-three sequence in the body and emits the basic multi-line form `"""..."""` with backslash + double-quote escapes; cladding skill bodies do not currently trigger this path but the fallback exists for future authoring'
-    text: If a SKILL.md body contains the literal sequence `'''`, the system shall fall back to TOML basic multi-line strings with backslash + double-quote escapes so the transpile cannot produce malformed TOML.
-    evidence_refs: [scripts/build-plugin.mjs]
+    statement: If a SKILL.md body contains the literal sequence `'''`, then the
+      transpiler shall fall back to TOML basic multi-line strings with backslash
+      and double-quote escapes so transpilation cannot produce malformed TOML.
+    kind: behavior
+    evidence_refs:
+      - scripts/build-plugin.mjs
   - id: AC-249
-    ears: ubiquitous
-    action: drop an AUTO-GENERATED sentinel in plugins/gemini-cli/commands/
-    response: 'plugins/gemini-cli/commands/README.md is rewritten on every build with a do-not-edit header pointing the reader at the canonical skills/<verb>/SKILL.md source'
-    text: The system shall drop an AUTO-GENERATED sentinel (commands/README.md) on every build so a human reading the directory understands the TOMLs are build artifacts and any hand-edit will be reverted.
-    evidence_refs: [plugins/gemini-cli/commands/README.md]
+    statement: The build shall place an AUTO-GENERATED sentinel at
+      commands/README.md on every build so readers know the TOMLs are generated
+      artifacts and hand edits are reverted.
+    kind: behavior
+    evidence_refs:
+      - plugins/gemini-cli/commands/README.md
   - id: AC-250
-    ears: state
-    condition: while a SKILL.md is missing YAML frontmatter or its frontmatter has no description field
-    action: warn and skip the verb without aborting the build
-    response: 'scripts/build-plugin.mjs logs `WARN <path>: no YAML frontmatter — skipped` or `WARN <path>: frontmatter has no description field — skipped` and continues with the remaining verbs; the build does not block on a malformed source file'
-    text: While a SKILL.md is missing YAML frontmatter or its frontmatter has no description field, the system shall warn and skip the verb without aborting the build so a malformed source file does not block the rest of the multi-host transpile.
-    evidence_refs: [scripts/build-plugin.mjs]
+    statement: While a SKILL.md is missing YAML frontmatter or its frontmatter has
+      no description field, the system shall warn and skip the verb without
+      aborting the build so a malformed source file does not block the rest of
+      the multi-host transpile.
+    evidence_refs:
+      - scripts/build-plugin.mjs

@@ -75,11 +75,14 @@ describe('MCP serve telemetry (F-6ba22c5c AC-373257b2)', () => {
   });
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
-  test('clad_get_working_set hit → resolved:true with truncated + sliceTokens; miss → resolved:false', async () => {
+  test('[covers:F-6ba22c5c/AC-26c4f8b6] working-set hit, miss, and pre-serve error use exact served-event rules', async () => {
     const {client, cleanup} = await makeClient(dir);
     try {
       await client.callTool({name: 'clad_get_working_set', arguments: {query: 'F-001', max_tokens: 5000}});
       await client.callTool({name: 'clad_get_working_set', arguments: {query: 'nope'}});
+      writeFileSync(join(dir, 'spec.yaml'), 'unreadable: [', 'utf8');
+      const errored = await client.callTool({name: 'clad_get_working_set', arguments: {query: 'F-001'}});
+      expect(errored.isError).toBe(true);
     } finally {
       await cleanup();
     }
@@ -90,6 +93,9 @@ describe('MCP serve telemetry (F-6ba22c5c AC-373257b2)', () => {
     expect(hit.payload).toMatchObject({tool: 'clad_get_working_set', resolved: true, truncated: expect.any(Boolean)});
     expect(hit.payload.sliceTokens as number).toBeGreaterThan(0);
     expect(miss.payload).toMatchObject({tool: 'clad_get_working_set', resolved: false});
+    expect(miss.payload.truncated).toBeUndefined();
+    expect(miss.payload.sliceTokens).toBeUndefined();
+    expect(evs.some((event) => event.payload.query === 'F-001' && event.payload.resolved !== true)).toBe(false);
   });
 
   test('clad_get_context serve is recorded on hit (resolved:true) and miss (resolved:false)', async () => {

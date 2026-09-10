@@ -33,7 +33,7 @@ describe('renderPanel', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('renders one row per feature with a header', () => {
+  test('[covers:F-063/AC-162] renders one row per feature with a header', () => {
     const spec = specWith([
       {id: 'F-001', title: 'alpha', status: 'done'},
       {id: 'F-002', title: 'beta', status: 'done'},
@@ -148,6 +148,11 @@ describe('attestation column (F-95a096)', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
+  function stamp(spec: ReturnType<typeof specWith>): void {
+    writeFileSync(join(dir, 'spec.yaml'), JSON.stringify(spec, null, 2));
+    writeAttestation(dir, spec);
+  }
+
   /** The att glyph is the last cell: internal row = id + 14 cells + title. */
   function attCell(out: string, featureId: string): string {
     const line = out.split('\n').find((l) => l.startsWith(featureId));
@@ -161,12 +166,12 @@ describe('attestation column (F-95a096)', () => {
     expect(renderPanel(spec, dir).split('\n')[0]).toContain('att');
   });
 
-  test('✓ when the stamped tree-hash matches the modules on disk', () => {
+  test('[covers:F-95a096/AC-df6871] ✓ when the stamped tree-hash matches the modules on disk', () => {
     writeFileSync(join(dir, 'src', 'm.ts'), 'export const a = 1;\n');
     const spec = specWith([
       {id: 'F-aaa11111', title: 't', status: 'done', modules: ['src/m.ts']},
     ]);
-    writeAttestation(dir, spec);
+    stamp(spec);
     expect(attCell(renderPanel(spec, dir, {internal: true}), 'F-aaa11111')).toBe('✓');
   });
 
@@ -175,7 +180,7 @@ describe('attestation column (F-95a096)', () => {
     const spec = specWith([
       {id: 'F-aaa11111', title: 't', status: 'done', modules: ['src/m.ts']},
     ]);
-    writeAttestation(dir, spec);
+    stamp(spec);
     writeFileSync(join(dir, 'src', 'm.ts'), 'export const a = 2;\n');
     expect(attCell(renderPanel(spec, dir, {internal: true}), 'F-aaa11111')).toBe('!');
   });
@@ -184,7 +189,7 @@ describe('attestation column (F-95a096)', () => {
     writeFileSync(join(dir, 'src', 'm.ts'), 'x\n');
     writeFileSync(join(dir, 'src', 'n.ts'), 'y\n');
     const stamped = {id: 'F-aaa11111', title: 'a', status: 'done' as const, modules: ['src/m.ts']};
-    writeAttestation(dir, specWith([stamped]));
+    stamp(specWith([stamped]));
     const spec = specWith([
       stamped,
       {id: 'F-bbb22222', title: 'b', status: 'done', modules: ['src/n.ts']},
@@ -205,7 +210,7 @@ describe('attestation column (F-95a096)', () => {
   test('· for features that are not done or have no modules (n/a)', () => {
     writeFileSync(join(dir, 'src', 'm.ts'), 'x\n');
     const done = {id: 'F-aaa11111', title: 'a', status: 'done' as const, modules: ['src/m.ts']};
-    writeAttestation(dir, specWith([done]));
+    stamp(specWith([done]));
     const spec = specWith([
       done,
       {id: 'F-ccc33333', title: 'c', status: 'in_progress', modules: ['src/m.ts']},
@@ -256,7 +261,7 @@ describe('buildPanelModel — row model SSoT (AC-e5f48ce5)', () => {
     expect(model.columns).toEqual([...STAGE_COLUMNS, 'att']);
   });
 
-  test('one row per feature with {featureId, title, status, cells} aligned to columns', () => {
+  test('[covers:F-e940fffe/AC-e5f48ce5] one row per feature with {featureId, title, status, cells} aligned to columns', () => {
     const spec = goldenSpec();
     const model = buildPanelModel(spec, dir);
     expect(model.rows).toHaveLength(spec.features.length);
@@ -288,7 +293,7 @@ describe('buildPanelModel — row model SSoT (AC-e5f48ce5)', () => {
     }
   });
 
-  test('GOLDEN · default (Soft Shell) ANSI view is byte-identical to the pinned snapshot', () => {
+  test('[covers:F-e940fffe/AC-e5f48ce5] GOLDEN · default (Soft Shell) ANSI view is byte-identical to the pinned snapshot', () => {
     const golden = [
       'feature                            Typ Lin Dri Com Arc Sec Uni Cov Smo Per Vis Aud UAT att',
       'alpha feature                       -   -   -   -   -   -   -   -   -   -   -   ·   ·   -',
@@ -298,7 +303,7 @@ describe('buildPanelModel — row model SSoT (AC-e5f48ce5)', () => {
     expect(renderPanel(goldenSpec(), dir)).toBe(golden);
   });
 
-  test('GOLDEN · internal (Iron Core) ANSI view is byte-identical to the pinned snapshot', () => {
+  test('[covers:F-e940fffe/AC-e5f48ce5] GOLDEN · internal (Iron Core) ANSI view is byte-identical to the pinned snapshot', () => {
     const golden = [
       'feature      1.1 1.2 1.3 1.4 1.5 1.6 2.1 2.2 3.1 3.2 3.3 4.1 4.2 att',
       'F-aaaa1111   -   -   -   -   -   -   -   -   -   -   -   ·   ·   -  alpha feature',

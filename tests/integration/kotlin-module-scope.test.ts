@@ -59,6 +59,7 @@ function makeRepo(): void {
 function writeShard(modulesYaml: string): string {
   const featuresDir = join(dir, 'spec', 'features');
   mkdirSync(featuresDir, {recursive: true});
+  writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\n');
   const path = join(featuresDir, 'feat-aa11bb22.yaml');
   writeFileSync(
     path,

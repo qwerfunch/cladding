@@ -23,7 +23,7 @@
 // point.
 //
 // Layer: `report` is foundation-tier (spec/architecture.yaml) — it may read the
-// spec/ui models but must not reach into stages/drive/cli/serve. It imports
+// spec/ui models but must not reach into stages/cli/serve. It imports
 // gateLabel + the PanelModel shape from the peer `ui` layer only.
 
 import type {CellGlyph, PanelModel} from '../ui/panel.js';

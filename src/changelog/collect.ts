@@ -19,7 +19,7 @@
 // — the property that makes a rendered release note auditable.
 //
 // Layer: `changelog` is foundation-tier (spec/architecture.yaml) — it must
-// never import stages/drive/cli/serve. The CLI verb (src/cli/changelog.ts)
+// never import stages/cli/serve. The CLI verb (src/cli/changelog.ts)
 // and the MCP tool (src/serve/server.ts) are thin wrappers over this module.
 
 import {execFileSync} from 'node:child_process';

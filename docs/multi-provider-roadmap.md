@@ -9,6 +9,8 @@ related_spec: spec/features/F-049.yaml
 
 LLM access today splits into two modes. cladding treats both as first-class but defaults to the one that does not require users to manage API keys.
 
+> **0.10.0 note.** The headless agent loop is retired, and the adapters that existed only to serve it — the SDK adapter, the two host adapters, and the adapter registry — went with it. What survives is the host transport plus the sampling context the onboarding scan uses. Rows and code paths below that name the retired files are kept as history, not as a description of the current tree.
+
 ## Two modes
 
 | Mode | Who calls the LLM | API key | Examples | cladding adapter directory |
@@ -55,13 +57,13 @@ The `AgentResult` and the audit-log evidence shape are invariant across adapters
 | `openai` | sdk | reserved | `OPENAI_API_KEY` | Slot exists in `SDK_REGISTRY`; not implemented yet. |
 | `gemini` | sdk | reserved | `GOOGLE_API_KEY` | Slot exists in `SDK_REGISTRY`; not implemented yet. |
 
-v0.2.26 closes the host-mode loop: `clad serve` boots the MCP server, `setHostMcpServer` registers it, and both host adapters route LLM dispatch through `McpSamplingTransport` automatically. Standalone `clad run` (no `clad serve`) keeps the Mock fallback so unit-test paths are unchanged.
+v0.2.26 closes the host-mode loop: `clad serve` boots the MCP server, `setHostMcpServer` registers it, and both host adapters route LLM dispatch through `McpSamplingTransport` automatically. A standalone CLI invocation (no `clad serve`) kept the Mock fallback so unit-test paths were unchanged.
 
 ## How to add a new adapter
 
 1. Pick a directory: `src/adapters/host/<name>.ts` or `src/adapters/sdk/<name>.ts`.
 2. Implement `AgentAdapter`. The `invokeAgent` body translates `PersonaSpec` (parsed from `src/agents/<name>.md`) plus `AgentContext` (current feature shard + tagged guardrails) into whatever the underlying transport expects.
-3. Register the adapter in `src/adapters/index.ts` under the right mode.
+3. Wire the adapter into whatever selects it. The mode-keyed registry this step once named retired with the headless loop in 0.10.0, so a future adapter needs a new selection point rather than that file.
 4. Add a row to the adapter matrix above and to F-049 if you're introducing a new failure mode (AC-088 covers `host-unavailable`, `auth`, `rate-limit`, `network`, `context-window`, `safety-filter`; new modes need a new bullet).
 5. Add a fixture under `tests/adapters/<your-mode>-parity.test.ts` that runs the synthetic single-feature project through your adapter and asserts identical `AgentResult` shape vs. an existing adapter.
 
@@ -76,14 +78,14 @@ The two host adapters originally shipped as **mock implementations** that satisf
 
 ### The mismatch
 
-Cladding's `clad` CLI is a **single-shot process**. Every invocation parses arguments, runs to completion, exits. The host's agent-invocation machinery — Claude Code's Task/Agent tools, Cursor's agent API, an MCP transport — is **session-bound**: it lives inside a long-running editor/agent session and is not reachable from a separate process. So a short-running `clad run` cannot directly call those session-bound APIs.
+Cladding's `clad` CLI is a **single-shot process**. Every invocation parses arguments, runs to completion, exits. The host's agent-invocation machinery — Claude Code's Task/Agent tools, Cursor's agent API, an MCP transport — is **session-bound**: it lives inside a long-running editor/agent session and is not reachable from a separate process. So a short-running CLI process cannot directly call those session-bound APIs.
 
 Three plausible bridges, and why two of them don't fit cladding's current shape:
 
 | Bridge | Sketch | Why it (does not) work |
 |---|---|---|
-| Direct SDK call (Anthropic / OpenAI / Gemini) | `clad run` reads `*_API_KEY` and calls the SDK | Breaks F-049 AC-091 (host adapters require no API key); breaks the host-bound default policy v0.1.2 baked in. SDK adapters stay opt-in. |
-| Slash command output | `clad run` prints a "do this" instruction and the host's user runs it | Surrenders autonomy back to the user. Cladding's drive loop becomes a glorified `status`, not an autonomous orchestrator. |
+| Direct SDK call (Anthropic / OpenAI / Gemini) | the CLI reads `*_API_KEY` and calls the SDK | Breaks F-049 AC-091 (host adapters require no API key); breaks the host-bound default policy v0.1.2 baked in. SDK adapters stay opt-in. |
+| Slash command output | the CLI prints a "do this" instruction and the host's user runs it | Surrenders autonomy back to the user. Cladding's drive loop becomes a glorified `status`, not an autonomous orchestrator. |
 | Two-process bridge | Cladding runs as a server, the host calls in | Fits — but requires picking how cladding becomes a server. See below. |
 
 ### The two server options for v0.3.0

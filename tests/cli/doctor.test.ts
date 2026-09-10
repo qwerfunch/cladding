@@ -79,7 +79,7 @@ describe('clad doctor handler', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('greenfield (no events.log): friendly note + exit 0', () => {
+  test('[covers:F-bb15e6/AC-004] greenfield (no events.log): friendly note + exit 0', () => {
     runDoctorCommand({cwd: dir});
     expect(exitCalls).toEqual([0]);
     const out = stdoutChunks.join('');
@@ -90,7 +90,7 @@ describe('clad doctor handler', () => {
     expect(out.match(/never observed/g)).toHaveLength(5);
   });
 
-  test('healthy: events but zero sentinel_miss → pass pulse + event-type line + exit 0', () => {
+  test('[covers:F-bb15e6/AC-002] healthy: events but zero sentinel_miss → pass pulse + event-type line + exit 0', () => {
     seedEvents(dir, [
       {id: '1', timestamp: 't', type: 'feature_checkpoint', payload: {featureId: 'F-001'}},
       {id: '2', timestamp: 't', type: 'feature_checkpoint', payload: {featureId: 'F-002'}},
@@ -136,7 +136,7 @@ describe('clad doctor handler', () => {
     expect(out).toContain('Tune your host');
   });
 
-  test('--json: emits the raw DoctorReport and skips the formatted surface', () => {
+  test('[covers:F-bb15e6/AC-003] [covers:F-96fa5622/AC-8b386416] --json: emits the raw DoctorReport with every hook observation and skips the formatted surface', () => {
     seedHookHealth(dir);
     seedEvents(dir, [
       {id: '1', timestamp: 't', type: 'sentinel_miss', payload: {
@@ -181,7 +181,7 @@ describe('clad doctor handler', () => {
     expect(parsed.ciVersion).toEqual({unpinnedWorkflows: []});
   });
 
-  test('reports unpinned CI in text and JSON without failing', () => {
+  test('[covers:F-abd10f3c/AC-b0ade1e9] reports unpinned CI in text and JSON without failing', () => {
     seedWorkflow(dir, 'release.yml', 'steps:\n  - run: npx --yes cladding check --strict\n');
     runDoctorCommand({cwd: dir});
     expect(exitCalls).toEqual([0]);
@@ -201,7 +201,7 @@ describe('clad doctor handler', () => {
   // F-b0c2e724 — the legacy directory exclusion makes .cladding/config.yaml
   // uncommittable, so the gate an author tuned never reaches CI or a fresh
   // clone. Doctor diagnoses it read-only; it never rewrites the ignore file.
-  test('reports a blocked gate config in text and JSON without failing', () => {
+  test('[covers:F-b0c2e724/AC-d47b93c5] reports a blocked gate config in text and JSON without failing', () => {
     seedGitignore(dir, 'node_modules/\n.cladding/\n');
     seedEvents(dir, [
       {id: '1', timestamp: 't', type: 'feature_checkpoint', payload: {featureId: 'F-a0000001'}},
@@ -244,14 +244,14 @@ describe('clad doctor handler', () => {
     expect(JSON.parse(stdoutChunks.join('')).gateConfigIgnore).toBe('absent');
   });
 
-  test('keeps pinned CI quiet', () => {
+  test('[covers:F-abd10f3c/AC-9501f50d] keeps pinned CI quiet', () => {
     seedWorkflow(dir, 'cladding.yaml', 'steps:\n  - run: npx --yes cladding@0.9 check --strict\n');
     runDoctorCommand({cwd: dir});
     expect(exitCalls).toEqual([0]);
     expect(stdoutChunks.join('')).not.toContain('CI version pinning');
   });
 
-  test('text mode names observed hook times and stale runtime version without guessing missing events', () => {
+  test('[covers:F-96fa5622/AC-8b386416] text mode names observed hook times and stale runtime version without guessing missing events', () => {
     seedHookHealth(dir);
     seedEvents(dir, [
       {id: '1', timestamp: 't', type: 'feature_checkpoint', payload: {featureId: 'F-001'}},
@@ -266,7 +266,7 @@ describe('clad doctor handler', () => {
     expect(exitCalls).toEqual([0]);
   });
 
-  test('corrupt events.log: fail pulse + exit 1 (json flag does NOT swallow the parse error)', () => {
+  test('[covers:F-bb15e6/AC-005] corrupt events.log: fail pulse + exit 1 (json flag does NOT swallow the parse error)', () => {
     mkdirSync(join(dir, '.cladding'), {recursive: true});
     appendFileSync(join(dir, '.cladding', 'events.log.jsonl'), '{not-json\n', 'utf8');
     runDoctorCommand({cwd: dir});
@@ -283,6 +283,11 @@ describe('clad doctor handler', () => {
         {id: '2', timestamp: 't2', type: 'done_attempted', payload: {feature: 'F-aaa111', worst: 1, anyFailed: true, kept: false}},
         // Legacy stop_blocked shape deliberately lacks every additive P3 field.
         {id: '3', timestamp: 't3', type: 'stop_blocked', payload: {count: 2, fingerprint: 'abc'}},
+        // Additive fields are advisory telemetry. Malformed historical values
+        // must not make doctor fail or manufacture a later-gate match.
+        {id: '3-malformed', timestamp: 't3.5', type: 'stop_blocked', payload: {
+          count: 'two', fingerprint: 7, detectors: 'not-an-array', introduced: 'one', preexisting: null, dirty_hit: 'no',
+        }},
         {id: '4', timestamp: 't4', type: 'stop_exit_recorded', payload: {fingerprint: 'abc'}},
         {id: '5', timestamp: 't5', type: 'gate_run', payload: {tier: 'pre-push', strict: true, worst: 1, anyFailed: true, stopFingerprint: 'abc'}},
         {id: '6', timestamp: 't6', type: 'gate_run', payload: {tier: 'pre-push', strict: true, worst: 0, anyFailed: false, stopFingerprint: ''}},
@@ -290,7 +295,7 @@ describe('clad doctor handler', () => {
       ]);
     }
 
-    test('text mode renders gate runs, rejected dones, stop blocks, attestation', () => {
+    test('[covers:F-95a096/AC-846ce0][covers:F-1aab1bba/AC-a2a3beb3] text mode renders gate runs, rejected dones, Stop counters, attestation', () => {
       seedGovernance();
       mkdirSync(join(dir, 'spec'), {recursive: true});
       writeFileSync(
@@ -304,8 +309,8 @@ describe('clad doctor handler', () => {
       expect(out).toContain('Governance (lifecycle ledger)');
       expect(out).toContain('gate runs: 3  (last: pre-push strict=true → GREEN)');
       expect(out).toContain('done attempts: 2  rejected by the gate: 1');
-      expect(out).toContain('stop blocks: 1');
-      expect(out).toContain('stop exits recorded: 1  blocked fingerprints later seen by a gate: 1/1');
+      expect(out).toContain('stop blocks: 2');
+      expect(out).toContain('stop exits recorded: 1  blocked fingerprints later seen by a gate: 1/2');
       expect(out).not.toContain('UNRESOLVED'); // no stop-block.json on disk
       expect(out).toContain('attestation: 2 feature(s) stamped');
     });
@@ -325,7 +330,7 @@ describe('clad doctor handler', () => {
       expect(exitCalls).toEqual([0]);
     });
 
-    test('governance summary exposes stop outcomes and tolerates legacy events', () => {
+    test('[covers:F-95a096/AC-846ce0][covers:F-1aab1bba/AC-a2a3beb3] governance summary exposes Stop counters and tolerates legacy or malformed additive events in JSON', () => {
       seedGovernance();
       runDoctorCommand({cwd: dir, json: true});
       const parsed = JSON.parse(stdoutChunks.join(''));
@@ -334,8 +339,8 @@ describe('clad doctor handler', () => {
         lastGate: {tier: 'pre-push', strict: true, worst: 0},
         doneAttempts: 2,
         doneRejected: 1,
-        stopBlocked: 1,
-        stopOutcomes: {blocked: 1, exitsRecorded: 1, observedByLaterGate: 1, notObservedByLaterGate: 0},
+        stopBlocked: 2,
+        stopOutcomes: {blocked: 2, exitsRecorded: 1, observedByLaterGate: 1, notObservedByLaterGate: 1},
         unresolvedStopBlock: false,
         attestation: {present: false, entries: 0},
       });

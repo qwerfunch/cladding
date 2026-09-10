@@ -47,14 +47,14 @@ describe('HARDCODED_SECRET detector', () => {
     expect(execaSyncMock).not.toHaveBeenCalled();
   });
 
-  test('scanner exits 0 → silent (clean tree)', () => {
+  test('[covers:F-058/AC-137] scanner exit 0 produces no finding', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
     execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     expect(hardcodedSecret.run({cwd: dir})).toEqual([]);
     expect(execaSyncMock).toHaveBeenCalledOnce();
   });
 
-  test('scanner non-zero exit → error finding (with tool output)', () => {
+  test('[covers:F-058/AC-137] scanner non-zero output produces an error finding', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
     execaSyncMock.mockReturnValueOnce({
       exitCode: 1,
@@ -68,7 +68,7 @@ describe('HARDCODED_SECRET detector', () => {
     expect(findings[0].message).toContain('config.ts:5');
   });
 
-  test('scanner not installed (ENOENT on RESULT) → info, NOT a false "secrets reported"', () => {
+  test('[covers:F-058/AC-137] scanner ENOENT is observed as unavailable', () => {
     // execaSync(reject:false) RETURNS {code:'ENOENT', exitCode:undefined} for a
     // missing binary — it does NOT throw. A registered-but-uninstalled scanner
     // must yield an info skip, never a false error finding.

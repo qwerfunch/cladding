@@ -21,6 +21,14 @@ type RGB = readonly [number, number, number];
 
 const maxChannel = (c: RGB): number => Math.max(c[0], c[1], c[2]);
 
+/** Perceptual Y (0..255) used by the near-black graph bloom floor. */
+const luminance = (hex: string): number => {
+  const [red, green, blue] = hexToRgb01(hex);
+  return (0.2126 * red + 0.7152 * green + 0.0722 * blue) * 255;
+};
+
+const whiteDistance = (color: RGB): number => color.reduce((sum, channel) => sum + (1 - channel) ** 2, 0);
+
 describe('color constant tables', () => {
   test('TIER_COL has the four declared tiers', () => {
     expect(TIER_COL.A).toBe('#3b82f6');
@@ -65,6 +73,26 @@ describe('color constant tables', () => {
     expect(skillHue).toBeGreaterThan(295);
     expect(skillHue).toBeLessThan(345);
     expect(hueOf(KIND_COL.doc)).toBeGreaterThan(295); // doc is in the same pink family
+  });
+
+  test('[covers:F-5b188856/AC-6b822a] groups doc and skill in the pink arc and keeps every emitted kind color above the bloom luminance floor', () => {
+    const hueOf = (hex: string): number => {
+      const [red, green, blue] = hexToRgb01(hex);
+      const high = Math.max(red, green, blue);
+      const low = Math.min(red, green, blue);
+      const delta = high - low;
+      if (delta === 0) return 0;
+      const hue = high === red ? ((green - blue) / delta) % 6 : high === green ? (blue - red) / delta + 2 : (red - green) / delta + 4;
+      return (hue * 60 + 360) % 360;
+    };
+
+    expect(hueOf(KIND_COL.doc)).toBeGreaterThan(295);
+    expect(hueOf(KIND_COL.skill)).toBeGreaterThan(295);
+    expect(hueOf(KIND_COL.doc)).toBeLessThan(345);
+    expect(hueOf(KIND_COL.skill)).toBeLessThan(345);
+    for (const [kind, color] of Object.entries(KIND_COL)) {
+      expect(luminance(color), `${kind} must clear the bloom luminance floor`).toBeGreaterThanOrEqual(125);
+    }
   });
 
   test('EDGE_COL has the seven declared edge kinds', () => {
@@ -114,7 +142,23 @@ describe('hexToRgb01', () => {
 });
 
 describe('semanticHue', () => {
-  test('kind always wins — tier never touches the node hue (double-encoding removed)', () => {
+  test('[covers:F-77f7ead0/AC-1a2b3c4d] all live kinds alone choose their hue across tiers, while degree whitens and boosted instances bloom', () => {
+    const tiers = ['A', 'B', 'C', 'D'];
+    for (const [kind, hue] of Object.entries(KIND_COL)) {
+      const leafCore = coreColor(hexToRgb01(hue), degreeLuminosity(0, 30));
+      const hubCore = coreColor(hexToRgb01(hue), degreeLuminosity(30, 30));
+      const leafInstance = instanceColor({node: {kind}, deg: 0, maxDeg: 30});
+      for (const tier of tiers) {
+        expect(semanticHue({kind, tier})).toBe(hue);
+        expect(instanceColor({node: {kind, tier}, deg: 0, maxDeg: 30})).toEqual(leafInstance);
+      }
+      expect(whiteDistance(hubCore)).toBeLessThan(whiteDistance(leafCore));
+      expect(maxChannel(leafInstance)).toBeGreaterThan(1);
+      expect(maxChannel(instanceColor({node: {kind}, deg: 30, maxDeg: 30}))).toBeGreaterThan(1);
+    }
+  });
+
+  test('[covers:F-5b188856/AC-590579] kind always wins — tier never touches the node hue (double-encoding removed)', () => {
     // Even a tiered node colors by kind: a tier-A module is orange (its kind), NOT tier-A blue.
     expect(semanticHue({tier: 'A', kind: 'module'})).toBe('#f97316');
     expect(semanticHue({tier: 'B', kind: 'test'})).toBe('#22c55e');
@@ -135,7 +179,7 @@ describe('semanticHue', () => {
     expect(new Set([m, t, d]).size).toBe(3);
   });
 
-  test('a tier-only node (no kind) falls back to DEFAULT_NODE — tier is not a hue', () => {
+  test('[covers:F-5b188856/AC-590579] a tier-only node (no kind) falls back to DEFAULT_NODE — tier is not a hue', () => {
     expect(semanticHue({tier: 'A'})).toBe(DEFAULT_NODE);
     expect(semanticHue({tier: 'B'})).toBe(DEFAULT_NODE);
     expect(semanticHue({tier: 'C'})).toBe(DEFAULT_NODE);
@@ -255,7 +299,7 @@ describe('healthOverride', () => {
     expect(r).toBeGreaterThan(b);
   });
 
-  test('error red channel exceeds 1.0', () => {
+  test('[covers:F-77f7ead0/AC-2b3c4d5e] error red channel exceeds 1.0', () => {
     const [r] = healthOverride('error', 0);
     expect(r).toBeGreaterThan(1.0);
   });
@@ -333,7 +377,7 @@ describe('instanceColor', () => {
     expect(maxChannel(drift)).toBeGreaterThan(1.0);
   });
 
-  test('error drift is the brightest: its max channel > any healthy node max channel', () => {
+  test('[covers:F-77f7ead0/AC-2b3c4d5e] error drift is the brightest: its max channel > any healthy node max channel', () => {
     const drift = instanceColor({
       node: {kind: 'feature'},
       deg: 1,
@@ -379,7 +423,7 @@ describe('instanceColor', () => {
 });
 
 describe('edgeColor', () => {
-  test('known kind maps to its color', () => {
+  test('[covers:F-77f7ead0/AC-4d5e6f70] known kind maps to its color', () => {
     expect(edgeColor('depends_on')).toBe('#3b82f6');
   });
 
@@ -390,7 +434,7 @@ describe('edgeColor', () => {
 });
 
 describe('edgeIntensity', () => {
-  test('no highlight, same kind -> 0.25', () => {
+  test('[covers:F-77f7ead0/AC-4d5e6f70] no highlight, same kind -> 0.25', () => {
     expect(
       edgeIntensity({highlightActive: false, sourceHi: false, targetHi: false, sameKind: true}),
     ).toBeCloseTo(0.25);
@@ -402,13 +446,13 @@ describe('edgeIntensity', () => {
     ).toBeCloseTo(0.06);
   });
 
-  test('highlight active, both endpoints hi -> 0.5', () => {
+  test('[covers:F-77f7ead0/AC-4d5e6f70] highlight active, both endpoints hi -> 0.5', () => {
     expect(
       edgeIntensity({highlightActive: true, sourceHi: true, targetHi: true, sameKind: false}),
     ).toBeCloseTo(0.5);
   });
 
-  test('highlight active, neither hi -> 0 (skip)', () => {
+  test('[covers:F-77f7ead0/AC-4d5e6f70] highlight active, neither hi -> 0 (skip)', () => {
     expect(
       edgeIntensity({highlightActive: true, sourceHi: false, targetHi: false, sameKind: true}),
     ).toBeCloseTo(0);

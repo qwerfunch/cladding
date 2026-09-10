@@ -3,19 +3,17 @@ title: stage_1.4 Commit — clean-tree check
 status: done
 modules:
   - src/stages/commit.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-010
-    ears: ubiquitous
-    action: invoke `git status --porcelain` and pass iff the output is empty
-    response: returns a stage_1.4 StageResult
-    text: The system shall invoke `git status --porcelain` and pass stage_1.4 iff
-      the working tree and index are both clean.
-    evidence_refs: [self-dogfood:stage:commit-postcommit]
+    statement: The system shall invoke `git status --porcelain` and pass stage_1.4
+      iff the working tree and index are both clean.
+    evidence_refs:
+      - self-dogfood:stage:commit-postcommit
   - id: AC-011
-    ears: unwanted
-    condition: if git is not available or the directory is not a repo
-    action: return pass=false with exitCode 2
-    response: the stage is treated as skipped, not a false failure
-    text: If git is unavailable or the cwd is not a git repository, the system shall
-      return exitCode 2 so the stage is treated as skipped.
-    evidence_refs: [fixture:F-007_AC-011]
+    statement: If git is unavailable or the cwd is not a git repository, then the
+      system shall return exitCode 2 so the stage is treated as skipped.
+    kind: behavior
+    evidence_refs:
+      - fixture:F-007_AC-011

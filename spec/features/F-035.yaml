@@ -6,12 +6,11 @@ modules:
 depends_on:
   - F-003
   - F-032
+capability_refs: []
 acceptance_criteria:
   - id: AC-054
-    ears: event
-    condition: when an evidence entry's identity.timestamp is more than 90 days old
-    action: emit a warn finding listing the entry id and age
-    response: stage_1.3 surfaces but does not fail
-    text: When an evidence entry's identity.timestamp is more than 90 days old, the
-      detector shall emit a warn finding listing the entry id and age in days.
-    evidence_refs: [fixture:F-035_AC-054]
+    statement: When an evidence entry's identity.timestamp is more than 90 days old,
+      the detector shall emit a warn finding listing the entry id and age in
+      days.
+    evidence_refs:
+      - fixture:F-035_AC-054

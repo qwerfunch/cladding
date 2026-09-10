@@ -5,45 +5,42 @@ modules:
   - src/adapters/host/transport.ts
   - src/hitl/audit.ts
   - src/serve/server.ts
-depends_on: [F-049, F-068, F-069, F-073]
+depends_on:
+  - F-049
+  - F-068
+  - F-069
+  - F-073
+capability_refs: []
 acceptance_criteria:
   - id: AC-211
-    ears: ubiquitous
-    action: add a real-host Transport that dispatches LLM calls via the MCP sampling request
-    response: src/adapters/host/transport.ts exports McpSamplingTransport which accepts a SamplingCapableServer and forwards persona body + feature shard to the connected MCP client via createMessage(...)
-    text: The system shall add a McpSamplingTransport implementation of the Transport interface that delegates the LLM call to the connected MCP client through the SDK's createMessage sampling request, returning the client's reply as an AgentResult.
-    test_refs: [tests/adapters/transport.test.ts]
+    statement: The system shall add a McpSamplingTransport implementation of the
+      Transport interface that delegates the LLM call to the connected MCP
+      client through the SDK's createMessage sampling request, returning the
+      client's reply as an AgentResult.
   - id: AC-212
-    ears: state
-    condition: while the MCP client returns a text reply to createMessage
-    action: map the reply to an AgentResult with identity, summary, mutations
-    response: McpSamplingTransport.invoke returns identity.author='llm', identity.name=`${id}:${persona}`, summary is the first 200 chars of the reply text, mutations is empty (structured mutations land later), notes carries model + stopReason
-    text: While the MCP client returns a text reply to createMessage, the system shall map the reply to an AgentResult with identity.author='llm', a host-tagged identity.name, a 200-char-truncated summary, an empty mutations list (v0.2.25 scope), and notes carrying model + stopReason.
-    test_refs: [tests/adapters/transport.test.ts]
+    statement: While the MCP client returns a text reply to createMessage, the
+      system shall map the reply to an AgentResult with identity.author='llm', a
+      host-tagged identity.name, a 200-char-truncated summary, an empty
+      mutations list (v0.2.25 scope), and notes carrying model + stopReason.
   - id: AC-213
-    ears: ubiquitous
-    action: add an observer hook to the audit log writer
-    response: src/hitl/audit.ts exports subscribeAudit(handler) returning a dispose function; handlers fire after the file write and exceptions from a handler are swallowed so the audit chain is not broken
-    text: The system shall expose a subscribeAudit(handler) observer hook in src/hitl/audit.ts that fires after a successful appendEvidence write, returning a dispose callback. Exceptions from a handler must be swallowed so a misbehaving observer cannot corrupt the audit chain.
-    test_refs: [tests/hitl/audit.test.ts]
+    statement: The audit module shall expose a subscribeAudit(handler) observer hook
+      in src/hitl/audit.ts that fires after a successful appendEvidence write,
+      returns a dispose callback, and swallows handler exceptions so a
+      misbehaving observer cannot corrupt the audit chain.
+    kind: behavior
   - id: AC-214
-    ears: state
-    condition: while the MCP server is built via buildServer for a given cwd and a new evidence entry is appended to that cwd's audit log
-    action: emit a notifications/resources/updated for cladding://audit
-    response: 'registerAuditNotifier subscribes an audit observer that filters by cwd and calls server.server.sendResourceUpdated for the cladding://audit URI when the cwd matches'
-    text: While the MCP server is built via buildServer(cwd) and a new evidence entry is appended to that cwd's audit log, the system shall emit a notifications/resources/updated notification for cladding://audit so a subscribed client can refresh its cached view.
-    test_refs: [tests/serve/audit-notify.test.ts]
+    statement: While the MCP server is built via buildServer(cwd) and a new evidence
+      entry is appended to that cwd's audit log, the system shall emit a
+      notifications/resources/updated notification for cladding://audit so a
+      subscribed client can refresh its cached view.
   - id: AC-215
-    ears: unwanted
-    condition: if a new evidence entry is appended for a cwd OTHER than the server's project root
-    action: do NOT emit a resources/updated notification for that server
-    response: registerAuditNotifier checks the incoming cwd against the server's cwd and returns early when they differ; the observer is registered globally but each server only notifies for its own root
-    text: If a new evidence entry is appended for a cwd other than the server's project root, the system shall not emit a resources/updated notification for that server so multiple cladding processes coexist without cross-talk.
-    test_refs: [tests/serve/audit-notify.test.ts]
+    statement: If new evidence is appended for a cwd other than the server project
+      root, then the server shall not emit a resources/updated notification for
+      that server so multiple cladding processes coexist without cross-talk.
+    kind: behavior
   - id: AC-216
-    ears: state
-    condition: while a connected MCP client subscribes to cladding://audit, an evidence entry is appended, and the client re-reads the resource
-    action: surface the new entry in the response
-    response: 'after the notification, client.readResource for the cladding://audit URI returns content containing the new entry text'
-    text: While a connected MCP client subscribes to cladding://audit, receives a resources/updated notification, and re-reads the resource, the system shall surface the new evidence entry in the returned content — the end-to-end live-tail contract.
-    test_refs: [tests/serve/audit-notify.test.ts]
+    statement: While a connected MCP client subscribes to cladding://audit and
+      receives a resources/updated notification and rereads the resource, the
+      server shall surface the new evidence entry in returned content as the
+      end-to-end live-tail contract.
+    kind: behavior

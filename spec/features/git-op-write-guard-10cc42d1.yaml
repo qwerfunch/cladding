@@ -1,6 +1,5 @@
 id: F-10cc42d1
-slug: git-op-write-guard
-title: "Derived-file write guard during in-progress git operations"
+title: Derived-file write guard during in-progress git operations
 status: done
 modules:
   - src/core/git-ops.ts
@@ -8,30 +7,31 @@ modules:
   - src/cli/update.ts
   - src/cli/done.ts
   - src/serve/server.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-578c6226
-    ears: state
-    condition: "while a git merge, rebase, or cherry-pick is in progress in the working tree (MERGE_HEAD, rebase-merge, rebase-apply, or CHERRY_PICK_HEAD present under the resolved git dir)"
-    action: "skip writing spec/attestation.yaml even when the strict gate completes GREEN, emitting an informational note that attestation is deferred to the next post-merge gate run"
-    response: "a half-merged tree is never stamped as verified"
-    text: "While a git operation is in progress, the system shall not write spec/attestation.yaml on a GREEN gate and shall note the deferral instead."
-    notes: "## Why\nA gate run mid-merge computes module hashes from a partially merged tree; stamping it as verified would commit garbage into the merge commit. Observed residue class on 2026-06-29 (external-PR evaluation) came from CLI-invoked check/sync during branch operations — the Stop hook itself writes nothing (verified hook.ts:339-417)."
-    test_refs: [tests/cli/clad.test.ts]
+    statement: While a git operation is in progress, the system shall not write
+      spec/attestation.yaml on a GREEN gate and note the deferral instead.
+    kind: behavior
+    notes: >-
+      ## Why
+
+      A gate run mid-merge computes module hashes from a partially merged tree;
+      stamping it as verified would commit garbage into the merge commit.
+      Observed residue class on 2026-06-29 (external-PR evaluation) came from
+      CLI-invoked check/sync during branch operations — the Stop hook itself
+      writes nothing (verified hook.ts:339-417).
   - id: AC-28d60113
-    ears: event
-    condition: "when clad sync, clad update, or the MCP syncInventory path runs while a git operation is in progress"
-    action: "skip every derived-file writer on that path — spec.yaml inventory and spec/index.yaml on all three, plus clad sync's doc-links index, test_ref repair, and deliverable auto-maintenance — emit one informational note, and keep the command's read-only reporting working with success exit"
-    response: "derived files never change mid-operation, so merges/rebases see no surprise writes"
-    text: "When derived-file writers run during an in-progress git operation, the system shall skip all of them (inventory, feature index, doc-links, test_ref repair, deliverable maintenance) while keeping read-only behavior intact."
-    test_refs: [tests/cli/clad.test.ts, tests/cli/update.test.ts, tests/serve/server.test.ts]
+    statement: When derived-file writers run during an in-progress git operation,
+      the system shall skip all of them (inventory, feature index, doc-links,
+      test_ref repair, deliverable maintenance) while keeping read-only behavior
+      intact.
   - id: AC-611089cf
-    ears: unwanted
-    condition: "if clad done is invoked while a git operation is in progress"
-    action: "refuse to flip the feature status, naming the in-progress operation in the error, without editing the shard or writing attestation"
-    response: "done verdicts are only ever earned on a settled tree"
-    text: "If a git operation is in progress, the system shall refuse clad done with an explanatory error and make no writes."
-    test_refs: [tests/cli/done.test.ts]
+    statement: If a git operation is in progress, then the system shall refuse clad
+      done with an explanatory error and make no writes.
+    kind: behavior
   - id: AC-249b0837
-    ears: ubiquitous
-    text: "The git-operation probe shall resolve the git dir via git rev-parse (worktree layouts included) and return false in non-git directories or on any probe error, so the guard can never break normal operation."
-    test_refs: [tests/core/git-ops.test.ts]
+    statement: The git-operation probe shall resolve the git dir via git rev-parse
+      (worktree layouts included) and return false in non-git directories or on
+      any probe error, so the guard can never break normal operation.

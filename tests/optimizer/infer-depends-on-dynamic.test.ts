@@ -30,7 +30,7 @@ const readerOf =
     Object.prototype.hasOwnProperty.call(sources, path) ? sources[path] : null;
 
 describe('inferDependsOn — dynamicImportFiles', () => {
-  test('flags a module with dynamic imports in dynamicImportFiles', () => {
+  test('[covers:F-0f2984d0/AC-d7c33b] flags a module with dynamic imports in dynamicImportFiles', () => {
     const spec = specOf([
       feature('F-aaa111', 'a', ['pkg/a.py']),
       feature('F-bbb222', 'b', ['pkg/b.py']),
@@ -47,7 +47,7 @@ describe('inferDependsOn — dynamicImportFiles', () => {
     expect(result.dynamicImportFiles).toHaveLength(2);
   });
 
-  test('leaves dynamicImportFiles empty when all imports are static', () => {
+  test('[covers:F-0f2984d0/AC-d7c33b] leaves dynamicImportFiles empty when all imports are static', () => {
     const spec = specOf([
       feature('F-aaa111', 'a', ['pkg/a.py']),
       feature('F-bbb222', 'b', ['pkg/b.py']),
@@ -63,7 +63,7 @@ describe('inferDependsOn — dynamicImportFiles', () => {
     expect(result.dynamicImportFiles).toEqual([]);
   });
 
-  test('dynamicImportFiles is deterministic and does not alter inferred edges', () => {
+  test('[covers:F-0f2984d0/AC-1781e6] dynamicImportFiles is deterministic and does not alter inferred edges', () => {
     const spec = specOf([
       feature('F-aaa111', 'a', ['pkg/a.py']),
       feature('F-bbb222', 'b', ['pkg/b.py']),

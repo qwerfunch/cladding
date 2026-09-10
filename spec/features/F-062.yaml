@@ -1,41 +1,64 @@
 id: F-062
-title: cli test batch 1 + widened coverage scope
+title: CLI behavior evidence
 status: done
 modules:
+  - src/cli/init.ts
   - src/cli/benchmark.ts
   - tests/cli/init.test.ts
   - tests/cli/benchmark.test.ts
   - vitest.config.ts
-depends_on: [F-061]
+depends_on:
+  - F-061
+capability_refs: []
 acceptance_criteria:
   - id: AC-153
-    ears: ubiquitous
-    action: widen the coverage measurement scope
-    response: vitest.config.ts coverage.include lists every first-party source dir (cli, drive, optimizer, adapters, router, ui, hitl, events, agents) in addition to stages and spec; pre-v0.2.13 percentages remain valid for the narrow scope but are no longer directly comparable to v0.2.13+ numbers
-    text: The system shall widen the vitest coverage scope to every first-party source dir, so the headline coverage number tracks the whole codebase, not just stages + spec.
-    evidence_refs: [vitest.config.ts]
+    statement: The system shall widen the vitest coverage scope to every first-party
+      source dir, so the headline coverage number tracks the whole codebase, not
+      just stages + spec.
+    evidence_refs:
+      - vitest.config.ts
   - id: AC-154
-    ears: ubiquitous
-    action: refactor src/cli/benchmark.ts for testability
-    response: src/cli/benchmark.ts exports `approxTokens` and `benchmark`; CLI bootstrap code is wrapped in `isCliEntry` guard so test imports do not trigger process.exit
-    text: The system shall refactor src/cli/benchmark.ts to export its helpers and wrap CLI side-effects in an isCliEntry guard, matching every other module's pattern.
-    evidence_refs: [src/cli/benchmark.ts]
+    statement: The system shall refactor src/cli/benchmark.ts to export its helpers
+      and wrap CLI side-effects in an isCliEntry guard, matching every other
+      module's pattern.
+    evidence_refs:
+      - src/cli/benchmark.ts
   - id: AC-155
-    ears: ubiquitous
-    action: bring src/cli/init.ts to 100% line coverage
-    response: tests/cli/init.test.ts adds three branch tests (explicit projectName / gitignore without trailing newline / gitignore created from scratch); line coverage on src/cli/init.ts reaches 100%
-    text: The system shall bring src/cli/init.ts to 100% line coverage via the three new branch tests.
-    test_refs: [tests/cli/init.test.ts]
+    statement: When initialization manages a project seed and ignore file, the
+      initializer shall preserve the supplied or derived project name and
+      existing ignore content while adding the managed entry only when it is
+      absent.
+    kind: behavior
+    notes: >
+      ## Historical schema-0.1 note
+
+      2026-05-19 · v0.2.13 · d8dbd81. Init fixtures: explicit names, an ignore
+
+      file without a trailing newline, and a missing ignore file; 100% line
+      coverage
+
+      through three branch tests; non-current. Released title: "cli test batch 1
+      + widened coverage scope".
   - id: AC-156
-    ears: ubiquitous
-    action: ship the first dedicated benchmark unit-test file
-    response: tests/cli/benchmark.test.ts covers approxTokens (4 cases) plus benchmark (single-feature / multi-feature / sharded / formula) for src/cli/benchmark.ts core helpers
-    text: The system shall ship tests/cli/benchmark.test.ts covering the benchmark module's exported helpers.
-    test_refs: [tests/cli/benchmark.test.ts]
+    statement: When benchmark helpers report a selected context, the helpers shall
+      estimate tokens by rounding text length up by the documented divisor and
+      preserve the selected pruning relationship in the result.
+    kind: quality
+    notes: >
+      ## Historical schema-0.1 note
+
+      2026-05-19 · v0.2.13 · d8dbd81. First benchmark-test fixtures:
+      approxTokens
+
+      in 4 cases plus single, multi, sharded, and formula selection;
+      non-current.
   - id: AC-157
-    ears: state
-    condition: while the v0.2.13 batch lands
-    action: keep overall line coverage above the 70% floor under the widened scope
-    response: vitest --coverage reports overall line coverage at ≥ 70% under the widened include list, so `clad check --strict` still passes the COVERAGE_DROP gate
-    text: While the v0.2.13 batch lands under the widened coverage scope, overall line coverage shall stay at ≥ 70% so `clad check --strict` continues to pass the drift stage.
-    evidence_refs: [CHANGELOG.md]
+    statement: While current coverage assurance is evaluated, the assurance registry
+      shall derive it from the coverage obligation and treat the widened-scope
+      measurement as historical evidence only.
+    kind: quality
+    notes: >
+      ## Historical schema-0.1 note
+
+      The v0.2.13 widened-scope ≥70% measurement is historical, not current
+      assurance.

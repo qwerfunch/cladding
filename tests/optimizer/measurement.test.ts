@@ -31,7 +31,7 @@ function spec(features: Record<string, unknown>[]): Spec {
 }
 
 describe('measureGraphEfficiency', () => {
-  test('the injected reader feeds BOTH slice and baseline — one universe, honest ratio', () => {
+  test('[covers:F-16138071/AC-493895] the injected reader feeds BOTH slice and baseline — one universe, honest ratio', () => {
     // Pre-v0.7.1 the slice read the real fs while the baseline read the
     // injected reader, so a virtual module inflated the shrink factor. With
     // one reader the module text lands on both sides: a module that fits the
@@ -54,7 +54,7 @@ describe('measureGraphEfficiency', () => {
     expect(row.contextRatio).toBeCloseTo(row.sliceTokens / row.naiveTokens, 5);
   });
 
-  test('splits cap-driven shrink from structural shrink (honest attribution)', () => {
+  test('[covers:F-16138071/AC-493895] splits cap-driven shrink from structural shrink (honest attribution)', () => {
     const features = [
       feat('F-aaa111', 'a', ['pkg/a.py']),
       feat('F-bbb222', 'b', ['pkg/b.py'], ['F-aaa111']),
@@ -100,7 +100,7 @@ describe('measureGraphEfficiency', () => {
     expect(stopReasonSum).toBeLessThanOrEqual(result.measured);
   });
 
-  test('a fitting feature counts as fits (no cap attribution) and structural == budgeted', () => {
+  test('[covers:F-16138071/AC-493895] a fitting feature counts as fits (no cap attribution) and structural == budgeted', () => {
     const s = spec([feat('F-eee555', 'e', ['pkg/e.py'])]);
     const read = (p: string): string | null => (p === 'pkg/e.py' ? 'x'.repeat(800) : null);
 
@@ -133,7 +133,7 @@ describe('measureGraphEfficiency', () => {
     expect(JSON.stringify(first)).toBe(JSON.stringify(second));
   });
 
-  test('skips lookup misses without throwing', () => {
+  test('[covers:F-16138071/AC-612e57] skips lookup misses without throwing', () => {
     const nullRead = (): string | null => null;
 
     const empty = spec([]);

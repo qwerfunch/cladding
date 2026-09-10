@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This file is the cross-tool entry point for any AI coding agent working on cladding (OpenAI Codex, Cursor, Cline, Aider, Continue, GitHub Copilot, Gemini CLI, JetBrains Junie, Windsurf, and the other tools that read the [agents.md](https://agents.md/) standard). Claude Code reads this too — there is no separate CLAUDE.md.
+This file is the shared cross-tool entry point for AI coding agents working on cladding (OpenAI Codex, Cursor, Cline, Aider, Continue, GitHub Copilot, Gemini CLI, JetBrains Junie, Windsurf, and other [agents.md](https://agents.md/) hosts). [`CLAUDE.md`](CLAUDE.md) is the Claude Code maintainer addendum; it does not replace this shared contract or `GOVERNANCE.md`.
 
 ## 1. Project
 
@@ -41,11 +41,11 @@ Comment policy in one paragraph: *why* over *what*, full doc-tag set on every ex
 
 ## 5. PR policy
 
-Branch off `develop`, never `main`. Open the PR against `develop`. The maintainer fast-forwards `main` only at explicit release time. Full contract: `GOVERNANCE.md` §4.3.
+Branch off `develop`, never `main`, and open ordinary PRs against `develop`. A release uses a `develop → main` PR merged with a merge commit, followed by the mandatory `main → develop` back-merge. Full contract: `GOVERNANCE.md` §3–4.3 and `CLAUDE.md`.
 
 ## 6. Agent personas
 
-cladding ships five persona definitions under `src/agents/`. **Planning intents** (deciding scope · drafting acceptance criteria · drawing a roadmap) are planner-territory (the persona formerly named `librarian`) and surface through natural language to the host AI tool, not through a fixed CLI verb. `clad run` (formerly `drive`) is for *executing* an already-defined plan as a feature group, not for *making* a plan.
+cladding ships five persona definitions under `src/agents/`. **Planning intents** (deciding scope · drafting acceptance criteria · drawing a roadmap) are planner-territory (the persona formerly named `librarian`) and surface through natural language to the host AI tool, not through a fixed CLI verb. Execution itself is no longer a cladding verb: 0.10.0 retired the headless loop, so `clad serve` publishes the spec and the gates over MCP and the host AI owns carrying an already-defined plan out.
 
 Each file is markdown with a YAML frontmatter that declares two parallel keys:
 
@@ -58,19 +58,20 @@ Non-Claude-Code hosts (Cursor, Cline, Continue, …) should map `capabilities:` 
 
 cladding does **not** require an API key by default. The default agent dispatch mode is `host` — cladding runs inside the user's existing AI tool (Claude Code with the Max/Pro subscription, Cursor, Cline, Continue, generic-MCP, …) and the host environment handles the LLM call.
 
-SDK adapters (Anthropic / OpenAI / Gemini) read their respective environment variable (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`) only when explicitly selected via `agent.mode = sdk` in `.cladding/config.yaml` or the `CLADDING_AGENT_MODE` env var. Full roadmap: `docs/multi-provider-roadmap.md`.
+The only place cladding itself reads a provider key is the onboarding scan fallback: `src/cli/scan/dispatcher.ts` lazily requires `@anthropic-ai/sdk` with `ANTHROPIC_API_KEY` when no host sampling server is registered. Every other execution path is owned by the host AI. Full roadmap: `docs/multi-provider-roadmap.md`.
 
 ## 8. Soft Shell rule
 
 User-facing output uses business language: feature titles ("Login flow"), stage names ("Drift", "UAT"), plain sentences. Internal identifiers (`F-NNN`, `AC-NNN`, `stage_X.Y`, `HUMAN_REQUIRED` and the rest of the halt enum) belong in the audit log and behind `--internal` / `--json` flags.
 
-Convert every internal id at the user surface boundary via `src/ui/softShell.ts`: `featureLabel(featureId, spec)`, `haltMessage(haltReason, spec)`, `gateLabel(stageId)`. Background: `ironclad-design/03-ux-routing.md` §1.2 and `docs/ux-routing-coverage.md`.
+Convert every internal id at the user surface boundary via `src/ui/softShell.ts`: `featureLabel(featureId, spec)` and `gateLabel(stageId)`. Background: `ironclad-design/03-ux-routing.md` §1.2 and `docs/ux-routing-coverage.md`.
 
 ## 9. Where to look
 
 - `GOVERNANCE.md` — sync policy, versioning, contributor policy, PR contract, v1.0 graduation criteria.
 - `CONTRIBUTING.md` — first-PR walkthrough.
 - `CODE_OF_CONDUCT.md`, `SECURITY.md` — community standards + private security reports.
+- `docs/design/spec-0.2.md` — accepted 0.10.0 continuation router; read it, then load only the task-routed canonical file under `docs/design/spec-0.2/` (implementation is still pending).
 - `docs/code-style.md` — per-language Google Style Guides table + comment policy in full.
 - `docs/ux-routing-coverage.md` — applied-status of `ironclad-design/03-ux-routing.md` prescriptions.
 - `docs/multi-provider-roadmap.md` — host vs sdk adapter model + adapter matrix + how to add one.

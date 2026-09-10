@@ -1,40 +1,31 @@
-# Cladding · Tier B · SSoT — editable, cross-validated · Refreshed by: clad init / clad refine
-# Capability ↔ feature traceability for cladding itself.
-#
-# Each capability is a high-level user-visible function cladding ships.
-# `features[]` lists the F-* ids that implement the capability. The
-# CAPABILITIES_FEATURE_MAPPING detector validates that every id resolves
-# to a real feature shard, and warns on orphan capabilities.
-schema: "0.1"
-source: spec.yaml
 capabilities:
-  - id: drift-detection
-    title: "Drift detection"
-    summary: "41 detectors across spec ↔ code ↔ test axes; the load-bearing core of cladding"
-    surface: feature
-    features: [F-99c6e5, F-3788c2, F-f44d1b, F-a4b512]
-  - id: harness-cli
-    title: "Harness CLI (clad)"
-    summary: "14 verbs covering init, scan, refine, sync, check, drive, serve, doctor, …"
-    surface: tool
-    features: [F-09d68b, F-bb15e6, F-7afbd4, F-6ba22c5c, F-5dfbac9c]
-  - id: spec-governance
-    title: "Spec governance (4-tier SSoT)"
-    summary: "Tier A/B/C/D model with explicit refresh authority + banner convention"
-    surface: feature
-    features: [F-d12edf, F-4747ef, F-f6d13e, F-a04cd9]
-  - id: mcp-host
-    title: "MCP host (clad serve)"
-    summary: "Exposes cladding's verbs as MCP tools for AI agents to drive directly"
-    surface: tool
-    features: [F-bb15e6, F-836a90, F-0f4dd6]
   - id: ab-evaluation
-    title: "A/B evaluation framework"
-    summary: "Measures cladding vs vanilla Claude Code across 8 structural + 2 outcome dimensions"
-    surface: feature
-    features: [F-4db939, F-ba2e05]
+    title: A/B evaluation framework
+    outcome: Compares Cladding-managed workflows with a curated vanilla Claude Code
+      simulation across eight structural metrics plus drift-catch and AI-query
+      outcomes; evidence is deterministic and historical, not a live-agent
+      quality claim.
+  - id: drift-detection
+    title: Drift detection
+    outcome: Runs 41 registered drift detectors across specification, code, tests,
+      fixtures, architecture, governance, environment, attestation, and
+      documentation; blocking depends on each detector's declared policy.
+  - id: harness-cli
+    title: Harness CLI (clad)
+    outcome: Provides the public `clad` command surface for initialization,
+      clarification, specification migration, assurance, graph, and host/MCP
+      workflows.
   - id: knowledge-graph
-    title: "Knowledge graph (spec↔code↔doc)"
-    summary: "Always-current, bidirectional graph over the SSoT: reverse-index backlinks, blast-radius impact queries, doc↔spec/doc link integrity, and viewer exports (mermaid/Obsidian/DOT/JSON) + hub stats. Retrieval/traceability, not correctness."
-    surface: tool
-    features: [F-ee47fc2b, F-7794a6bc, F-ee5f643e, F-569f4b37, F-02343cd1, F-64a5c159, F-8234ec3c, F-04f50847, F-af45042a, F-c6a32fff, F-0023ba22]
+    title: Knowledge graph (spec↔code↔doc)
+    outcome: Provides an invocation-current spec↔code↔doc graph with reverse-index
+      and blast-radius queries, doc-link integrity,
+      Mermaid/Obsidian/DOT/JSON/offline-HTML exports, live auto-reloading serve,
+      and hub stats; it supports retrieval and traceability, not correctness.
+  - id: mcp-host
+    title: MCP host (clad serve)
+    outcome: Exposes Cladding operations as stable MCP tools for AI-agent hosts,
+      with approval-gated mutation and shared CLI behavior.
+  - id: spec-governance
+    title: Spec governance (4-tier SSoT)
+    outcome: Defines the four-tier SSoT model with explicit producer, consumer, and
+      refresh authority and emits Tier A/B/C/D banners for managed artifacts.

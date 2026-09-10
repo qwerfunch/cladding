@@ -26,6 +26,7 @@
 // blocking under --strict. Threshold is a constant.
 
 import type {Spec} from '../../spec/types.js';
+import {compileSpecWorkspace} from '../../spec/compiler/compile.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
 import {withSpec} from './with-spec.js';
 
@@ -36,6 +37,25 @@ export const DEFAULT_MIN_FEATURES_FOR_SCENARIOS = 8;
 
 function runScenarioCoverage(opts: CommandStageOptions): readonly DriftFinding[] {
   const {cwd = '.'} = opts;
+  try {
+    const compilation = compileSpecWorkspace(cwd);
+    if (compilation.schemaVersion === '0.2') {
+      // UNKNOWN_REFERENCE belongs exclusively to REFERENCE_INTEGRITY. It must
+      // not become a second scenario-coverage diagnosis, even under `off`.
+      if (compilation.diagnostics.some((diagnostic) => diagnostic.code === 'UNKNOWN_REFERENCE')) return [];
+      return compilation.diagnostics
+        .filter((diagnostic) => diagnostic.code === 'INVALID_SCENARIO'
+          && diagnostic.message.startsWith('scenario coverage '))
+        .map((diagnostic) => ({
+          detector: NAME,
+          severity: diagnostic.severity === 'blocking' ? 'error' as const : 'info' as const,
+          path: diagnostic.source?.path ?? 'spec/scenarios/',
+          message: `${diagnostic.message} — add a complete user journey with actor, goal, success, steps, and feature references.`,
+        }));
+    }
+  } catch {
+    // Preserve the established schema 0.1 load-failure policy below.
+  }
   return withSpec(cwd, NAME, (spec) => detect(spec));
 }
 

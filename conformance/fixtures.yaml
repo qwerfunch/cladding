@@ -287,11 +287,11 @@ fixtures:
   - name: F-041_AC-065
     stage: documentary
     kind: documentary
-    description: "F-041/AC-065 — The system shall strip persona preamble lines (You are X, # Orchestrator/Librarian/..., Your job is...) from a prompt and collapse the resulting whitespace."
+    description: "F-041/AC-065 — The context envelope shall strip persona preamble lines from diagnostic sections before measurement and collapse the resulting blank runs."
   - name: F-041_AC-066
     stage: documentary
     kind: documentary
-    description: "F-041/AC-066 — The system shall shrink long text to head N + tail M lines with an elision marker, returning the original text unchanged when total lines fit within head + tail"
+    description: "F-041/AC-066 — When a diagnostic section exceeds its head and tail allowance, the context envelope shall keep the head and tail lines with an elision marker that names the exact number of elided lines."
   - name: F-042_AC-067
     stage: documentary
     kind: documentary

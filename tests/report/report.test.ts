@@ -67,7 +67,7 @@ function mkInputs(overrides: Partial<ReportInputs> = {}): ReportInputs {
 }
 
 describe('report/report — buildReportModel (AC-cbf1c202)', () => {
-  test('partitions changed files into owned vs unowned by owner count', () => {
+  test('[covers:F-f6cc5e5a/AC-cbf1c202] partitions changed files into owned vs unowned by owner count', () => {
     const codeChanges: CodeChangeInput[] = [
       {path: 'src/orphan.ts', owners: [], testRefs: []},
       {path: 'src/owned.ts', owners: [{id: 'F-aaa', title: 'Alpha'}], testRefs: ['tests/a.test.ts#x']},
@@ -125,7 +125,7 @@ describe('report/report — buildReportModel (AC-cbf1c202)', () => {
 });
 
 describe('report/report — renderReportMarkdown six sections + determinism (AC-cbf1c202)', () => {
-  test('emits the six mandated sections in order', () => {
+  test('[covers:F-f6cc5e5a/AC-cbf1c202] emits the six mandated sections in order', () => {
     const model = buildReportModel(
       mkInputs({
         codeChanges: [
@@ -145,7 +145,7 @@ describe('report/report — renderReportMarkdown six sections + determinism (AC-
     }
   });
 
-  test('two renders on the same model are byte-identical', () => {
+  test('[covers:F-f6cc5e5a/AC-cbf1c202] two renders on the same model are byte-identical', () => {
     const model = buildReportModel(
       mkInputs({
         codeChanges: [
@@ -193,7 +193,7 @@ describe('report/report — renderReportMarkdown six sections + determinism (AC-
 });
 
 describe('report/report — unowned surfacing (AC-7672ce5d)', () => {
-  test('lists an unowned changed file under an Unowned changes section', () => {
+  test('[covers:F-f6cc5e5a/AC-7672ce5d] lists an unowned changed file under an Unowned changes section', () => {
     const model = buildReportModel(
       mkInputs({
         codeChanges: [
@@ -207,7 +207,7 @@ describe('report/report — unowned surfacing (AC-7672ce5d)', () => {
     expect(md).toContain('- src/orphan.ts');
   });
 
-  test('an owned file never appears under the Unowned changes section', () => {
+  test('[covers:F-f6cc5e5a/AC-7672ce5d] an owned file never appears under the Unowned changes section', () => {
     const model = buildReportModel(
       mkInputs({
         codeChanges: [
@@ -221,7 +221,7 @@ describe('report/report — unowned surfacing (AC-7672ce5d)', () => {
     expect(unownedBlock).not.toContain('src/owned.ts');
   });
 
-  test('no unowned changes → no Unowned changes section at all', () => {
+  test('[covers:F-f6cc5e5a/AC-7672ce5d] no unowned changes → no Unowned changes section at all', () => {
     const model = buildReportModel(
       mkInputs({
         codeChanges: [{path: 'src/owned.ts', owners: [{id: 'F-a', title: 'Alpha'}], testRefs: []}],
@@ -233,13 +233,13 @@ describe('report/report — unowned surfacing (AC-7672ce5d)', () => {
 });
 
 describe('report/report — blank-ledger disclosure (AC-41572299)', () => {
-  test('an empty ledger carries the unknown-not-safe disclosure in the regression section', () => {
+  test('[covers:F-f6cc5e5a/AC-41572299] an empty ledger carries the unknown-not-safe disclosure in the regression section', () => {
     const md = renderReportMarkdown(buildReportModel(mkInputs({ledgerEmpty: true})), META);
     expect(md).toContain('UNKNOWN, not safe');
     expect(md).toContain('dependency ledger is empty');
   });
 
-  test('a non-empty ledger carries no such disclosure', () => {
+  test('[covers:F-f6cc5e5a/AC-41572299] a non-empty ledger carries no such disclosure', () => {
     const md = renderReportMarkdown(buildReportModel(mkInputs({ledgerEmpty: false})), META);
     expect(md).not.toContain('UNKNOWN, not safe');
     expect(md).not.toContain('dependency ledger is empty');
@@ -313,6 +313,27 @@ describe('AC-e68c868a · declared tests and whether they moved with the code', (
     for (const pseudo of ['derived:tests/thing.test.ts', 'fixture:NAME', 'script:build', 'self-dogfood:x']) {
       expect(statesFor([pseudo], [])).toEqual(['placeholder']);
     }
+  });
+
+  test('[covers:F-5dfbac9c/AC-e68c868a] every declared ref reports co-change, unchanged, missing, or placeholder from its concrete path', () => {
+    const model = buildReportModel(
+      mkInputs({
+        specEntries: [entryDeclaring([
+          'tests/moved.test.ts#proof',
+          'tests/still.test.ts',
+          'tests/gone.test.ts',
+          'derived:tests/suggested.test.ts',
+        ])],
+        changedPaths: ['tests/moved.test.ts'],
+        missingTestRefs: ['tests/gone.test.ts'],
+      }),
+    );
+    expect(model.testRefRows.map((item) => [item.ref, item.state])).toEqual([
+      ['derived:tests/suggested.test.ts', 'placeholder'],
+      ['tests/gone.test.ts', 'missing'],
+      ['tests/moved.test.ts#proof', 'co-changed'],
+      ['tests/still.test.ts', 'unchanged'],
+    ]);
   });
 
   test('the row keeps the reference exactly as authored, anchor included', () => {

@@ -56,7 +56,7 @@ describe('AC_DRIFT detector', () => {
     expect(acDrift.run({cwd: dir})).toEqual([]);
   });
 
-  test('AC with neither text nor EARS fields → error finding', () => {
+  test('[covers:F-055/AC-127] AC missing text and EARS fields reports structural drift', () => {
     writeFileSync(
       join(dir, 'spec', 'features', 'F-001.yaml'),
       'id: F-001\ntitle: t\nstatus: done\n' +

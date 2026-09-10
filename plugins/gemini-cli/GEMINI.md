@@ -28,21 +28,21 @@ The full prompt body for each persona is exposed as an MCP prompt — Gemini can
 
 When you author or modify a feature shard under `spec/features/`, follow the canonical schema. Cladding's `clad sync` will reject anything that strays — schema is enforced via `additionalProperties: false`.
 
-**Filename + id**: hash-based only. `<slug>-<hash6>.yaml`, with `id: F-<hash6>` (e.g. `checkout-flow-ee2133.yaml` → `id: F-ee2133`). Never hand-author `F-NNN` sequential ids — those are reserved for cladding's own historical features.
+**Filename + id**: new records use exactly eight lowercase hexadecimal characters: `<slug>-<hash8>.yaml`, with `id: F-<hash8>` (for example, `checkout-flow-ee2133a7.yaml` → `id: F-ee2133a7`). Never hand-author a sequential `F-NNN` record; direct sequential IDs and six-or-more-hex historical IDs remain reader-only compatibility forms.
 
-**Generate a hash**: `node -e "console.log(require('node:crypto').randomBytes(3).toString('hex'))"`.
+**Generate a hash**: `node -e "console.log(require('node:crypto').randomBytes(4).toString('hex'))"`.
 
 **Required body shape**:
 
 ```yaml
-id: F-<hash6>
+id: F-ee2133a7              # example only; generate a fresh 8-hex ID
 slug: <kebab-slug>           # matches filename prefix
 title: "<short human title>"
 status: planned              # planned | in_progress | done | blocked | archived
 modules:
   - <relative path to a real file>
 acceptance_criteria:
-  - id: AC-001
+  - id: AC-acce5510         # example only; new ACs use a fresh 8-hex ID
     ears: event              # event | state | unwanted | optional | ubiquitous | complex
     condition: when <trigger>          # omit for `ubiquitous`
     action: <what the system shall do> # omit for `ubiquitous`
@@ -67,7 +67,7 @@ After authoring, run `clad sync` to validate; the error message names the offend
 
 ## Authentication
 
-This extension uses your **Gemini CLI Google account login** (60 req/min · 1000/day free tier). Cladding's host adapter path requires no API key — F-049 AC-091 invariant. The `gemini` slot is reserved in `src/adapters/index.ts` `SDK_REGISTRY` but the SDK adapter body is not yet implemented; if you need direct-SDK dispatch (raised quotas, CI/CD batch), open a feature request before relying on it.
+This extension uses your **Gemini CLI Google account login** (60 req/min · 1000/day free tier). Cladding's host adapter path requires no API key. The SDK adapter body is not shipped: the loop-only, mode-keyed SDK registry retired with the headless loop in 0.10.0, so there is no direct-SDK dispatch to fall back to. If you need one (raised quotas, CI/CD batch), open a feature request before relying on it.
 
 ## Headless / CI usage
 

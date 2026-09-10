@@ -5,7 +5,7 @@
 // features/files that everything else hangs off. Surfacing them lets a human —
 // and the LLM — know what to touch carefully in a long-lived project.
 
-import type {EdgeKind, KnowledgeGraph, NodeKind} from './model.js';
+import type {EdgeKind, KnowledgeGraph, NodeKind} from './presentation.js';
 
 export interface HubEntry {
   readonly id: string;

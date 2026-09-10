@@ -55,9 +55,21 @@ describe('detectToolchain', () => {
     expect(detectToolchain(dir).language).toBe('typescript');
   });
 
+  test('[covers:F-004/AC-006] reads the manifest priority chain and returns unknown when no manifest remains', () => {
+    writeFileSync(join(dir, 'package.json'), '{}');
+    writeFileSync(join(dir, 'pyproject.toml'), '');
+    expect(detectToolchain(dir).language).toBe('typescript');
+
+    rmSync(join(dir, 'package.json'));
+    expect(detectToolchain(dir).language).toBe('python');
+
+    rmSync(join(dir, 'pyproject.toml'));
+    expect(detectToolchain(dir).language).toBe('unknown');
+  });
+
   // ─── Kotlin first-class support (F-dd51b42c) ───
 
-  test('build.gradle.kts + a nested .kt source → kotlin, ./gradlew gates when wrapper present', () => {
+  test('[covers:F-dd51b42c/AC-2dc3e787] build.gradle.kts + a nested .kt source → kotlin, ./gradlew gates when wrapper present', () => {
     writeFileSync(join(dir, 'build.gradle.kts'), '');
     writeFileSync(join(dir, 'gradlew'), '#!/bin/sh\n');
     writeKotlinSource(dir);
@@ -88,7 +100,7 @@ describe('detectToolchain', () => {
     expect(detectToolchain(dir).gates.coverage?.args).toEqual(['jacocoTestReport']);
   });
 
-  test('build.gradle.kts + a .kt source but NO gradlew → bare gradle command', () => {
+  test('[covers:F-dd51b42c/AC-df69edf9] build.gradle.kts + a .kt source but NO gradlew → bare gradle command', () => {
     writeFileSync(join(dir, 'build.gradle.kts'), '');
     writeKotlinSource(dir);
     const tc = detectToolchain(dir);
@@ -96,27 +108,27 @@ describe('detectToolchain', () => {
     expect(tc.gates.type?.cmd).toBe('gradle');
   });
 
-  test('pom.xml + a .kt source → kotlin (Kotlin probed before Java)', () => {
+  test('[covers:F-dd51b42c/AC-2dc3e787] pom.xml + a .kt source → kotlin (Kotlin probed before Java)', () => {
     writeFileSync(join(dir, 'pom.xml'), '<project/>');
     writeKotlinSource(dir);
     expect(detectToolchain(dir).language).toBe('kotlin');
   });
 
-  test('pom.xml with NO .kt source → java fallback (no regression)', () => {
+  test('[covers:F-dd51b42c/AC-ae2d4113] pom.xml with NO .kt source → java fallback (no regression)', () => {
     writeFileSync(join(dir, 'pom.xml'), '<project/>');
     const tc = detectToolchain(dir);
     expect(tc.language).toBe('java');
     expect(tc.gates.type?.cmd).toBe('mvn');
   });
 
-  test('build.gradle with NO .kt source → java fallback (no regression)', () => {
+  test('[covers:F-dd51b42c/AC-ae2d4113] build.gradle with NO .kt source → java fallback (no regression)', () => {
     writeFileSync(join(dir, 'build.gradle'), '');
     const tc = detectToolchain(dir);
     expect(tc.language).toBe('java');
     expect(tc.gates.type?.cmd).toBe('mvn');
   });
   // ─── TS/JS linter config detection (F-b2094740) ───
-  test('typescript + biome.json → lint gate is biome', () => {
+  test('[covers:F-b2094740/AC-7bf859] typescript + biome.json → lint gate is biome', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     writeFileSync(join(dir, 'biome.json'), '{}');
     const tc = detectToolchain(dir);
@@ -124,25 +136,25 @@ describe('detectToolchain', () => {
     expect(tc.gates.lint).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'biome', 'lint', '.']});
   });
 
-  test('typescript + .oxlintrc.json → lint gate is oxlint', () => {
+  test('[covers:F-b2094740/AC-7bf859] typescript + .oxlintrc.json → lint gate is oxlint', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     writeFileSync(join(dir, '.oxlintrc.json'), '{}');
     expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'oxlint']});
   });
 
-  test('typescript + .oxlintrc.jsonc → lint gate is oxlint', () => {
+  test('[covers:F-b2094740/AC-7bf859] typescript + .oxlintrc.jsonc → lint gate is oxlint', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     writeFileSync(join(dir, '.oxlintrc.jsonc'), '{}');
     expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'oxlint']});
   });
 
-  test('typescript + oxlint.config.ts → lint gate is oxlint', () => {
+  test('[covers:F-b2094740/AC-7bf859] typescript + oxlint.config.ts → lint gate is oxlint', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     writeFileSync(join(dir, 'oxlint.config.ts'), 'export default {}');
     expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'oxlint']});
   });
 
-  test('selection follows declarations — add biome.json enables biome, remove it leaves lint unconfigured', () => {
+  test('[covers:F-b2094740/AC-7bf859] selection follows declarations — add biome.json enables biome, remove it leaves lint unconfigured', () => {
     // State-transition: proves resolveTsLint actually reads the filesystem each call,
     // not a hard-coded return (defeats the one-way-test critique).
     writeFileSync(join(dir, 'package.json'), '{}');
@@ -153,30 +165,30 @@ describe('detectToolchain', () => {
     expect(detectToolchain(dir).gates.lint).toBeUndefined();
   });
 
-  test('typescript with no lint script or config → lint gate is honestly unconfigured', () => {
+  test('[covers:F-b2094740/AC-7bf859] typescript with no lint script or config → lint gate is honestly unconfigured', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     expect(detectToolchain(dir).gates.lint).toBeUndefined();
   });
 
-  test('typescript scripts.lint → lint gate runs the exact project-owned workflow', () => {
+  test('[covers:F-b2094740/AC-7bf859] typescript scripts.lint → lint gate runs the exact project-owned workflow', () => {
     writeFileSync(join(dir, 'package.json'), '{"scripts":{"lint":"eslint src --max-warnings=0"}}');
     expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npm', args: ['run', '--silent', 'lint']});
   });
 
-  test('typescript eslint config without lint script → lint gate is eslint', () => {
+  test('[covers:F-b2094740/AC-7bf859] typescript eslint config without lint script → lint gate is eslint', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     writeFileSync(join(dir, 'eslint.config.js'), 'export default []');
     expect(detectToolchain(dir).gates.lint).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'eslint', '.']});
   });
 
-  test('biome takes precedence over oxlint when both configs present', () => {
+  test('[covers:F-b2094740/AC-7bf859] biome takes precedence over oxlint when both configs present', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     writeFileSync(join(dir, 'biome.json'), '{}');
     writeFileSync(join(dir, '.oxlintrc.json'), '{}');
     expect(detectToolchain(dir).gates.lint?.args).toContain('biome');
   });
 
-  test('linter detection only swaps lint — other TS gates keep their default', () => {
+  test('[covers:F-b2094740/AC-86822d] linter detection only swaps lint — other TS gates keep their default', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     writeFileSync(join(dir, 'biome.json'), '{}');
     const tc = detectToolchain(dir);
@@ -184,7 +196,7 @@ describe('detectToolchain', () => {
     expect(tc.gates.test).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'vitest', 'run']});
   });
 
-  test('biome.json does not leak into a non-TS language', () => {
+  test('[covers:F-b2094740/AC-86822d] biome.json does not leak into a non-TS language', () => {
     // a python project carrying a stray biome.json still lints with ruff
     writeFileSync(join(dir, 'pyproject.toml'), '');
     writeFileSync(join(dir, 'biome.json'), '{}');
@@ -195,7 +207,7 @@ describe('detectToolchain', () => {
 
   // ─── TS/JS test runner + arch extensions (F-47b8bee5) ───
 
-  test('typescript + jest.config.js → test gate is jest, coverage is jest --coverage', () => {
+  test('[covers:F-47b8bee5/AC-0d51828d] typescript + jest.config.js → test gate is jest, coverage is jest --coverage', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     writeFileSync(join(dir, 'jest.config.js'), 'module.exports = {}');
     const tc = detectToolchain(dir);
@@ -216,21 +228,21 @@ describe('detectToolchain', () => {
     expect(detectToolchain(dir).gates.test).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'jest']});
   });
 
-  test('typescript with no jest config → test/coverage stay vitest (default preserved)', () => {
+  test('[covers:F-47b8bee5/AC-a3be7a76] typescript with no jest config → test/coverage stay vitest (default preserved)', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     const tc = detectToolchain(dir);
     expect(tc.gates.test).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'vitest', 'run']});
     expect(tc.gates.coverage).toEqual({cmd: 'npx', args: ['--offline', '--no-install', 'vitest', 'run', '--coverage']});
   });
 
-  test('custom scripts.test → npm test and no assumed coverage runner', () => {
+  test('[covers:F-47b8bee5/AC-4f0c9d] custom scripts.test → npm test and no assumed coverage runner', () => {
     writeFileSync(join(dir, 'package.json'), '{"scripts":{"test":"npm run build && node --test dist/tests/app.test.js"}}');
     const tc = detectToolchain(dir);
     expect(tc.gates.test).toEqual({cmd: 'npm', args: ['test']});
     expect(tc.gates.coverage).toBeUndefined();
   });
 
-  test('custom test and coverage scripts → both exact project-owned workflows', () => {
+  test('[covers:F-47b8bee5/AC-4f0c9d] custom test and coverage scripts → both exact project-owned workflows', () => {
     writeFileSync(join(dir, 'package.json'), '{"scripts":{"test":"node --test","coverage":"c8 npm test"}}');
     const tc = detectToolchain(dir);
     expect(tc.gates.test).toEqual({cmd: 'npm', args: ['test']});
@@ -275,7 +287,7 @@ describe('detectToolchain', () => {
     expect(tc.gates.lint?.args).toContain('biome');
   });
 
-  test('typescript arch gate scans ts,tsx,js,jsx extensions', () => {
+  test('[covers:F-47b8bee5/AC-3a899053] typescript arch gate scans ts,tsx,js,jsx extensions', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     expect(detectToolchain(dir).gates.arch).toEqual({
       cmd: 'npx',
@@ -297,7 +309,7 @@ describe('detectToolchain', () => {
     return i >= 0 ? args[i + 1] : undefined;
   }
 
-  test('AC-caa9471d · build output is excluded from the circular-dependency scan', () => {
+  test('[covers:F-2c02991f/AC-caa9471d] AC-caa9471d · build output is excluded from the circular-dependency scan', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     const pattern = archExclude(dir);
     expect(pattern).toBeDefined();
@@ -318,7 +330,7 @@ describe('detectToolchain', () => {
     }
   });
 
-  test('AC-dd5c3abf · hand-written source stays in scan, so a real cycle is still reported', () => {
+  test('AC-dd5c3abf · hand-written source paths remain eligible for the scanner', () => {
     writeFileSync(join(dir, 'package.json'), '{}');
     const re = new RegExp(archExclude(dir)!);
     for (const source of [
@@ -334,7 +346,7 @@ describe('detectToolchain', () => {
     }
   });
 
-  test('AC-554d9436 · a project that configures the scanner itself keeps its own rules', () => {
+  test('[covers:F-2c02991f/AC-554d9436] AC-554d9436 · a project that configures the scanner itself keeps its own rules', () => {
     // madge REPLACES its configured excludeRegExp with the command-line flag
     // rather than merging, so passing ours would silently delete theirs.
     const own = mkdtempSync(join(tmpdir(), 'clad-madge-'));
@@ -498,7 +510,7 @@ describe('detectToolchain', () => {
   });
 
 
-  test('AC-c04171bd · the scan root stays the repository root, never a named directory', () => {
+  test('[covers:F-2c02991f/AC-c04171bd] AC-c04171bd · the scan root stays the repository root, never a named directory', () => {
     // Narrowing the root is worse than the defect: a missing directory makes
     // madge exit ENOENT, which classifies as a scanner setup gap and skips the
     // whole stage — a green gate that checked nothing.
@@ -511,7 +523,7 @@ describe('detectToolchain', () => {
 
   // ─── Swift (SPM) + Flutter/Dart toolchain (F-e4159959) ───
 
-  test('Package.swift → swift, SPM build/test gates + swiftlint, no arch gate', () => {
+  test('[covers:F-e4159959/AC-dca37b0a][covers:F-e4159959/AC-aa3d5503] Package.swift → swift, SPM build/test gates + swiftlint, no arch gate', () => {
     writeFileSync(join(dir, 'Package.swift'), '// swift-tools-version:5.9\n');
     const tc = detectToolchain(dir);
     expect(tc.language).toBe('swift');
@@ -523,7 +535,7 @@ describe('detectToolchain', () => {
     expect(tc.gates.arch).toBeUndefined();
   });
 
-  test('pubspec.yaml declaring flutter sdk → dart with flutter gates', () => {
+  test('[covers:F-e4159959/AC-61dd5a8e] pubspec.yaml declaring flutter sdk → dart with flutter gates', () => {
     writeFileSync(join(dir, 'pubspec.yaml'), 'name: app\ndependencies:\n  flutter:\n    sdk: flutter\n');
     const tc = detectToolchain(dir);
     expect(tc.language).toBe('dart');
@@ -532,7 +544,7 @@ describe('detectToolchain', () => {
     expect(tc.gates.coverage).toEqual({cmd: 'flutter', args: ['test', '--coverage']});
   });
 
-  test('pubspec.yaml without flutter → dart with plain dart gates', () => {
+  test('[covers:F-e4159959/AC-dca37b0a][covers:F-e4159959/AC-4cb02211] pubspec.yaml without flutter → dart with plain dart gates', () => {
     writeFileSync(join(dir, 'pubspec.yaml'), 'name: cli\ndependencies:\n  args: ^2.0.0\n');
     const tc = detectToolchain(dir);
     expect(tc.language).toBe('dart');
@@ -540,6 +552,7 @@ describe('detectToolchain', () => {
     expect(tc.gates.test).toEqual({cmd: 'dart', args: ['test']});
     expect(tc.gates.coverage).toEqual({cmd: 'dart', args: ['test', '--coverage=coverage']});
     expect(tc.gates.lint).toEqual({cmd: 'dart', args: ['format', '--output=none', '--set-exit-if-changed', '.']});
+    expect(tc.gates.secret).toEqual({cmd: 'gitleaks', args: ['detect', '--no-banner']});
     expect(tc.gates.arch).toBeUndefined();
   });
 
@@ -560,12 +573,12 @@ describe('gradleCmd', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('returns ./gradlew when a gradlew wrapper exists at the root', () => {
+  test('[covers:F-dd51b42c/AC-df69edf9] returns ./gradlew when a gradlew wrapper exists at the root', () => {
     writeFileSync(join(dir, 'gradlew'), '#!/bin/sh\n');
     expect(gradleCmd(dir)).toBe('./gradlew');
   });
 
-  test('returns bare gradle when no wrapper is present', () => {
+  test('[covers:F-dd51b42c/AC-df69edf9] returns bare gradle when no wrapper is present', () => {
     expect(gradleCmd(dir)).toBe('gradle');
   });
 });

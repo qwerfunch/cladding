@@ -28,7 +28,7 @@ import {allDetectors} from '../../src/stages/detectors/index.js';
 const ROOT = process.cwd();
 
 describe('detector purity — Iron Law stage_1.3 is synchronous + deterministic (F-b010427b)', () => {
-  test('every detector.run is a synchronous (non-async) function', () => {
+  test('[covers:F-b010427b/AC-42870a39] every detector.run is a synchronous (non-async) function', () => {
     expect(allDetectors.length, 'the registry must expose at least one detector').toBeGreaterThan(0);
     for (const d of allDetectors) {
       expect(typeof d.run, `${d.name}.run must be a function`).toBe('function');
@@ -44,14 +44,19 @@ describe('detector purity — Iron Law stage_1.3 is synchronous + deterministic 
     }
   });
 
-  test('spec/architecture.yaml forbids the detector layer from importing adapters', () => {
+  test('[covers:F-b010427b/AC-f74f18f9] spec/architecture.yaml forbids the detector layer from importing adapters', () => {
     // forbidden_imports paths are relative to src/ (cfg.mainRoot in
     // architecture-from-spec.ts); tolerate an explicit `src/` prefix or a
     // trailing slash in either direction.
+    const schema = (parseYaml(readFileSync(join(ROOT, 'spec.yaml'), 'utf8')) as {schema?: unknown}).schema;
+    expect(schema, 'spec.yaml must declare a supported schema').toMatch(/^(?:0\.1|0\.2)$/);
     const arch = parseYaml(readFileSync(join(ROOT, 'spec/architecture.yaml'), 'utf8')) as {
       forbidden_imports?: ReadonlyArray<{from?: string; to?: string}>;
+      rules?: ReadonlyArray<{kind?: string; from?: string; to?: string}>;
     };
-    const rules = arch.forbidden_imports ?? [];
+    const rules = schema === '0.1'
+      ? arch.forbidden_imports ?? []
+      : (arch.rules ?? []).filter((rule) => rule.kind === 'forbidden_import');
     const strip = (p: string): string => p.replace(/^src\//, '').replace(/\/+$/, '').trim();
     // A rule scope "covers" a path when the path equals the scope or sits under
     // it (e.g. scope 'adapters' covers 'adapters' and 'adapters/host').
@@ -67,7 +72,7 @@ describe('detector purity — Iron Law stage_1.3 is synchronous + deterministic 
     );
     expect(
       rule,
-      'spec/architecture.yaml must declare a forbidden_imports rule from src/stages/detectors to src/adapters',
+      'spec/architecture.yaml must declare a schema-appropriate forbidden-import rule from src/stages/detectors to src/adapters',
     ).toBeDefined();
   });
 });

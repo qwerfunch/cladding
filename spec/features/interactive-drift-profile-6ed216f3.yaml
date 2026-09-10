@@ -1,6 +1,5 @@
 id: F-6ed216f3
-slug: interactive-drift-profile
-title: "Interactive drift profile — PostToolUse runs in-process detectors only"
+title: Interactive drift profile — PostToolUse runs in-process detectors only
 status: done
 modules:
   - src/stages/drift.ts
@@ -8,39 +7,32 @@ modules:
   - src/stages/detectors/architecture-violation.ts
   - src/stages/detectors/hardcoded-secret.ts
   - src/cli/hook.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-870a2ed8
-    ears: event
-    condition: "when runDrift is called with profile 'interactive'"
-    action: "run only in-process detectors — subprocess-flagged detectors (architecture-violation via madge, hardcoded-secret via secretlint) are excluded — and record the excluded detector names on the report"
-    response: "the caller can render what was skipped instead of silently losing coverage"
-    text: "When runDrift runs with the interactive profile, the system shall execute only in-process detectors and list the skipped subprocess detectors on the report."
-    test_refs:
-      - "tests/stages/drift-interactive-profile.test.ts#interactive: only in-process detectors run; subprocess detectors are listed as skipped, their findings dropped"
-      - "tests/stages/drift-interactive-profile.test.ts#full (default) profile: nothing skipped; subprocess detectors run and contribute findings"
-      - "tests/stages/drift-interactive-profile.test.ts#the real registry subprocess partition = the two adapters, surfaced (not silently dropped) on skippedDetectors"
-      - "tests/cli/hook-interactive-profile.test.ts#the drift line names how many subprocess detectors were deferred to commit"
-    notes: "## Why\nPostToolUse ran all 41 detectors per significant edit; the two subprocess detectors cost ~5s of the ~6s total (madge ~1.27s + secretlint ~3.75s), making every edit drag. Backlog B7 (H/M/M) required an adversarial review before implementation — performed 2026-07-04 (regression+worth lenses + inline partition verification: exactly 2 subprocess detectors exist)."
+    statement: When runDrift runs with the interactive profile, the system shall
+      execute only in-process detectors and list the skipped subprocess
+      detectors on the report.
+    notes: >-
+      ## Why
+
+      PostToolUse ran all 41 detectors per significant edit; the two subprocess
+      detectors cost ~5s of the ~6s total (madge ~1.27s + secretlint ~3.75s),
+      making every edit drag. Backlog B7 (H/M/M) required an adversarial review
+      before implementation — performed 2026-07-04 (regression+worth lenses +
+      inline partition verification: exactly 2 subprocess detectors exist).
   - id: AC-b49435f8
-    ears: ubiquitous
-    text: "The PostToolUse hook lane shall request the interactive profile, while the Stop hook, all check tiers, and the MCP gateFooter keep the full detector suite."
-    test_refs:
-      - "tests/cli/hook-interactive-profile.test.ts#a source edit runs drift with profile: interactive"
-      - "tests/cli/hook-interactive-profile.test.ts#the Stop gate runs drift with no interactive profile (strict, full)"
-      - "tests/stages/interactive-profile-partition.test.ts#only src/cli/hook.ts requests the interactive profile"
-      - "tests/stages/interactive-profile-partition.test.ts#the full-suite consumers call runDrift without requesting the interactive profile"
+    statement: The PostToolUse hook lane shall request the interactive profile,
+      while the Stop hook, all check tiers, and the MCP gateFooter keep the full
+      detector suite.
   - id: AC-7ecad295
-    ears: unwanted
-    condition: "if a subprocess-flagged detector would be selected under the interactive profile"
-    action: "it must not execute (no child process spawned)"
-    response: "interactive latency stays in-process-bound (~1s) regardless of future detector additions"
-    text: "If the interactive profile is active, the system shall never execute a subprocess-flagged detector."
-    test_refs:
-      - "tests/stages/drift-interactive-profile.test.ts#a subprocess detector run() executes under full but NEVER under interactive (fixture spy proves non-execution)"
-      - "tests/stages/drift-interactive-profile.test.ts#the real madge/secretlint detectors cross no execa boundary under interactive; they would under full (execa spy)"
+    statement: If the interactive profile is active, then the system shall never
+      execute a subprocess-flagged detector.
+    kind: constraint
+    rationale: Protects the interactive profile from subprocess execution.
   - id: AC-add14522
-    ears: ubiquitous
-    text: "A static registry test shall fail when any detector module imports a subprocess runner (execa, execFileSync, spawnSync) without carrying the subprocess flag, keeping the partition honest as detectors are added."
-    test_refs:
-      - "tests/stages/interactive-profile-partition.test.ts#every detector module that imports a subprocess runner carries subprocess: true"
-      - "tests/stages/interactive-profile-partition.test.ts#every detector flagged subprocess: true actually imports a subprocess runner (no phantom flag)"
+    statement: The static registry test shall fail when any detector module imports
+      a subprocess runner (execa, execFileSync, spawnSync) without carrying the
+      subprocess flag, keeping the partition honest as detectors are added.
+    kind: behavior

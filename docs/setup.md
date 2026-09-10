@@ -61,6 +61,11 @@ machine-readable claim lives in the README's `clad:host-claims` fence, which `HO
 polices against `docs/dogfood/matrix.md`; its `verified` grade covers the doctor surfaces listed in
 that matrix, not every release-specific onboarding campaign.)
 
+At the 0.10.0 release the live host check was rerun. Cursor passed every
+probed surface end-to-end this time, so its model replay is no longer absent. Antigravity timed out
+on every probe in that run and is recorded as failing rather than verified. The current table,
+with the reason recorded beside each grade, is in `docs/dogfood/matrix.md`.
+
 ## About the MCP server
 
 All 5 hosts wire cladding as an MCP server — only the wire *location* differs. MCP is not

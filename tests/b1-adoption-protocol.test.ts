@@ -23,6 +23,23 @@ const PROTOCOL = 'docs/b1-adoption-protocol.md';
 const VERDICTS = ['confirmed', 'not_confirmed', 'insufficient_data'];
 
 describe('AC-538802ac · protocol doc fixes the B1 decision rule before the data is read', () => {
+  test('[covers:F-e803c149/AC-538802ac] the protocol records every threshold, observation, measurement, retention, and 0.9 decision-fork rule', () => {
+    const doc = read(PROTOCOL);
+    for (const [name, value] of Object.entries(B1_ADOPTION_THRESHOLDS)) {
+      expect(doc).toContain(`\`${name}\` | \`${value}\``);
+    }
+    for (const required of [
+      '10 cladding-self completed cycles', '5 external-project completed cycles',
+      'maintainer', 'weekly', 'release prep', 'clad measure --sessions', 'clad measure --sessions --json',
+      'Append-only', '2026-07-05', 'not_confirmed', 'Per-machine locality',
+      '5 MB single-generation rotation', 'Silent vs unwired', 'proceed with the B1 deprecation',
+      'wiring / push improvement',
+    ]) {
+      expect(doc, required).toContain(required);
+    }
+    expect(doc).toMatch(/not\W+adding\s+more\s+capability/);
+  });
+
   test('the doc exists and heads with the protocol title', () => {
     expect(read(PROTOCOL), 'protocol title heading').toContain('# B1 adoption observation protocol');
   });
@@ -93,7 +110,7 @@ describe('AC-538802ac · protocol doc fixes the B1 decision rule before the data
 });
 
 describe('AC-8753c264 · the backlog B1 row is gated on the protocol doc', () => {
-  test('refinement-backlog.md B1 row points at docs/b1-adoption-protocol.md', () => {
+  test('[covers:F-e803c149/AC-8753c264] refinement-backlog.md B1 row points at docs/b1-adoption-protocol.md', () => {
     const backlog = read('docs/refinement-backlog.md');
     const b1Row = backlog.split('\n').find((l) => l.startsWith('| B1 |'));
     expect(b1Row, 'the B1 row is present in the backlog table').toBeDefined();
@@ -103,7 +120,7 @@ describe('AC-8753c264 · the backlog B1 row is gated on the protocol doc', () =>
 });
 
 describe('AC-d2182432 · the glossary defines the adoption verdict and links the protocol', () => {
-  test('glossary.md defines pull-vs-push, the three verdict values, and points at the protocol doc', () => {
+  test('[covers:F-e803c149/AC-d2182432] glossary.md defines pull-vs-push, the three verdict values, and points at the protocol doc', () => {
     const glossary = read('docs/glossary.md');
     const row = glossary.split('\n').find((l) => l.startsWith('| `adoption verdict`'));
     expect(row, 'the adoption verdict glossary row is present').toBeDefined();

@@ -1,6 +1,5 @@
 id: F-876b6f48
-slug: shard-term-to-spec-entry
-title: "AI-facing surfaces say \"spec entry\", not \"shard\""
+title: AI-facing surfaces say "spec entry", not "shard"
 status: done
 modules:
   - src/init/agents-md.ts
@@ -10,19 +9,24 @@ modules:
   - src/agents/reviewer.md
   - src/agents/observability.md
   - src/agents/orchestrator.md
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-c5593b9e
-    ears: ubiquitous
-    response: "renderAgentsMdManagedBlock output and CLAUDE_MD_SECTION contain no /\\bshards?\\b/i"
-    text: "The managed AGENTS.md and CLAUDE.md blocks cladding writes into a project shall refer to a per-feature spec file as a 'spec entry', never 'shard'."
-    test_refs: ["tests/shard-term-guard.test.ts"]
+    statement: The managed AGENTS.md and CLAUDE.md blocks cladding writes into a
+      project shall refer to a per-feature spec file as a 'spec entry', never
+      'shard'.
   - id: AC-918035ef
-    ears: ubiquitous
-    response: "every src/agents/*.md contains no /\\bshards?\\b/i"
-    text: "Persona prompts shall use 'spec entry' rather than 'shard', and the translate-by-meaning guidance shall not carry a 'shard = spec entry' example that re-exposes the internal term."
-    test_refs: ["tests/shard-term-guard.test.ts"]
+    statement: The persona prompts shall use “spec entry” instead of “shard” and
+      prevent the translate-by-meaning guidance from carrying a “shard = spec
+      entry” example that re-exposes the internal term.
+    kind: constraint
+    rationale: Keeps internal terminology out of user-facing prompts.
 design_impact:
   classification: none
-  rationale: "Terminology fix to the AI-facing prose (managed AGENTS.md/CLAUDE.md blocks + persona prompts) so users hear 'spec entry' instead of the internal 'shard'. Does not change cladding's own capabilities, architecture, or project-context."
+  rationale: Terminology fix to the AI-facing prose (managed AGENTS.md/CLAUDE.md
+    blocks + persona prompts) so users hear 'spec entry' instead of the internal
+    'shard'. Does not change cladding's own capabilities, architecture, or
+    project-context.
   status: resolved
   artifacts: []

@@ -1,33 +1,40 @@
 id: F-6f80e7
-slug: claude-code-dogfood
 title: Claude Code external-host dogfood report (v0.3.8)
 status: done
 modules:
   - docs/dogfood/claude-code-2026-05-20.md
-depends_on: [F-076, F-080, F-b61449]
+depends_on:
+  - F-076
+  - F-080
+  - F-b61449
+capability_refs: []
 acceptance_criteria:
   - id: AC-255
-    ears: ubiquitous
-    action: record the second external-host verification of cladding's multi-host plugin rollout as a dated dogfood report
-    response: 'docs/dogfood/claude-code-2026-05-20.md captures environment metadata (Claude Code 2.1.145, Pro/Max subscription auth, cladding v0.3.6+), setup steps (npm link + --plugin-dir flag), a per-surface checklist, and an explicit findings summary (cladding-side issues: 0)'
-    text: The system shall record the second external-host verification of cladding's multi-host plugin rollout as a dated dogfood report at docs/dogfood/claude-code-2026-05-20.md so the multi-host claim is backed by paired evidence across at least two hosts.
-    evidence_refs: [docs/dogfood/claude-code-2026-05-20.md]
+    statement: The system shall record the second external-host verification of
+      cladding's multi-host plugin rollout as a dated dogfood report at
+      docs/dogfood/claude-code-2026-05-20.md so the multi-host claim is backed
+      by paired evidence across at least two hosts.
+    evidence_refs:
+      - docs/dogfood/claude-code-2026-05-20.md
   - id: AC-256
-    ears: ubiquitous
-    action: document the Claude Code --print + --allowedTools workaround as a verified pattern
-    response: 'the report documents both the cause (auto-mode classifier blocks --dangerously-skip-permissions in headless mode) and the workaround (--allowedTools mcp__cladding__<tool> with prompt piped via stdin) so future verifications avoid the failure mode'
-    text: The system shall document the Claude Code --print headless-mode invocation pattern (--allowedTools per cladding MCP tool + stdin-piped prompt) so future verifications and CI runs avoid the auto-mode classifier denial and the prompt-argument parse interaction.
-    evidence_refs: [docs/dogfood/claude-code-2026-05-20.md]
+    statement: The system shall document the Claude Code --print headless-mode
+      invocation pattern (--allowedTools per cladding MCP tool + stdin-piped
+      prompt) so future verifications and CI runs avoid the auto-mode classifier
+      denial and the prompt-argument parse interaction.
+    evidence_refs:
+      - docs/dogfood/claude-code-2026-05-20.md
   - id: AC-257
-    ears: state
-    condition: while the OpenAI Codex CLI is not installed on the verifier machine
-    action: explicitly defer the Codex dogfood report and state what is still cladding-verification-ready
-    response: 'the report has a "Codex CLI — deferred" section that names the missing dependency (which codex → not found), confirms the cladding-side artifacts (plugins/codex/) are present and validated by HARNESS_INTEGRITY, and queues the Codex pass for once the CLI is installed'
-    text: While the OpenAI Codex CLI is not installed on the verifier machine, the system shall explicitly defer the Codex dogfood report and state which cladding-side artifacts are still verification-ready so the evidence trail is honest about scope.
-    evidence_refs: [docs/dogfood/claude-code-2026-05-20.md]
+    statement: While the OpenAI Codex CLI is not installed on the verifier machine,
+      the system shall explicitly defer the Codex dogfood report and state which
+      cladding-side artifacts are still verification-ready so the evidence trail
+      is honest about scope.
+    evidence_refs:
+      - docs/dogfood/claude-code-2026-05-20.md
   - id: AC-258
-    ears: ubiquitous
-    action: state cross-host parity as a verified claim
-    response: 'the report names the four MCP tools (clad_list_features · clad_get_feature · clad_run_check · clad_get_events) that round-tripped with the same observable output shape on both Gemini CLI (v0.3.7) and Claude Code, proving clad serve is genuinely host-agnostic and not a host-specific coincidence'
-    text: The system shall state cross-host parity as a verified claim — the same four MCP tools round-trip with the same observable output shape on both Gemini CLI and Claude Code — so the multi-host claim does not rest on a single-host coincidence.
-    evidence_refs: [docs/dogfood/claude-code-2026-05-20.md, docs/dogfood/gemini-cli-2026-05-20.md]
+    statement: The system shall state cross-host parity as a verified claim — the
+      same four MCP tools round-trip with the same observable output shape on
+      both Gemini CLI and Claude Code — so the multi-host claim does not rest on
+      a single-host coincidence.
+    evidence_refs:
+      - docs/dogfood/claude-code-2026-05-20.md
+      - docs/dogfood/gemini-cli-2026-05-20.md

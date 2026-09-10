@@ -2,7 +2,7 @@
 //
 // Each exported handler is tested in isolation with process.exit and
 // every stage runner mocked. The createProgram() factory is verified
-// to register all 7 verbs. The top-level `isCliEntry` parse-trigger
+// to register the declared command tree. The top-level `isCliEntry` parse-trigger
 // is not exercised by these tests — importing the module is safe
 // because the guard suppresses it in non-bundled mode.
 
@@ -13,24 +13,79 @@ import {join} from 'node:path';
 
 import {beforeEach, afterEach, describe, expect, test, vi} from 'vitest';
 
-vi.mock('../../src/events/log.js', () => ({recordEvent: vi.fn()}));
+import {readEvents} from '../../src/events/log.js';
 
+const checkpointIntegration = vi.hoisted(() => ({enabled: false}));
+
+vi.mock('../../src/events/log.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../src/events/log.js')>()),
+  recordEvent: vi.fn(),
+}));
+
+// Handler-export tests run from this repository.  Sync's write collaborators
+// are isolated there, while the later git-operation fixture suite deliberately
+// re-enables their real implementations to exercise the production writer path.
+const syncWriteIsolation = vi.hoisted(() => ({enabled: false}));
+const realDrift = vi.hoisted(() => ({enabled: false}));
+
+vi.mock('../../src/spec/edit.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../src/spec/edit.js')>();
+  return {
+    ...original,
+    refreshDerivedSpecProjections: vi.fn((cwd = '.') =>
+      syncWriteIsolation.enabled ? false : original.refreshDerivedSpecProjections(cwd)),
+  };
+});
+vi.mock('../../src/init/agents-md.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../src/init/agents-md.js')>();
+  return {
+    ...original,
+    writeSpecDrivenAgentsMd: vi.fn((cwd = '.') =>
+      syncWriteIsolation.enabled ? 'unchanged' : original.writeSpecDrivenAgentsMd(cwd)),
+  };
+});
+vi.mock('../../src/spec/test-ref-repair.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../src/spec/test-ref-repair.js')>();
+  return {
+    ...original,
+    repairTestRefs: vi.fn((cwd = '.') =>
+      syncWriteIsolation.enabled ? {repaired: [], suggested: []} : original.repairTestRefs(cwd)),
+  };
+});
+vi.mock('../../src/spec/deliverable-detect.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../src/spec/deliverable-detect.js')>();
+  return {
+    ...original,
+    maintainDeliverable: vi.fn((cwd = '.') =>
+      syncWriteIsolation.enabled ? null : original.maintainDeliverable(cwd)),
+  };
+});
 
 vi.mock('../../src/cli/init.js', () => ({runInit: vi.fn()}));
-vi.mock('../../src/spec/load.js', () => ({loadSpec: vi.fn()}));
+vi.mock('../../src/spec/load.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../src/spec/load.js')>()),
+  loadSpec: vi.fn(),
+}));
 vi.mock('../../src/router/intent.js', () => ({classifyIntent: vi.fn()}));
 vi.mock('../../src/ui/pulse.js', () => ({pulse: vi.fn()}));
 vi.mock('../../src/ui/panel.js', () => ({renderPanel: vi.fn(() => 'panel-output')}));
 vi.mock('../../src/ui/softShell.js', () => ({
   featureLabel: (id: string) => `LABEL(${id})`,
   gateLabel: (s: string) => `GATE(${s})`,
-  haltMessage: (h: {class: string}) => `HALT(${h.class})`,
   // F-dd8dc994 / F-9af291fa: printStageDetails renders one plain English lead per finding.
   plainLead: (detector: string, fallback = '') => fallback || `LEAD(${detector})`,
 }));
 vi.mock('../../src/stages/type.js', () => ({runType: vi.fn(() => ({pass: true, exitCode: 0}))}));
 vi.mock('../../src/stages/lint.js', () => ({runLint: vi.fn(() => ({pass: true, exitCode: 0}))}));
-vi.mock('../../src/stages/drift.js', () => ({runDrift: vi.fn(() => ({pass: true, exitCode: 0}))}));
+vi.mock('../../src/stages/drift.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../src/stages/drift.js')>();
+  return {
+    ...original,
+    runDrift: vi.fn((opts) => realDrift.enabled
+      ? original.runDrift(opts)
+      : {pass: true, exitCode: 0}),
+  };
+});
 vi.mock('../../src/stages/commit.js', () => ({runCommit: vi.fn(() => ({pass: true, exitCode: 0}))}));
 vi.mock('../../src/stages/arch.js', () => ({runArch: vi.fn(() => ({pass: true, exitCode: 0}))}));
 vi.mock('../../src/stages/secret.js', () => ({runSecret: vi.fn(() => ({pass: true, exitCode: 0}))}));
@@ -45,22 +100,35 @@ vi.mock('../../src/stages/uat.js', () => ({runUat: vi.fn(() => ({pass: true, exi
 vi.mock('../../src/stages/detectors/stale-specification.js', () => ({
   staleSpecification: {name: 'STALE_SPECIFICATION', run: vi.fn(() => [])},
 }));
-vi.mock('../../src/core/checkpoint.js', () => ({
-  recordCheckpoint: vi.fn(() => ({
-    featureId: 'F-001',
-    gitHead: '0123456789abcdef0123456789abcdef01234567',
-    specDigest: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
-    timestamp: '2026-05-20T12:34:56Z',
-  })),
-  findLatestCheckpoint: vi.fn(() => null),
-  recordRollback: vi.fn(() => ({
-    id: 'ev-mock',
-    timestamp: '2026-05-20T12:34:56Z',
-    type: 'feature_rolled_back',
-    payload: {},
-  })),
-}));
-vi.mock('../../src/drive/loop.js', () => ({runDriveLoop: vi.fn()}));
+vi.mock('../../src/core/checkpoint.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../src/core/checkpoint.js')>();
+  return {
+    ...original,
+    readGitHead: vi.fn(() => null),
+    recordCheckpoint: vi.fn((cwd: string, featureId: string) => checkpointIntegration.enabled
+      ? original.recordCheckpoint(cwd, featureId)
+      : {
+        featureId: 'F-001',
+        gitHead: '0123456789abcdef0123456789abcdef01234567',
+        specDigest: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
+        timestamp: '2026-05-20T12:34:56Z',
+      }),
+    findLatestCheckpoint: vi.fn((cwd: string, featureId: string) => checkpointIntegration.enabled
+      ? original.findLatestCheckpoint(cwd, featureId)
+      : null),
+    recordRollback: vi.fn(
+      (cwd: string, featureId: string, checkpoint: Parameters<typeof original.recordRollback>[2], reason?: string) =>
+        checkpointIntegration.enabled
+          ? original.recordRollback(cwd, featureId, checkpoint, reason)
+          : {
+            id: 'ev-mock',
+            timestamp: '2026-05-20T12:34:56Z',
+            type: 'feature_rolled_back' as const,
+            payload: {},
+          },
+    ),
+  };
+});
 // MCP server build is mocked — the runServeCommand test only verifies
 // the CLI plumbing (server constructed, transport connected). The
 // real server is exercised separately in tests/serve/server.test.ts.
@@ -84,24 +152,48 @@ vi.mock('../../src/adapters/host/sampling-context.js', () => ({
   clearHostMcpServerForTesting: vi.fn(),
 }));
 
+// Handler tests already replace every stage runner and loadSpec.  Freeze the
+// later F6 boundary too, so their rendering and process-exit assertions do
+// not inherit this checkout's schema or assurance closure state.
+vi.mock('../../src/spec/compiler/compile.js', () => ({
+  compileSpecWorkspace: () => ({schemaVersion: '0.1', nodes: [], edges: [], diagnostics: []}),
+  compileSpecWorkspaceWithLockHeld: () => ({schemaVersion: '0.1', nodes: [], edges: [], diagnostics: []}),
+}));
+vi.mock('../../src/assurance/workspace.js', () => ({
+  workspaceClosureSeals: () => ({inputSha256: 'a'.repeat(64), closures: {schemaVersion: '0.1', features: []}}),
+  currentProofBindingsFromWorkspace: () => [],
+  currentExecutableProofFeatureIdsFromWorkspace: () => [],
+  hasApplicableSchema02TestCriteria: () => false,
+  currentProofViewsFromWorkspace: () => [],
+  workspaceProfileSnapshot: () => ({inputSha256: 'a'.repeat(64), complete: true, closureInput: {schemaVersion: '0.1', features: []}, incompleteAddresses: []}),
+  createWorkspaceAttestations: () => [],
+}));
+
 const clad = await import('../../src/cli/clad.js');
 const initMod = await import('../../src/cli/init.js');
 const specMod = await import('../../src/spec/load.js');
 const intentMod = await import('../../src/router/intent.js');
-const driveMod = await import('../../src/drive/loop.js');
+const editMod = await import('../../src/spec/edit.js');
+const agentsMdMod = await import('../../src/init/agents-md.js');
+const testRefMod = await import('../../src/spec/test-ref-repair.js');
+const deliverableMod = await import('../../src/spec/deliverable-detect.js');
 
 const runInitMock = initMod.runInit as unknown as ReturnType<typeof vi.fn>;
 const loadSpecMock = specMod.loadSpec as unknown as ReturnType<typeof vi.fn>;
 const classifyMock = intentMod.classifyIntent as unknown as ReturnType<typeof vi.fn>;
-const runDriveLoopMock = driveMod.runDriveLoop as unknown as ReturnType<typeof vi.fn>;
 const pulseMod = await import('../../src/ui/pulse.js');
 const pulseMock = pulseMod.pulse as unknown as ReturnType<typeof vi.fn>;
+const refreshDerivedSpecProjectionsMock = editMod.refreshDerivedSpecProjections as unknown as ReturnType<typeof vi.fn>;
+const writeSpecDrivenAgentsMdMock = agentsMdMod.writeSpecDrivenAgentsMd as unknown as ReturnType<typeof vi.fn>;
+const repairTestRefsMock = testRefMod.repairTestRefs as unknown as ReturnType<typeof vi.fn>;
+const maintainDeliverableMock = deliverableMod.maintainDeliverable as unknown as ReturnType<typeof vi.fn>;
 
 describe('cli/clad — handler exports', () => {
   let exitSpy: ReturnType<typeof vi.spyOn>;
   let stdoutSpy: ReturnType<typeof vi.spyOn>;
   let exitCalls: number[];
   beforeEach(() => {
+    syncWriteIsolation.enabled = true;
     exitCalls = [];
     // Record-only exit mock: try/catch inside handlers would catch a
     // thrown exit, which would mask the original exit code. Record the
@@ -118,10 +210,15 @@ describe('cli/clad — handler exports', () => {
     runInitMock.mockReset();
     loadSpecMock.mockReset();
     classifyMock.mockReset();
-    runDriveLoopMock.mockReset();
     pulseMock.mockClear();
+    refreshDerivedSpecProjectionsMock.mockClear();
+    writeSpecDrivenAgentsMdMock.mockClear();
+    repairTestRefsMock.mockClear();
+    maintainDeliverableMock.mockClear();
   });
   afterEach(() => {
+    syncWriteIsolation.enabled = false;
+    checkpointIntegration.enabled = false;
     exitSpy.mockRestore();
     stdoutSpy.mockRestore();
     process.exitCode = 0;
@@ -146,6 +243,29 @@ describe('cli/clad — handler exports', () => {
     expect(doc.worst).toBe(0);
     expect(doc.stages.map((s) => s.stage)).toEqual(['stage_1.3', 'stage_1.5', 'stage_1.6']);
     expect(doc.stages.every((s) => s.status === 'pass')).toBe(true);
+  });
+
+  test('[covers:F-dd8dc994/AC-ad2a34e1] CLI JSON findings retain the detector raw schema', async () => {
+    const drift = await import('../../src/stages/drift.js');
+    const rawFinding = {
+      detector: 'MISSING_IMPLEMENTATION',
+      severity: 'error' as const,
+      path: 'src/auth/login.ts',
+      line: 12,
+      message: "feature F-aaa111 declares module 'src/auth/login.ts' but the file does not exist",
+    };
+    (drift.runDrift as unknown as ReturnType<typeof vi.fn>).mockReturnValueOnce({
+      pass: false,
+      exitCode: 1,
+      findings: [rawFinding],
+    });
+
+    clad.runCheckStages({tier: 'pre-commit', json: true});
+
+    const doc = JSON.parse(stdoutSpy.mock.calls.map((call: unknown[]) => String(call[0])).join('')) as {
+      stages: Array<{stage: string; findings?: unknown}>;
+    };
+    expect(doc.stages.find((stage) => stage.stage === 'stage_1.3')?.findings).toEqual([rawFinding]);
   });
 
   test('runCheckStages --json on an unknown tier emits a structured error, not a pulse', () => {
@@ -182,7 +302,7 @@ describe('cli/clad — handler exports', () => {
 
   // v0.3.24 (F-x) — `--scan` and `--no-llm` flow through to runInit so
   // init.ts can branch on them without inspecting argv directly.
-  test('runInitCommand forwards --scan + --no-llm options', async () => {
+  test('[covers:F-9b643e/AC-007] runInitCommand forwards --scan + --no-llm options', async () => {
     runInitMock.mockResolvedValueOnce({
       created: ['docs/conventions.md'],
       skipped: [],
@@ -204,7 +324,7 @@ describe('cli/clad — handler exports', () => {
   // v0.3.43 (F-56abaa) — variadic positional captures the user's intent
   // and forwards it as the joined string to runInit; the clarifying
   // questions returned by intent-onboarding render as stdout hints.
-  test('runInitCommand joins variadic positional tokens into intent', async () => {
+  test('[covers:F-56abaa/AC-002] runInitCommand joins variadic positional tokens into intent', async () => {
     runInitMock.mockResolvedValueOnce({
       created: ['spec.yaml'],
       skipped: [],
@@ -240,10 +360,22 @@ describe('cli/clad — handler exports', () => {
     expect(process.exitCode).toBe(0);
   });
 
-  test('runSyncCommand on valid spec exits 0', () => {
+  test('runSyncCommand isolates real workspace writes while invoking every derived collaborator', () => {
+    const workspaceBefore = [
+      readFileSync(join(process.cwd(), 'spec.yaml'), 'utf8'),
+      readFileSync(join(process.cwd(), 'spec', 'index.yaml'), 'utf8'),
+    ];
     loadSpecMock.mockReturnValueOnce({features: [{id: 'F-001'}, {id: 'F-002'}]});
     clad.runSyncCommand();
     expect(exitCalls).toEqual([0]);
+    expect(refreshDerivedSpecProjectionsMock).toHaveBeenCalledExactlyOnceWith('.');
+    expect(writeSpecDrivenAgentsMdMock).toHaveBeenCalledExactlyOnceWith('.');
+    expect(repairTestRefsMock).toHaveBeenCalledExactlyOnceWith('.');
+    expect(maintainDeliverableMock).toHaveBeenCalledExactlyOnceWith('.');
+    expect([
+      readFileSync(join(process.cwd(), 'spec.yaml'), 'utf8'),
+      readFileSync(join(process.cwd(), 'spec', 'index.yaml'), 'utf8'),
+    ]).toEqual(workspaceBefore);
   });
 
   test('runSyncCommand on spec load error exits 1', () => {
@@ -265,7 +397,7 @@ describe('cli/clad — handler exports', () => {
     expect(exitCalls).toEqual([0]);
   });
 
-  test('runSyncCommand --propose-archive surfaces propose-archive findings only', async () => {
+  test('[covers:F-b99577/AC-003][covers:F-b99577/AC-004] runSyncCommand --propose-archive surfaces propose-archive findings only', async () => {
     const stale = await import('../../src/stages/detectors/stale-specification.js');
     (stale.staleSpecification.run as unknown as ReturnType<typeof vi.fn>).mockReturnValueOnce([
       {
@@ -326,15 +458,23 @@ describe('cli/clad — handler exports', () => {
       expect(exitCalls).toEqual([2]);
     });
 
-    test('runRollbackCommand with no prior checkpoint exits 1', async () => {
-      const checkpoint = await import('../../src/core/checkpoint.js');
-      const findSpy = checkpoint.findLatestCheckpoint as unknown as ReturnType<typeof vi.fn>;
-      findSpy.mockReturnValueOnce(null);
-      clad.runRollbackCommand('F-001');
-      expect(exitCalls).toEqual([1]);
+    test('[covers:F-c2c996/AC-804e61b1] rollback without a checkpoint fails without recording rollback telemetry', () => {
+      const originalCwd = process.cwd();
+      const fixture = mkdtempSync(join(tmpdir(), 'clad-rollback-miss-'));
+      try {
+        checkpointIntegration.enabled = true;
+        process.chdir(fixture);
+        clad.runRollbackCommand('F-001');
+        expect(exitCalls).toEqual([1]);
+        expect(readEvents(fixture).filter((event) => event.type === 'feature_rolled_back')).toHaveLength(0);
+      } finally {
+        process.chdir(originalCwd);
+        checkpointIntegration.enabled = false;
+        rmSync(fixture, {recursive: true, force: true});
+      }
     });
 
-    test('runRollbackCommand with prior checkpoint records rollback + exits 0', async () => {
+    test('[covers:F-c2c996/AC-e4bf75ed] rollback prints the maintainer-owned restore instruction', async () => {
       const checkpoint = await import('../../src/core/checkpoint.js');
       const findSpy = checkpoint.findLatestCheckpoint as unknown as ReturnType<typeof vi.fn>;
       const rollbackSpy = checkpoint.recordRollback as unknown as ReturnType<typeof vi.fn>;
@@ -350,6 +490,45 @@ describe('cli/clad — handler exports', () => {
       expect(rollbackSpy.mock.calls[0][1]).toBe('F-001');
       expect(rollbackSpy.mock.calls[0][3]).toBe('manual test');
       expect(exitCalls).toEqual([0]);
+      const output = stdoutSpy.mock.calls.map((call: unknown[]) => String(call[0])).join('');
+      expect(output).toContain('Run: git checkout abc123def456abc123def456abc123def456abc1');
+    });
+
+    test('[covers:F-c2c996/AC-a06e5151] checkpoint and rollback never invoke checkout', () => {
+      const originalCwd = process.cwd();
+      const fixture = mkdtempSync(join(tmpdir(), 'clad-checkpoint-cli-'));
+      try {
+        mkdirSync(join(fixture, 'src'), {recursive: true});
+        const specPath = join(fixture, 'spec.yaml');
+        const sourcePath = join(fixture, 'src', 'app.ts');
+        writeFileSync(specPath, 'schema: "0.1"\nfeatures: []\n', 'utf8');
+        writeFileSync(sourcePath, 'export const before = true;\n', 'utf8');
+        execFileSync('git', ['init', '-q'], {cwd: fixture, stdio: 'ignore'});
+        execFileSync('git', ['config', 'user.email', 'test@example.com'], {cwd: fixture, stdio: 'ignore'});
+        execFileSync('git', ['config', 'user.name', 'test'], {cwd: fixture, stdio: 'ignore'});
+        execFileSync('git', ['add', '-A'], {cwd: fixture, stdio: 'ignore'});
+        execFileSync('git', ['commit', '-q', '-m', 'initial'], {cwd: fixture, stdio: 'ignore'});
+        writeFileSync(specPath, 'schema: "0.1"\nfeatures: []\n# dirty spec remains maintainer-owned\n', 'utf8');
+        writeFileSync(sourcePath, 'export const dirty = true;\n', 'utf8');
+        const before = {spec: readFileSync(specPath, 'utf8'), source: readFileSync(sourcePath, 'utf8')};
+
+        checkpointIntegration.enabled = true;
+        process.chdir(fixture);
+        clad.runCheckpointCommand('F-001');
+        clad.runRollbackCommand('F-001', {reason: 'verify no checkout'});
+
+        expect(readFileSync(specPath, 'utf8')).toBe(before.spec);
+        expect(readFileSync(sourcePath, 'utf8')).toBe(before.source);
+        expect(readEvents(fixture).filter((event) => event.type === 'feature_checkpoint')).toHaveLength(1);
+        expect(readEvents(fixture).filter((event) => event.type === 'feature_rolled_back')).toHaveLength(1);
+        const output = stdoutSpy.mock.calls.map((call: unknown[]) => String(call[0])).join('');
+        expect(output).toContain('Run: git checkout ');
+        expect(exitCalls).toEqual([0, 0]);
+      } finally {
+        process.chdir(originalCwd);
+        checkpointIntegration.enabled = false;
+        rmSync(fixture, {recursive: true, force: true});
+      }
     });
   });
 
@@ -363,6 +542,36 @@ describe('cli/clad — handler exports', () => {
     clad.runCheckCommand({strict: true});
     expect(runDrift).toHaveBeenCalledWith({strict: true});
     expect(process.exitCode).toBe(0);
+  });
+
+  test('[covers:F-051/AC-103] public clad check --strict promotes a real warn finding to a failing stage', async () => {
+    const drift = await import('../../src/stages/drift.js');
+    const runDrift = drift.runDrift as unknown as ReturnType<typeof vi.fn>;
+    realDrift.enabled = true;
+    drift.clearDetectors();
+    drift.registerDetector({
+      name: 'PUBLIC_STRICT_WARN',
+      run: () => [{detector: 'PUBLIC_STRICT_WARN', severity: 'warn', message: 'strict-only failure'}],
+    });
+    try {
+      clad.createProgram().parse(['check', '--strict', '--tier', 'pre-commit'], {from: 'user'});
+
+      expect(runDrift).toHaveBeenCalledWith({strict: true});
+      const report = runDrift.mock.results.at(-1)?.value as {
+        pass: boolean;
+        exitCode: number;
+        findings: {severity: string; message: string}[];
+      };
+      expect(report).toMatchObject({
+        pass: false,
+        exitCode: 1,
+        findings: [{severity: 'warn', message: 'strict-only failure'}],
+      });
+      expect(process.exitCode).toBe(1);
+    } finally {
+      drift.clearDetectors();
+      realDrift.enabled = false;
+    }
   });
 
   test('runCheckCommand reports worst exit code on failures', async () => {
@@ -391,44 +600,9 @@ describe('cli/clad — handler exports', () => {
     expect(exitCalls).toEqual([1]);
   });
 
-  test('runRunCommand happy path exits 0 with summary text', async () => {
-    runDriveLoopMock.mockResolvedValueOnce({
-      halt: {class: 'ALL_FEATURES_DONE', detail: 'done', iteration: 5},
-      iterations: 5,
-      featuresTouched: ['F-001'],
-      stubsCreated: [],
-      gateRuns: 15,
-    });
-    loadSpecMock.mockReturnValueOnce({features: [{id: 'F-001', title: 'alpha'}]});
-    await clad.runRunCommand(undefined, {
-      maxIterations: '50',
-      maxWallClockMs: '600000',
-      maxRetries: '3',
-    });
-    expect(runDriveLoopMock).toHaveBeenCalledOnce();
-    expect(exitCalls).toEqual([0]);
-  });
-
-  test('runRunCommand UNCAUGHT_ERROR exits 1', async () => {
-    runDriveLoopMock.mockResolvedValueOnce({
-      halt: {class: 'UNCAUGHT_ERROR', detail: 'spec load failed', iteration: 0},
-      iterations: 0,
-      featuresTouched: [],
-      stubsCreated: [],
-      gateRuns: 0,
-    });
-    loadSpecMock.mockReturnValueOnce({features: []});
-    await clad.runRunCommand(undefined, {
-      maxIterations: '50',
-      maxWallClockMs: '600000',
-      maxRetries: '3',
-    });
-    expect(exitCalls).toEqual([1]);
-  });
-
   // Lever 1 — `clad oracle --required` prints the policy worklist (which done
   // ACs need an oracle) instead of a single feature's brief.
-  test('runOracleCommand --required lists policy-required ACs and exits 1 when one is missing', () => {
+  test('[covers:F-bdcd90/AC-004] runOracleCommand --required lists policy-required ACs and exits 1 when one is missing', () => {
     loadSpecMock.mockReturnValueOnce({
       project: {name: 'p', language: 'typescript', oracle_policy: {always_ears: ['unwanted'], sample: 0}},
       features: [
@@ -468,36 +642,51 @@ describe('cli/clad — handler exports', () => {
     expect(exitCalls).toEqual([1]);
   });
 
-  test('runRunCommand --json emits raw result to stdout', async () => {
-    runDriveLoopMock.mockResolvedValueOnce({
-      halt: {class: 'ALL_FEATURES_DONE', detail: 'done', iteration: 1},
-      iterations: 1,
-      featuresTouched: [],
-      stubsCreated: [],
-      gateRuns: 3,
-    });
-    await clad.runRunCommand('goal text', {
-      maxIterations: '10',
-      maxWallClockMs: '60000',
-      maxRetries: '2',
-      json: true,
-    });
-    const calls = stdoutSpy.mock.calls.map((c: unknown[]) => c[0]);
-    expect(
-      calls.some((c: unknown) => typeof c === 'string' && c.includes('ALL_FEATURES_DONE')),
-    ).toBe(true);
-    expect(exitCalls).toEqual([0]);
-  });
 });
 
 describe('cli/clad — createProgram', () => {
-  test('returns a Command with all 25 verbs registered (work removed in 0.6.0; hook F-1d23a6, context F-d2c806, impact F-7794a6bc, verdict F-2e28cc72, infer-deps F-2be3e3bb, measure F-16138071, graph F-569f4b37, changelog F-904495a5, report F-f6cc5e5a, bundle F-e940fffe)', () => {
+  test('[covers:F-064/AC-165] the live command registry exposes callable actions and declared option boundaries', () => {
+    const program = clad.createProgram();
+    const visit = (commands: readonly import('commander').Command[]): import('commander').Command[] =>
+      commands.flatMap((command) => [command, ...visit(command.commands)]);
+    const commands = visit(program.commands);
+    const executable = commands.filter(
+      (command) => typeof Reflect.get(command, '_actionHandler') === 'function',
+    );
+
+    expect(executable).not.toHaveLength(0);
+    for (const command of executable) {
+      expect(Reflect.get(command, '_actionHandler')).toEqual(expect.any(Function));
+      const optionLongNames = command.options.map((option) => option.long).filter(Boolean);
+      expect(new Set(optionLongNames).size).toBe(optionLongNames.length);
+    }
+
+    const jsonCommands = executable.filter((command) =>
+      command.options.some((option) => option.long === '--json'),
+    );
+    const scopedCommands = executable.filter((command) =>
+      command.options.some(
+        (option) => typeof option.long === 'string' && ['--cwd', '--feature', '--tier', '--profile'].includes(option.long),
+      ),
+    );
+    expect(jsonCommands).not.toHaveLength(0);
+    expect(scopedCommands).not.toHaveLength(0);
+    expect(jsonCommands.every((command) => typeof Reflect.get(command, '_actionHandler') === 'function')).toBe(true);
+    expect(scopedCommands.every((command) => typeof Reflect.get(command, '_actionHandler') === 'function')).toBe(true);
+  });
+
+  test('[covers:F-040/AC-061][covers:F-9fcdd0a0/AC-fa140fd0] exposes only supported commands through declared handlers', () => {
     const program = clad.createProgram();
     const names = program.commands.map((c) => c.name());
     expect(names).toEqual([
       'init',
-      'run',
       'sync',
+      'migrate',
+      'relocate-generated',
+      'begin',
+      'signoff',
+      'key',
+      'ingest-receipt',
       'setup',
       'update',
       'check',
@@ -521,6 +710,15 @@ describe('cli/clad — createProgram', () => {
       'doctor',
       'clarify',
     ]);
+    expect(new Set(names).size).toBe(names.length);
+    const executableCommands = program.commands.flatMap((command) =>
+      command.commands.length > 0 ? command.commands : [command]);
+    for (const command of executableCommands) {
+      expect(Reflect.get(command, '_actionHandler')).toEqual(expect.any(Function));
+    }
+    for (const retired of ['create', 'drive', 'panel', 'refine', 'work', 'run']) {
+      expect(names).not.toContain(retired);
+    }
   });
 
   // 0.8.0 removed the 0.6.0 compat aliases (`drive`→`run`, `panel`→`status`,
@@ -528,7 +726,7 @@ describe('cli/clad — createProgram', () => {
   // `work` was removed outright back in 0.6.0. All four must stay gone: never
   // registered as a command name, never as an alias — the successor verb is
   // the only spelling.
-  test('removed aliases stay removed; successors are the only spelling', () => {
+  test('[covers:F-7ce18e/AC-614993] removed aliases stay removed; successors are the only spelling', () => {
     const program = clad.createProgram();
     const names = program.commands.map((c) => c.name());
     const aliases = program.commands.flatMap((c) => c.aliases());
@@ -536,12 +734,12 @@ describe('cli/clad — createProgram', () => {
       expect(names).not.toContain(gone);
       expect(aliases).not.toContain(gone);
     }
-    expect(names).toEqual(expect.arrayContaining(['run', 'status', 'clarify']));
+    expect(names).toEqual(expect.arrayContaining(['status', 'clarify']));
   });
 
   // The removed spellings must fail closed: commander treats each as an unknown
   // command and exits non-zero (no silent no-op, no deprecation-and-continue).
-  test('invoking a removed alias is a commander unknown-command error (non-zero exit)', () => {
+  test('[covers:F-064/AC-165][covers:F-d25041ac/AC-33f9324c] removed aliases fail closed at the command boundary', () => {
     for (const gone of ['drive', 'panel', 'refine']) {
       const program = clad.createProgram();
       program.exitOverride();
@@ -561,7 +759,7 @@ describe('cli/clad — createProgram', () => {
 
   test('program version matches current package version', () => {
     const program = clad.createProgram();
-    expect(program.version()).toBe('0.9.4');
+    expect(program.version()).toBe('0.10.0');
   });
 });
 
@@ -579,6 +777,13 @@ describe('cli/clad — runServeCommand', () => {
     await clad.runServeCommand({cwd: '/tmp/probe'});
     expect(buildMock).toHaveBeenCalledWith({
       cwd: '/tmp/probe',
+      // F9d: trust and expected-digest material is an installation fact the
+      // composition root injects, never an MCP tool argument. `serve` must
+      // therefore hand the server the workspace's own evidence operations.
+      evidence: expect.objectContaining({
+        trustSnapshot: expect.objectContaining({digest: expect.any(String), keys: expect.any(Array)}),
+        expectedDigestContext: expect.any(Function),
+      }),
       onboarding: {
         renderDraft: expect.any(Function),
         prepareInit: expect.any(Function),
@@ -721,13 +926,18 @@ describe('cli/clad — runCheckStages attestation write guard (F-10cc42d1 · AC-
   // A done feature with modules is what makes writeAttestation actually emit a
   // file (its only honest author) — so the negative case can't pass vacuously.
   const DONE_SPEC = {
+    schema: '0.1',
     project: {name: 'probe', language: 'typescript'},
-    features: [{id: 'F-001', slug: 'x', status: 'done', modules: ['README.md'], acceptance_criteria: []}],
+    features: [{id: 'F-001', slug: 'x', title: 'x', status: 'done', modules: ['README.md'], acceptance_criteria: []}],
   };
 
   function fixture(): void {
     execFileSync('git', ['init', '-q'], {cwd: dir});
     mkdirSync(join(dir, 'spec'), {recursive: true}); // writeAttestation targets spec/attestation.yaml
+    writeFileSync(join(dir, 'spec.yaml'), [
+      'schema: "0.1"', 'project:', '  name: probe', '  language: typescript', 'features:',
+      '  - id: F-001', '    slug: x', '    title: x', '    status: done', '    modules:', '      - README.md', '    acceptance_criteria: []', '',
+    ].join('\n'));
     writeFileSync(join(dir, 'README.md'), 'x\n');
   }
 
@@ -745,7 +955,7 @@ describe('cli/clad — runCheckStages attestation write guard (F-10cc42d1 · AC-
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('a GREEN strict pre-push gate DEFERS spec/attestation.yaml while a git op is in progress + notes it', () => {
+  test('[covers:F-10cc42d1/AC-578c6226] a GREEN strict pre-push gate DEFERS spec/attestation.yaml while a git op is in progress + notes it', () => {
     fixture();
     writeFileSync(join(dir, '.git', 'MERGE_HEAD'), 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeef\n');
     process.chdir(dir);

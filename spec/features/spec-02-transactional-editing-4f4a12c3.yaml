@@ -1,0 +1,65 @@
+id: F-4f4a12c3
+title: Spec 0.2 typed transactional editing and recovery
+status: done
+modules:
+  - src/spec/edit.ts
+  - src/spec/transaction.ts
+  - src/spec/compiler/compile.ts
+  - src/spec/compiler/migration-baseline.ts
+  - src/spec/compiler/migration-preview.ts
+  - src/spec/compiler/artifact-registry.ts
+  - src/spec/load.ts
+  - src/spec/new.ts
+  - src/spec/test-ref-repair.ts
+  - src/spec/deliverable-detect.ts
+  - src/spec/doc-references.ts
+  - src/spec/inventory.ts
+  - src/spec/attestation.ts
+  - src/events/log.ts
+  - src/oracle/record.ts
+  - src/cli/done.ts
+  - src/cli/begin.ts
+  - src/cli/migrate.ts
+  - src/cli/clarify.ts
+  - src/cli/clad.ts
+  - src/cli/update.ts
+  - src/serve/server.ts
+  - tests/spec/edit.test.ts
+  - tests/spec/writer-census.test.ts
+  - tests/spec/attestation-policy.test.ts
+  - tests/spec/compiler/migration-preview.test.ts
+  - tests/spec/compiler/artifact-registry.test.ts
+  - tests/oracle-record.test.ts
+  - tests/cli/clarify.test.ts
+  - tests/cli/migrate.test.ts
+  - tests/serve/server.test.ts
+  - tests/design/spec-0.2/requirements.yaml
+depends_on: []
+capability_refs: []
+acceptance_criteria:
+  - id: AC-4f4a1201
+    statement: When independently prepared edits touch different feature shards, the
+      transaction authority shall apply both edits against the latest candidate
+      while rejecting a stale edit of the same canonical shard.
+  - id: AC-4f4a1202
+    statement: When a specification mutation is busy or interrupted, the transaction
+      authority shall leave no partial candidate visible and recover byte-exact
+      pre-state before the next compiler snapshot.
+    kind: behavior
+  - id: AC-4f4a1203
+    statement: The specification edit boundary shall accept only closed typed
+      operations, derive canonical input revisions from their registry-owned
+      regions, and keep context revisions outside write authorization.
+  - id: AC-4f4a1204
+    statement: When a schema migration is explicitly confirmed, the transaction
+      authority shall bind the request to the current preview digest and apply
+      or replay the candidate without a partial schema switch.
+design_impact:
+  classification: structural
+  rationale: The F4 boundary centralizes schema 0.2 writes, durable recovery, and
+    migration application across CLI and MCP adapters.
+  status: resolved
+  artifacts:
+    - docs/design/spec-0.2/proof-and-editing.md
+    - docs/design/spec-0.2/model-and-migration.md
+    - docs/design/spec-0.2/delivery.md

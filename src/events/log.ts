@@ -7,15 +7,18 @@
 // but each has its own append-only file.
 
 import {execFileSync} from 'node:child_process';
-import {appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, statSync} from 'node:fs';
+import {randomBytes} from 'node:crypto';
+import {appendFileSync, closeSync, existsSync, fsyncSync, linkSync, lstatSync, mkdirSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync, realpathSync} from 'node:fs';
 import {userInfo} from 'node:os';
-import {dirname, join} from 'node:path';
+import {dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 
 import type {Identity} from '../hitl/identity.js';
 
 const EVENTS_DIR = '.cladding';
 const EVENTS_FILE = 'events.log.jsonl';
 const EVENTS_ROLL = 'events.log.1.jsonl';
+const SPEC_TRANSACTION_LOCK = 'spec-transaction.lock';
+const SPEC_TRANSACTION_JOURNAL = 'spec-transaction.json';
 /** Roll the live log past this size (F-b84c38 AC — bounded reads). */
 const ROTATE_BYTES = 5 * 1024 * 1024;
 
@@ -121,41 +124,279 @@ export interface Event {
   readonly payload: Record<string, unknown>;
 }
 
-function eventsPath(cwd: string): string {
-  return join(cwd, EVENTS_DIR, EVENTS_FILE);
+interface EventWorkspace {
+  readonly root: string;
+  readonly directory: string;
+  readonly eventPath: string;
+  readonly rollPath: string;
+  readonly lockPath: string;
+  readonly reclaimPath: string;
+  readonly journalPath: string;
+}
+
+/**
+ * Resolves the complete observer-owned path set without following a managed
+ * symbolic link. Event telemetry is non-authoritative, so uncertainty is a
+ * no-op rather than a path traversal or a partial observer write.
+ */
+function eventWorkspace(cwd: string, createDirectory: boolean): EventWorkspace | undefined {
+  try {
+    const requestedRoot = resolve(cwd);
+    const rootState = lstatSync(requestedRoot);
+    if (rootState.isSymbolicLink() || !rootState.isDirectory()) return undefined;
+    const root = realpathSync(requestedRoot);
+    const directory = join(root, EVENTS_DIR);
+    let directoryState = lstatOrUndefined(directory);
+    if (!directoryState && createDirectory) {
+      try { mkdirSync(directory); } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'EEXIST') return undefined;
+      }
+      directoryState = lstatOrUndefined(directory);
+    }
+    if (!directoryState || directoryState.isSymbolicLink() || !directoryState.isDirectory()) return undefined;
+    const realDirectory = realpathSync(directory);
+    if (!isInsideRealWorkspace(root, realDirectory)) return undefined;
+    const workspace: EventWorkspace = {
+      root,
+      directory: realDirectory,
+      eventPath: join(realDirectory, EVENTS_FILE),
+      rollPath: join(realDirectory, EVENTS_ROLL),
+      lockPath: join(realDirectory, SPEC_TRANSACTION_LOCK),
+      reclaimPath: join(realDirectory, `${SPEC_TRANSACTION_LOCK}.reclaim`),
+      journalPath: join(realDirectory, SPEC_TRANSACTION_JOURNAL),
+    };
+    return managedEventDestinationsAreSafe(workspace) ? workspace : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Returns a final-component lstat without accidentally following a dangling link. */
+function lstatOrUndefined(path: string): ReturnType<typeof lstatSync> | undefined {
+  try { return lstatSync(path); } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+    throw error;
+  }
+}
+
+/** Every existing event-controlled destination must be a regular in-root file. */
+function managedEventDestinationsAreSafe(workspace: EventWorkspace): boolean {
+  if (!isInsideRealWorkspace(workspace.root, workspace.directory)) return false;
+  for (const path of [workspace.eventPath, workspace.rollPath, workspace.lockPath, workspace.reclaimPath, workspace.journalPath]) {
+    if (!isInsideRealWorkspace(workspace.root, path)) return false;
+    const state = lstatOrUndefined(path);
+    if (!state) continue;
+    if (state.isSymbolicLink() || !state.isFile()) return false;
+    try {
+      if (!isInsideRealWorkspace(workspace.root, realpathSync(path))) return false;
+    } catch {
+      return false;
+    }
+  }
+  return true;
+}
+
+/** Tests a resolved candidate, never a prefix string, against the real workspace root. */
+function isInsideRealWorkspace(root: string, candidate: string): boolean {
+  const rel = relative(root, candidate);
+  return rel === '' || (rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel));
 }
 
 /** Append a single event. Creates the directory if needed. Rolls the live log
  * to `events.log.1.jsonl` (single generation, newest kept live) past
  * ROTATE_BYTES so reads stay bounded. */
 export function appendEvent(cwd: string, event: Event): void {
-  const path = eventsPath(cwd);
-  const dir = dirname(path);
-  if (!existsSync(dir)) mkdirSync(dir, {recursive: true});
+  try {
+    const workspace = eventWorkspace(cwd, true);
+    if (!workspace) return;
+    const release = acquireSpecEventLock(workspace);
+    if (!release) return;
+    try {
+      // A dead writer's durable journal belongs to F4 recovery. Appending into
+      // its before-image would create a third state that recovery must not
+      // silently discard, so best-effort telemetry waits for a later call.
+      if (hasPendingSpecTransaction(workspace)) return;
+      appendEventUnlocked(workspace, event);
+    } finally { release(); }
+  } catch {
+    // Observer telemetry cannot change the primary command outcome.
+  }
+}
+
+/** Performs the actual append while ownership of the F4 workspace lock is held. */
+function appendEventUnlocked(workspace: EventWorkspace, event: Event): void {
+  if (!managedEventDestinationsAreSafe(workspace)) return;
+  const path = workspace.eventPath;
   try {
     if (existsSync(path) && statSync(path).size > ROTATE_BYTES) {
-      renameSync(path, join(dir, EVENTS_ROLL)); // replaces any previous roll
+      if (!managedEventDestinationsAreSafe(workspace)) return;
+      renameSync(path, workspace.rollPath); // replaces any previous roll
     }
   } catch {
     // Rotation is best-effort; a failed roll must not lose the append.
   }
+  if (!managedEventDestinationsAreSafe(workspace)) return;
   appendFileSync(path, `${JSON.stringify(event)}\n`, 'utf8');
+}
+
+/** A pending journal makes event observers defer until F4 recovery restores one canonical state. */
+function hasPendingSpecTransaction(workspace: EventWorkspace): boolean {
+  return managedEventDestinationsAreSafe(workspace) && lstatOrUndefined(workspace.journalPath) !== undefined;
+}
+
+/**
+ * Serializes legacy telemetry appenders with journaled F4 event replacements.
+ * The lock publication matches the transaction boundary's durable hard-link
+ * shape, so a reader never mistakes a partially written owner for permission.
+ */
+function acquireSpecEventLock(workspace: EventWorkspace): (() => void) | undefined {
+  const directory = workspace.directory;
+  const path = workspace.lockPath;
+  const deadline = Date.now() + 5_000;
+  while (Date.now() < deadline) {
+    if (!managedEventDestinationsAreSafe(workspace)) return undefined;
+    const nonce = randomBytes(12).toString('hex');
+    const temporary = join(directory, `.${SPEC_TRANSACTION_LOCK}.event-${nonce}.tmp`);
+    let published = false;
+    try {
+      const fd = openSync(temporary, 'wx');
+      try { writeFileSync(fd, `${JSON.stringify({pid: process.pid, nonce})}\n`); fsyncSync(fd); } finally { closeSync(fd); }
+      linkSync(temporary, path);
+      published = true;
+      unlinkSync(temporary);
+      fsyncDirectory(directory);
+      return () => {
+        try {
+          if (!managedEventDestinationsAreSafe(workspace)) return;
+          const owner = JSON.parse(readFileSync(path, 'utf8')) as {nonce?: unknown};
+          if (owner.nonce === nonce) { unlinkSync(path); fsyncDirectory(directory); }
+        } catch { /* A replacement owner is never unlinked by this append. */ }
+      };
+    } catch (error) {
+      try { if (existsSync(temporary)) unlinkSync(temporary); } catch { /* Not published. */ }
+      if (published) {
+        // A failure after hard-link publication must retire only this
+        // append's owner. Never leave a best-effort event lock to make the
+        // transaction authority permanently BUSY.
+        try {
+          const owner = JSON.parse(readFileSync(path, 'utf8')) as {nonce?: unknown};
+          if (owner.nonce === nonce) { unlinkSync(path); fsyncDirectory(directory); }
+        } catch { /* A successor or stale-lock recovery owns the pathname. */ }
+        return undefined;
+      }
+      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') return undefined;
+      reclaimDeadSpecEventLock(workspace);
+    }
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25);
+  }
+  return undefined;
+}
+
+/** Retires only a demonstrably dead event/transaction owner. */
+function reclaimDeadSpecEventLock(workspace: EventWorkspace): void {
+  if (!managedEventDestinationsAreSafe(workspace)) return;
+  const path = workspace.lockPath;
+  let observed = '';
+  let inode: number | undefined;
+  try { observed = readFileSync(path, 'utf8'); inode = lstatSync(path).ino; } catch { return; }
+  const nonce = randomBytes(12).toString('hex');
+  const reclaimPath = workspace.reclaimPath;
+  try {
+    const fd = openSync(reclaimPath, 'wx');
+    try { writeFileSync(fd, `${JSON.stringify({pid: process.pid, nonce})}\n`); fsyncSync(fd); } finally { closeSync(fd); }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'EEXIST') retireExpiredSpecEventReclaimer(workspace);
+    return;
+  }
+  const release = (): void => {
+    try {
+      if (!managedEventDestinationsAreSafe(workspace)) return;
+      const guard = JSON.parse(readFileSync(reclaimPath, 'utf8')) as {nonce?: unknown};
+      if (guard.nonce === nonce) { unlinkSync(reclaimPath); fsyncDirectory(dirname(reclaimPath)); }
+    } catch { /* A concurrent stale-lock cleanup owns any replacement. */ }
+  };
+  const retireObserved = (): void => {
+    try {
+      if (!managedEventDestinationsAreSafe(workspace)) return;
+      if (lstatSync(path).ino !== inode || readFileSync(path, 'utf8') !== observed) return;
+      const tombstone = `${path}.retired-${nonce}`;
+      renameSync(path, tombstone); fsyncDirectory(dirname(path));
+      unlinkSync(tombstone); fsyncDirectory(dirname(path));
+    } catch { /* A successor or concurrent release owns the pathname. */ }
+  };
+  try {
+    const owner = JSON.parse(observed) as {pid?: unknown};
+    if (!Number.isInteger(owner.pid) || (owner.pid as number) <= 0) {
+      if (Date.now() - lstatSync(path).mtimeMs > 30_000) retireObserved();
+      return;
+    }
+    try { process.kill(owner.pid as number, 0); } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ESRCH') retireObserved();
+    }
+  } catch {
+    // A fresh malformed lock may be a live process between publication and
+    // inspection on a foreign implementation; it is never stolen here.
+  } finally { release(); }
+}
+
+/** Removes only a reclaimer guard whose owner cannot still be active. */
+function retireExpiredSpecEventReclaimer(workspace: EventWorkspace): void {
+  if (!managedEventDestinationsAreSafe(workspace)) return;
+  const path = workspace.reclaimPath;
+  let observed: string;
+  let inode: number;
+  let age: number;
+  try {
+    observed = readFileSync(path, 'utf8');
+    const state = lstatSync(path);
+    inode = state.ino;
+    age = Date.now() - state.mtimeMs;
+  } catch { return; }
+  if (age <= 30_000) return;
+  const tombstone = `${path}.retired-${randomBytes(12).toString('hex')}`;
+  try {
+    if (lstatSync(path).ino !== inode || readFileSync(path, 'utf8') !== observed) return;
+    renameSync(path, tombstone); fsyncDirectory(dirname(path));
+    unlinkSync(tombstone); fsyncDirectory(dirname(path));
+  } catch { /* A successor guard owns the pathname. */ }
+}
+
+/** Directory fsync is unavailable on a few platforms; rename remains atomic there. */
+function fsyncDirectory(path: string): void {
+  try {
+    const fd = openSync(path, 'r');
+    try { fsyncSync(fd); } finally { closeSync(fd); }
+  } catch { /* platform durability fallback */ }
 }
 
 /** Parse one events-log file in append order; a missing or empty file → []. */
 function readEventsFile(path: string): Event[] {
+  return readEventLinesFile(path).map((line) => JSON.parse(line) as Event);
+}
+
+/** Reads raw live-log records after one complete managed-path safety check. */
+function readEventLinesFile(path: string): string[] {
   if (!existsSync(path)) return [];
   const raw = readFileSync(path, 'utf8').trim();
-  if (raw.length === 0) return [];
-  return raw
-    .split('\n')
-    .filter((line) => line.length > 0)
-    .map((line) => JSON.parse(line) as Event);
+  return raw.length === 0 ? [] : raw.split('\n').filter((line) => line.length > 0);
+}
+
+/**
+ * Returns live event-log lines only when every observer-managed path is safe.
+ * `undefined` means no safe readable log exists, whether the destination is
+ * absent or unsafe, so transport adapters never probe an untrusted pathname.
+ */
+export function readEventLogLines(cwd: string): readonly string[] | undefined {
+  const workspace = eventWorkspace(cwd, false);
+  return workspace && lstatOrUndefined(workspace.eventPath)
+    ? readEventLinesFile(workspace.eventPath)
+    : undefined;
 }
 
 /** Read every event in the live log in append order. */
 export function readEvents(cwd: string): readonly Event[] {
-  return readEventsFile(eventsPath(cwd));
+  const lines = readEventLogLines(cwd);
+  return lines ? lines.map((line) => JSON.parse(line) as Event) : [];
 }
 
 /**
@@ -167,7 +408,8 @@ export function readEvents(cwd: string): readonly Event[] {
  * (AC-345af0b5).
  */
 export function readEventsIncludingRolled(cwd: string): readonly Event[] {
-  return [...readEventsFile(join(cwd, EVENTS_DIR, EVENTS_ROLL)), ...readEventsFile(eventsPath(cwd))];
+  const workspace = eventWorkspace(cwd, false);
+  return workspace ? [...readEventsFile(workspace.rollPath), ...readEventsFile(workspace.eventPath)] : [];
 }
 
 /** Convenience constructor — fills id + timestamp. */
@@ -178,6 +420,11 @@ export function newEvent(type: EventType, payload: Record<string, unknown>): Eve
     type,
     payload,
   };
+}
+
+/** Adds the standard immutable actor and repository context without appending bytes. */
+export function enrichEventPayload(cwd: string, payload: Record<string, unknown>): Record<string, unknown> {
+  return {...payload, head: gitHead(cwd), identity: resolveActorIdentity(cwd)};
 }
 
 /** Actor identity for lifecycle events: git author when resolvable (the
@@ -234,35 +481,51 @@ export function latestEventOfType(cwd: string, type: EventType): Event | null {
  */
 export function recordEvent(cwd: string, type: EventType, payload: Record<string, unknown>): void {
   try {
-    const head = gitHead(cwd);
-    const identity = resolveActorIdentity(cwd);
-    const full = {...payload, head, identity};
+    const full = enrichEventPayload(cwd, payload);
     if (type === 'gate_run') {
-      const events = readEvents(cwd);
-      let prevIndex = -1;
-      for (let index = events.length - 1; index >= 0; index--) {
-        if (events[index].type === 'gate_run') {
-          prevIndex = index;
-          break;
-        }
-      }
-      const prev = prevIndex >= 0 ? events[prevIndex] : undefined;
-      const stopBlockedSince = prevIndex >= 0 && events.slice(prevIndex + 1).some((event) => event.type === 'stop_blocked');
-      if (
-        prev &&
-        !stopBlockedSince &&
-        prev.payload.head === head &&
-        prev.payload.tier === payload.tier &&
-        prev.payload.strict === payload.strict &&
-        prev.payload.worst === payload.worst &&
-        prev.payload.stopFingerprint === payload.stopFingerprint &&
-        JSON.stringify(prev.payload.blockers ?? []) === JSON.stringify(payload.blockers ?? [])
-      ) {
-        return;
-      }
+      recordGateRunUnderEventLock(cwd, full, payload);
+      return;
     }
     appendEvent(cwd, newEvent(type, full));
   } catch {
     // error-as-data at the boundary: the command outcome is unchanged.
+  }
+}
+
+/**
+ * Reads, deduplicates, and appends a gate observation under one F4 lock.
+ * A concurrent caller can therefore only observe either the old decision or
+ * the complete prior append, never the pre-lock dedupe gap.
+ */
+function recordGateRunUnderEventLock(cwd: string, full: Record<string, unknown>, payload: Record<string, unknown>): void {
+  const workspace = eventWorkspace(cwd, true);
+  if (!workspace) return;
+  const release = acquireSpecEventLock(workspace);
+  if (!release) return;
+  try {
+    if (hasPendingSpecTransaction(workspace) || !managedEventDestinationsAreSafe(workspace)) return;
+    const events = readEventsFile(workspace.eventPath);
+    let prevIndex = -1;
+    for (let index = events.length - 1; index >= 0; index--) {
+      if (events[index].type === 'gate_run') {
+        prevIndex = index;
+        break;
+      }
+    }
+    const prev = prevIndex >= 0 ? events[prevIndex] : undefined;
+    const stopBlockedSince = prevIndex >= 0 && events.slice(prevIndex + 1).some((event) => event.type === 'stop_blocked');
+    if (
+      prev &&
+      !stopBlockedSince &&
+      prev.payload.head === full.head &&
+      prev.payload.tier === payload.tier &&
+      prev.payload.strict === payload.strict &&
+      prev.payload.worst === payload.worst &&
+      prev.payload.stopFingerprint === payload.stopFingerprint &&
+      JSON.stringify(prev.payload.blockers ?? []) === JSON.stringify(payload.blockers ?? [])
+    ) return;
+    appendEventUnlocked(workspace, newEvent('gate_run', full));
+  } finally {
+    release();
   }
 }

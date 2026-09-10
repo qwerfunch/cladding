@@ -20,7 +20,7 @@
 // recurs across features) and was measured to triple the edge count with spurious links, so
 // single-segment keys are excluded.
 
-import {reverseIndexOf} from '../spec/reverse-index.js';
+import {viewFor, type GraphConsumerView} from '../graph/consumers.js';
 import type {Spec} from '../spec/types.js';
 
 export interface InferredEdge {
@@ -55,6 +55,9 @@ export interface InferOptions {
    * clean edges; uncapped yields ~2200 with heavy fan-out noise from shared modules.
    */
   readonly maxOwnerAmbiguity?: number;
+  /** An already-built graph view supplying module ownership; omitted reads the structural
+   *  projection, which is what the drift detector lane wants. */
+  readonly graph?: GraphConsumerView;
 }
 
 // Dynamic/runtime import patterns — dependencies static extraction cannot see (so a file with
@@ -89,9 +92,9 @@ function ext(p: string): string {
  * JS/TS:  `src/a/b.ts` → `src/a/b`, `a/b`, and the basename `b` (relative imports resolve by basename/segment).
  * Returns Map<lookupKey, Set<featureId>>.
  */
-function buildResolveIndex(ownerByPath: ReadonlyMap<string, ReadonlySet<string>>): Map<string, Set<string>> {
+function buildResolveIndex(ownerByPath: Iterable<readonly [string, readonly string[]]>): Map<string, Set<string>> {
   const idx = new Map<string, Set<string>>();
-  const add = (key: string, owners: ReadonlySet<string>): void => {
+  const add = (key: string, owners: readonly string[]): void => {
     if (!key) return;
     const set = idx.get(key) ?? new Set<string>();
     for (const o of owners) set.add(o);
@@ -148,9 +151,13 @@ function importKeys(spec: string, fileExt: string): string[] {
  */
 export function inferDependsOn(spec: Spec, read: ModuleReader, opts: InferOptions = {}): InferResult {
   const maxAmbiguity = opts.maxOwnerAmbiguity ?? 1;
-  const ri = reverseIndexOf(spec);
-  const resolve = buildResolveIndex(ri.moduleOwners);
+  const view = viewFor(spec, {graph: opts.graph});
   const features = spec.features ?? [];
+  // The path universe comes from what the shards declare; who OWNS each path comes from the
+  // graph view, so the resolve index carries the same ownership answer every other consumer
+  // reads instead of a private second inversion.
+  const declaredModules = [...new Set(features.flatMap((f) => f.modules ?? []))].sort();
+  const resolve = buildResolveIndex(declaredModules.map((path) => [path, view.owners(path)] as const));
 
   // edgeKey → InferredEdge (dedup; keep the first `via` for evidence, deterministically smallest)
   const edgeMap = new Map<string, InferredEdge>();

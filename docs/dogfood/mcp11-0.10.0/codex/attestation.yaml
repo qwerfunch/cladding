@@ -1,0 +1,23 @@
+# Cladding · Tier C — verification attestation. Legacy module rows retain byte compatibility;
+# schema 0.1 feature rows need a GREEN strict pre-push gate; v3 replaces a schema 0.2 feature row only after an authoritative profile-complete GREEN result.
+# Do not edit by hand.
+#
+#   policy:             verifier identity: Cladding version, strict blocking,
+#                       and SHA-256 of the ordered detector catalog.
+#   attested_modules:  one line per module file across all done features,
+#                      value = sha256 of that file's bytes (16 hex). Editing a
+#                      file moves exactly its own line — not every co-owning
+#                      feature's — so parallel work rarely conflicts here.
+#   attested_features: legacy constant `ok` markers for done features not
+#                      replaced by a v3 row. STALE_ATTESTATION reads the v3
+#                      closure seal first, otherwise this marker + modules.
+#
+# Merge conflict here? NEVER hand-resolve the hashes — keep either side and run
+# `clad check --tier=pre-push --strict`; the GREEN gate rewrites the truth.
+# Content-anchored: survives fresh clones and squash/rebase.
+attested_modules:
+  src/greeting.ts: 35988aac2aa6538b
+attested_features:
+
+attested_v3:
+  F-032b6453: {"attestation_schema":"3","feature":"F-032b6453","profile":"push","configured_assurance_level":"L4","achieved_assurance_level":"L4","scope_sha256":"66f7f6301ab195d5cedf5c27b000c3b05a521bb494e9862612ece2c837aefc53","input_sha256":"7b228c7c3eb604de04338dc84d67bdc64fc705e82a102f38374b2def51ac0263","contract_sha256":"62b05459b2273bc4e3b21f135669f5f2ae5a85046c4026da44592a3b2ed62578","subject_sha256":"848d40caae20a2a44edf77a0da7ff1bdb5894acfbcd6853f020cb613890514a8","verification_sha256":"c8351ca552f8d082766fd663c3da927fb27ffe128ca9e92155ec7d1678f9a95f","runtime_dependency_sha256":"f540fb51757c1e170c8d0c27ae326b5b7949a713ad27f9280479876e52b6c554","profile_sha256":"4c8648b5a3fcc19c7c7177abf299a2a4cacca7cb17cc73eaa3308b5588779d31","obligation_sha256":"7191cce4bdf2f0264e05cd0e6efe6707b70024418bf303083e7947e9ecd01c29","registry_sha256":"32cda83a2a4347361363348abb98cca5e1b4cca210f15486d9bc739413c07c0f","detector_catalog_sha256":"133c1ab691da7642223bcfe93ecdf4dc253f1aba08ee4e1bad865e427a2c37db","tool_identity":"0.10.0","environment_class":"foreground","trust_snapshot_sha256":"b6d1d70675d772aa109d52c52f594a8127490f5d6d0c5e8fcbb30c6f7b28e77d","observation_set_sha256":"15334fd36639a0a1895c942d6a3956318a450d817e549095c3bc64db4660ed01","observation_count":14,"observation_counts":{"required":14,"pass":14,"na":2,"migration_baseline":0}}

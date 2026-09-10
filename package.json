@@ -1,6 +1,6 @@
 {
   "name": "cladding",
-  "version": "0.9.4",
+  "version": "0.10.0",
   "description": "Spec-driven verification layer for AI coding agents — Claude Code · Codex · Gemini · Antigravity · Cursor. Intent in before it writes, result verified against your spec after. Reference implementation of the Ironclad standard.",
   "type": "module",
   "license": "MIT",
@@ -54,6 +54,8 @@
     "stage:audit": "tsx src/stages/audit.ts",
     "stage:uat": "tsx src/stages/uat.ts",
     "spec:validate": "tsx src/spec/cli.ts",
+    "validate:spec-0.2": "tsx scripts/spec-0.2-validate.ts",
+    "validate:spec-0.2:release": "tsx scripts/spec-0.2-validate.ts --release",
     "conformance": "tsx conformance/runner.ts",
     "benchmark": "tsx src/cli/benchmark.ts",
     "clad": "node bin/clad",
@@ -69,6 +71,7 @@
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {
+    "@babel/parser": "^7.29.3",
     "@secretlint/secretlint-rule-preset-recommend": "^13.0.2",
     "@types/node": "^22.0.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",

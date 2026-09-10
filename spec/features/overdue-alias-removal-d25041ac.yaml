@@ -1,25 +1,38 @@
 id: F-d25041ac
-slug: overdue-alias-removal
-title: "Remove overdue deprecated CLI aliases (drive/panel/refine) + skill stubs"
+title: Remove overdue deprecated CLI aliases (drive/panel/refine) + skill stubs
 status: done
 modules:
   - src/cli/clad.ts
   - tests/cli/clad.test.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-33f9324c
-    ears: event
-    condition: "when the removed verbs drive, panel, or refine are invoked"
-    text: "The CLI shall exit non-zero with commander's unknown-command error — the aliases are no longer registered."
-    test_refs: ["tests/cli/clad.test.ts"]
-    notes: "WHY: deprecated since 0.6.0 with stderr notices self-declaring \"removed in 0.8\", yet they still shipped at 0.8.0 — an unkept removal contract in a tool that machine-checks kept promises; the successor verbs are run/status/clarify."
+    statement: The CLI shall exit non-zero with commander's unknown-command error —
+      the aliases are no longer registered.
+    kind: behavior
+    notes: 'WHY: deprecated since 0.6.0 with stderr notices self-declaring "removed
+      in 0.8", yet they still shipped at 0.8.0 — an unkept removal contract in a
+      tool that machine-checks kept promises; the successor verbs are
+      run/status/clarify.'
   - id: AC-637168a5
-    ears: ubiquitous
-    text: "The skills/drive, skills/panel, and skills/refine redirect stubs shall not exist, and the regenerated Codex mirror shall not carry them."
-    evidence_refs: ["skills/", "plugins/codex/skills/"]
-    notes: "WHY: 6-word stubs whose descriptions claimed removal two minors ago; build-plugin sweeps removed skills/* from the Codex mirror automatically — stub deletion must follow alias deletion (a live alias with no skill redirect would 404 the host)."
+    statement: The system shall keep skills/drive, skills/panel, and skills/refine
+      redirect stubs absent and omit them from the regenerated Codex mirror.
+    kind: constraint
+    rationale: Prevents removed skill entry points from being rediscovered.
+    evidence_refs:
+      - skills/
+      - plugins/codex/skills/
+    notes: "WHY: 6-word stubs whose descriptions claimed removal two minors ago;
+      build-plugin sweeps removed skills/* from the Codex mirror automatically —
+      stub deletion must follow alias deletion (a live alias with no skill
+      redirect would 404 the host)."
   - id: AC-d7eeecfd
-    ears: ubiquitous
-    text: "docs/glossary.md shall keep the alias-to-successor rows (refine→clarify, panel→status, drive→run) as the historical mapping."
-    test_refs: ["tests/self-consistency.test.ts"]
-    evidence_refs: ["docs/glossary.md"]
-    notes: "WHY: tests/self-consistency.test.ts:109-116 requires the glossary alias rows — they are the migration record for users returning after the removal, distinct from the executable surface."
+    statement: The docs/glossary.md shall keep the alias-to-successor rows
+      (refine→clarify, panel→status, drive→run) as the historical mapping.
+    kind: behavior
+    evidence_refs:
+      - docs/glossary.md
+    notes: "WHY: tests/self-consistency.test.ts:109-116 requires the glossary alias
+      rows — they are the migration record for users returning after the
+      removal, distinct from the executable surface."

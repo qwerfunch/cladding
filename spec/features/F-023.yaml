@@ -10,13 +10,12 @@ modules:
   - tests/stages/drift.test.ts
 depends_on:
   - F-021
+capability_refs: []
 acceptance_criteria:
   - id: AC-035
-    ears: ubiquitous
-    action: run cladding's own unit tests covering spec parser, validator, EARS
-      validator, toolchain detector, and drift registry
-    response: vitest reports all suites pass
-    text: The system shall maintain a vitest suite covering spec parser, validator,
-      EARS validator, toolchain detector, and drift registry. `npm test` shall
-      exit 0 with all tests passing.
-    evidence_refs: [self-dogfood:test]
+    statement: The system shall maintain a Vitest suite covering the spec parser,
+      validator, EARS validator, toolchain detector, and drift registry and make
+      npm test exit 0 with all tests passing.
+    kind: quality
+    evidence_refs:
+      - self-dogfood:test

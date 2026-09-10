@@ -1,35 +1,36 @@
 id: F-d2c806
-slug: get-context-slice
-title: "clad_get_context + clad context — the Least Context principle becomes mechanical (first context-serving wiring of pruneToFeature)"
+title: clad_get_context + clad context — the Least Context principle becomes
+  mechanical (first context-serving wiring of pruneToFeature)
 status: done
 modules:
   - src/optimizer/context-slice.ts
   - src/serve/server.ts
   - src/cli/clad.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-6aa10d
-    ears: event
-    condition: "when a host calls clad_get_context (or the CLI runs clad context) with a feature id, a slug, or a module path"
-    action: "resolve the focus feature and return a compact YAML slice: the focus feature (full), its transitive depends_on ancestors (title+status only), scenarios bound to any of them, the matching ai_hints.preferred_patterns triples, and the union of the focus feature's test_refs"
-    response: "an agent gets the working set for one feature in one call instead of reading shards by hand — the personas' Least Context rule finally has a mechanism"
-    text: "When clad_get_context / clad context is called with a feature id, slug, or module path, the system shall return the compact context slice (focus feature, ancestor summaries, bound scenarios, matching ai_hints patterns, test_refs union)."
-    notes: "## Why\npruneToFeature existed since the token-efficiency work but its ONLY consumer was the benchmark — personas ordered agents to 'dispatch slices' that no code produced. ## Decision\nAncestors are summarized (title+status), not inlined — the slice serves orientation, not a full spec dump."
-    test_refs:
-      - "tests/optimizer/context-slice.test.ts#resolves by id, slug, and module path identically"
-      - "tests/optimizer/context-slice.test.ts#the slice carries ancestor summaries, bound scenarios, ai_hints patterns, and a deduped sorted test_refs union"
-  - id: AC-10ea8a
-    ears: unwanted
-    condition: "if the lookup matches nothing (unknown id/slug, module no feature claims)"
-    action: "return a not-found result naming the three accepted lookup forms and pointing at spec/index.yaml for discovery"
-    response: "a miss teaches the caller the contract instead of returning an empty blob"
-    text: "If the lookup matches nothing, the system shall return a not-found result naming the accepted forms (F-id, slug, module path) and pointing at spec/index.yaml."
-    test_refs:
-      - "tests/optimizer/context-slice.test.ts#a miss names the accepted forms and points at spec/index.yaml"
-      - "tests/serve/server.test.ts#returns the slice with schema_version; a miss is isError with the accepted forms"
-  - id: AC-0fe45d
-    ears: ubiquitous
-    text: "The MCP payload shall carry schema_version and the slice shall be deterministic (stable ordering) for identical spec state, so hosts can cache and diff it."
+    statement: When a context lookup receives a feature id or slug or module path,
+      the system shall return the compact context slice with focus feature,
+      ancestor summaries, bound scenarios, matching ai_hints patterns, and
+      test_refs union.
+    kind: behavior
+    notes: >-
+      ## Why
 
-    test_refs:
-      - "tests/optimizer/context-slice.test.ts#determinism: identical spec state yields byte-identical slices"
-      - "tests/serve/server.test.ts#returns the slice with schema_version; a miss is isError with the accepted forms"
+      pruneToFeature existed since the token-efficiency work but its ONLY
+      consumer was the benchmark — personas ordered agents to 'dispatch slices'
+      that no code produced. ## Decision
+
+      Ancestors are summarized (title+status), not inlined — the slice serves
+      orientation, not a full spec dump.
+  - id: AC-10ea8a
+    statement: If the lookup matches nothing, then the system shall return a
+      not-found result naming the accepted forms (F-id, slug, module path) and
+      pointing at spec/index.yaml.
+    kind: behavior
+  - id: AC-0fe45d
+    statement: The MCP payload shall carry schema_version and produce a
+      deterministically ordered slice for identical specification state so hosts
+      can cache and diff it.
+    kind: quality

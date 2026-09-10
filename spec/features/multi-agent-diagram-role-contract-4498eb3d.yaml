@@ -1,29 +1,33 @@
 id: F-4498eb3d
-slug: multi-agent-diagram-role-contract
-title: "Multi-agent diagram draws the role contract, not an orchestrator hub"
+title: Multi-agent diagram draws the role contract, not an orchestrator hub
 status: archived
-archived_at: "2026-07-25T00:00:00Z"
-archive_reason: "Superseded by readme-multiagent-inversion (F-8476ccb1): after four diagram drafts (org-chart relabel, contract-boundary, host-frame roster, three-shapes contrast) the user chose a prose-only Multi-Agent section — the three-shapes contrast moved into the README text and the four locale multi-agent.svg files were removed."
-superseded_by: F-8476ccb1
 modules: []
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-4a195d3a
-    ears: ubiquitous
-    response: "each of the four multi-agent.svg files matches no /dispatch/i and no /orchestrat/i anywhere, comments included"
-    text: "The multi-agent diagram shall no longer depict an orchestrator dispatching workers — neither in rendered text nor in authoring comments; the hub is the host, which runs the role briefs."
-    test_refs: ["tests/choreography-guard.test.ts"]
+    statement: The multi-agent diagram shall no longer depict an orchestrator
+      dispatching workers — neither in rendered text nor in authoring comments;
+      the hub is the host, which runs the role briefs.
   - id: AC-4c5b1cc6
-    ears: ubiquitous
-    response: "each of the four multi-agent.svg files contains the literals 'independent' and 'self-certified'; the en file contains 'host'"
-    text: "The diagram's convergence point shall be cladding's judgment of the record — gates plus the independence label — so the drawing carries the independent | self-certified vocabulary in every locale."
-    test_refs: ["tests/choreography-guard.test.ts"]
+    statement: The diagram's convergence point shall be cladding's judgment of the
+      record — gates plus the independence label — so the drawing carries the
+      independent | self-certified vocabulary in every locale.
   - id: AC-5965394a
-    ears: ubiquitous
-    response: "README pin suites and the existing choreography-guard README/persona cases stay green after the diagram + guard-case update"
-    text: "The geometry rework shall not disturb any README pin; the guard case that tolerated the old dispatch-arrows authoring comment is tightened to whole-file cleanliness."
-    test_refs: ["tests/choreography-guard.test.ts", "tests/readme-loop-section.test.ts", "tests/readme-record-honesty.test.ts"]
+    statement: The geometry rework shall not disturb any README pin; the guard case
+      that tolerated the old dispatch-arrows authoring comment is tightened to
+      whole-file cleanliness.
 design_impact:
   classification: none
-  rationale: "Documentation diagram alignment: the drawing catches up with the role-contract architecture already shipped in prose (persona cards, README). No engine or capability changes."
+  rationale: "Documentation diagram alignment: the drawing catches up with the
+    role-contract architecture already shipped in prose (persona cards, README).
+    No engine or capability changes."
   status: resolved
   artifacts: []
+archived_at: 2026-07-25T00:00:00Z
+archive_reason: "Superseded by readme-multiagent-inversion (F-8476ccb1): after
+  four diagram drafts (org-chart relabel, contract-boundary, host-frame roster,
+  three-shapes contrast) the user chose a prose-only Multi-Agent section — the
+  three-shapes contrast moved into the README text and the four locale
+  multi-agent.svg files were removed."
+superseded_by: F-8476ccb1

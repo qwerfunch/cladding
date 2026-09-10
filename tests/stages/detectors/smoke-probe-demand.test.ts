@@ -7,6 +7,8 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
+import {TIER_STAGES} from '../../../src/cli/clad.js';
+import {strictSkipViolations} from '../../../src/stages/skip-policy.js';
 import {smokeProbeDemand} from '../../../src/stages/detectors/smoke-probe-demand.js';
 
 let dir: string;
@@ -29,7 +31,7 @@ function writeSpec(opts: {deliverable?: boolean; smoke?: boolean; done?: boolean
 }
 
 describe('SMOKE_PROBE_DEMAND (F-c′)', () => {
-  test('WARN: a done feature ships a runnable deliverable but no smoke probe', () => {
+  test('[covers:F-7076f7/AC-111865] WARN: a done feature ships a runnable deliverable but no smoke probe', () => {
     writeSpec({deliverable: true, smoke: false, done: true});
     const f = smokeProbeDemand.run({cwd: dir});
     expect(f.length).toBe(1);
@@ -37,7 +39,19 @@ describe('SMOKE_PROBE_DEMAND (F-c′)', () => {
     expect(f[0].severity).toBe('warn');
   });
 
-  test('SATISFIED: no demand once a functional smoke probe is declared', () => {
+  test('[covers:F-7076f7/AC-7f8630] smoke demand emits once for every drift-running tier without a strict skip-policy duplicate', () => {
+    writeSpec({deliverable: true, smoke: false, done: true});
+    const driftTiers = Object.entries(TIER_STAGES).filter(([, stages]) => stages.includes('stage_1.3'));
+    expect(driftTiers.map(([tier]) => tier)).toEqual(['pre-commit', 'pre-push', 'all']);
+    for (const [tier] of driftTiers) {
+      const findings = smokeProbeDemand.run({cwd: dir});
+      expect(findings.filter((finding) => finding.detector === 'SMOKE_PROBE_DEMAND'), tier).toHaveLength(1);
+    }
+    const spec = {project: {name: 'x', deliverable: {path: './run', is_safe_to_smoke: true}}, features: [{id: 'F-a', status: 'done'}]} as never;
+    expect(strictSkipViolations(spec, [{stage: 'stage_2.4', status: 'skip'}])).toEqual([]);
+  });
+
+  test('[covers:F-7076f7/AC-5abfc0] SATISFIED: no demand once a functional smoke probe is declared', () => {
     writeSpec({deliverable: true, smoke: true, done: true});
     expect(smokeProbeDemand.run({cwd: dir}).length).toBe(0);
   });
@@ -68,7 +82,7 @@ describe('SMOKE_PROBE_DEMAND · dangling feature binding (F-4ef09f38 AC-4)', () 
   }
   const isDangling = (m: string): boolean => m.includes('dangling');
 
-  test('WARN naming the probe argv and the dangling id when the binding resolves to no feature', () => {
+  test('[covers:F-4ef09f38/AC-5e95db0b] WARN naming the probe argv and the dangling id when the binding resolves to no feature', () => {
     writeBoundSpec('F-dddddd'); // not present in features
     const findings = smokeProbeDemand.run({cwd: dir});
     const dangling = findings.filter((f) => isDangling(f.message));

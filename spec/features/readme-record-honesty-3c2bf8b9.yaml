@@ -1,6 +1,5 @@
 id: F-3c2bf8b9
-slug: readme-record-honesty
-title: "README record-honesty — who/what/why wording matches what is actually recorded"
+title: README record-honesty — who/what/why wording matches what is actually recorded
 status: done
 modules:
   - README.md
@@ -8,24 +7,33 @@ modules:
   - README.html
   - README.ko.html
   - docs/refinement-backlog.md
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-ce8fe171
-    ears: ubiquitous
-    text: "All four README variants shall state the record claim at its verified level — what was verified lands in committed content (attestation), who/when lands in the local event ledger, why lands in the spec — and none shall claim audit- or regulation-grade record keeping."
-    notes: "## Why\nVerified 2026-07-04: the who/when ledger is gitignored with a 5MB single-generation rotation (history beyond it is destroyed) and records the git/OS account (AI vs human indistinguishable); evidence_refs cover 51% of shards. \"Who · what · why is all on the record — evidence for audits, regulatory response\" overclaims on who and durability. Continuation of the 0.6.x Honest release series."
-    test_refs: [tests/readme-record-honesty.test.ts]
+    statement: The four README variants shall state the record claim at its verified
+      level by locating what was verified in committed attestation content, who
+      and when in the local event ledger, and why in the specification without
+      claiming audit- or regulation-grade record keeping.
+    kind: quality
+    notes: >-
+      ## Why
+
+      Verified 2026-07-04: the who/when ledger is gitignored with a 5MB
+      single-generation rotation (history beyond it is destroyed) and records
+      the git/OS account (AI vs human indistinguishable); evidence_refs cover
+      51% of shards. "Who · what · why is all on the record — evidence for
+      audits, regulatory response" overclaims on who and durability.
+      Continuation of the 0.6.x Honest release series.
   - id: AC-374f723c
-    ears: ubiquitous
-    text: "The segregation-of-duties sentence naming EU AI Act / SOX shall carry the spirit-not-certification hedge in every variant (README.ko.md, README.html, README.ko.html gain parity with README.md)."
-    test_refs: [tests/readme-record-honesty.test.ts]
+    statement: The segregation-of-duties sentence naming EU AI Act / SOX shall carry
+      the spirit-not-certification hedge in every variant (README.ko.md,
+      README.html, README.ko.html gain parity with README.md).
   - id: AC-23cfa17d
-    ears: ubiquitous
-    text: "No README variant shall contain an unhedged immutability, tamper-proof, or all-on-the-record claim — pinned by a needle sweep test across all four variants."
-    test_refs: [tests/readme-record-honesty.test.ts]
+    statement: The README variants shall contain no unhedged immutability,
+      tamper-proof, or all-on-the-record claim and remain protected by a needle
+      sweep across all four variants.
+    kind: quality
   - id: AC-bf20e7cc
-    ears: event
-    condition: "when the committed who-ledger idea is deferred rather than shipped"
-    action: "record the deferral and its reopen trigger (a real external team requiring audit evidence) in docs/refinement-backlog.md"
-    response: "the decision and its condition survive the session"
-    text: "When the who-ledger is deferred, the system's backlog doc shall carry the deferral entry with its reopen trigger."
-    test_refs: [tests/readme-record-honesty.test.ts]
+    statement: When the who-ledger is deferred, the system's backlog doc shall carry
+      the deferral entry with its reopen trigger.

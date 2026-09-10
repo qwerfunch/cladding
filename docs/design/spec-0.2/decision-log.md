@@ -1,0 +1,122 @@
+<!-- Cladding · Tier B · accepted target design — implementation pending · Refreshed by: manual -->
+
+# Spec 0.2 — decision log
+
+> Canonical owner of claim boundaries, rejected alternatives, the evolution queue, and change history. Return to the [Spec 0.2 continuation router](../spec-0.2.md).
+
+## Claim discipline
+
+The graph claim ladder in D17 is cumulative but not substitutable: structural validity does not prove retrieval benefit, retrieval benefit when called does not prove adoption, and adoption does not prove implementation correctness.
+
+### Claims allowed now
+
+- Spec 0.2 reduces semantic prose to purpose, statement, and constraint rationale while retaining typed structural links.
+- It removes internal duplicate AC representations for new/edited nodes.
+- It eliminates shared capability-edge writes for ordinary feature creation.
+- It can detect stale contract and proof inputs that attestation v2 cannot see.
+- Verified repository scale makes feature-local mutation and proof closure materially relevant.
+- The shipped role contract assigns execution form to the host and computes independence labels from recorded evidence rather than persona membership.
+- D21–D23 define an obligation target in which existing runners are adapters, self policy persists L2, and a stronger one-run level requires a complete bounded current closure.
+- Bounded background checking may provide speculative observations in 0.10, but only a foreground profile-complete reduction may change lifecycle state or write attestation.
+- The current MCP server's declared catalog, in-memory negotiation, and bootstrap list-change path are executable wire facts; D24 makes MCP an optional adapter over shared kernels, not a second authority.
+- GraphIR v2 is structurally valid on the self corpus (rung 1 of the D17 claim ladder); it says nothing about retrieval efficiency or adoption.
+- The 0.10.0 release boundary is a declared, enforced list rather than prose: the executable ledger names the scenarios that block the release, and a release run of the validator fails on any unmet row. Adoption, token advantage, and the host A/B sit outside that list by construction.
+- Both MCP11 reference-host cycles ran and are recorded (2026-09-07): two hosts each drove a complete Spec 0.2 cycle through the MCP tools to a completion at L4, and each receipt verifies offline against its own committed trust registry. The decision taken with them, and the limit of what they claim: the maintainer delegated the signing confirmation to an automated pseudo-terminal driving the `clad signoff` CLI, so **neither host's own signoff elicitation form was exercised** and no claim about that form follows from this evidence. The same day's live host matrix refresh is recorded with it: Claude Code, Codex and Cursor verified, Gemini fail, and Antigravity fail on all three surfaces (every check timed out) where the previous matrix had it verified — the README host claim was lowered for Antigravity and raised for Cursor rather than the matrix explained away.
+
+### Claims prohibited until new evidence exists
+
+- **“34 features produced nine false blocks”** — the repository records nine prior false rejections and a separate 34-feature experiment, but no raw fixture ties them together.
+- **“26% false-block class removed”** — this is the unsupported `9/34` conflation.
+- **“Landmine protection 2/2”** — [`case-working-set-landmine.md`](../../ab-evaluation/case-working-set-landmine.md) reports a NULL real-agent outcome. Two structural instruments discriminated deterministically; that is not an effect measurement.
+- **“37/37 design simulation”** — the 37 IDs are now a newly preregistered contract matrix, not a recovered session artifact. Claim a result only after all one-to-one committed fixtures run.
+- **“Done proof 100%”** — 277/277 measures declared proof addresses and attestation markers, not observed testcase-level verification.
+- **“Cost falls from +45% to +20–30%”** — the latter is an acceptance projection until measured under the new authoring loop.
+- **“N=300 prevents 25–50 latent defects”** — model projection, not observed defect count.
+- **“Feature count below eight has no value”** — existing eight-feature constants are detector grace thresholds, not an economic break-even result.
+- **“Every `blind: true` record is structurally blind”** — the packaged role restricts tools, but generic MCP currently accepts a caller assertion without a runtime isolation receipt.
+- **“General persona prompts are unnecessary”** — deterministic gates must be prompt-independent, but the briefs have affected agent interpretation. Claim only topology-invariant gate behavior after D19's committed ablation; do not claim equal authoring quality without a live benchmark.
+- **“A smaller task payload proves lower total input cost”** — the current full MCP list bundle is 53,960 bytes before server instructions and host framing; the historical 29,866-byte subset used a narrower serializer. Cache reuse is host-dependent. Compare payload, resident, total, retries, and provider-reported cache tokens separately in a live A/B.
+- **“Background checking makes completion faster”** — availability is not a latency result. Measure foreground active wait, total CPU, cancellation/stale-result rate, cache-hit promotion, and authoritative completion wall time against the same edit trace.
+- **“A latency budget is a performance guarantee”** — D22 budgets are product targets and downgrade rules. Claim an achieved percentile only from a dated, environment-labelled benchmark.
+- **“A speculative pass is proof”** — a background result has no lifecycle or attestation authority until a foreground reducer revalidates its exact input, tool, policy, and environment closure.
+- **“A fired hook or background result proves adoption”** — pushed delivery proves that Cladding spoke, not that an agent used the result. Preserve the existing pull/completed-cycle adoption protocol and report background reuse separately.
+- **“The new cadence improves correctness”** — cadence may reduce time-to-finding without changing the authoritative obligation set. Correctness or defect-prevention claims require a preregistered fault corpus or live controlled comparison.
+- **“MCP availability proves efficacy, efficiency, or adoption”** — wire conformance is only the first rung. Require a reference-host Spec 0.2 cycle for efficacy, an equivalent-task A/B for efficiency when used, and voluntary pull telemetry for adoption.
+- **“A fixture signature, legacy L3/L4 history, or host smoke is live human L4 evidence”** — fixtures prove protocol/mechanism only. The 0.10.0 MCP11 cycles are real host cycles against a real issuer, but their confirmation step was answered by automation on the maintainer's instruction, so they are not evidence that a person answered a prompt, and not evidence about either host's elicitation form.
+
+## Rejected decisions
+
+Do not reopen these without new evidence that invalidates the stated reason.
+
+| Rejected | Reason / reopen condition |
+|---|---|
+| Tier-named spec directories | Tier is mutable and path changes would break consumers. Reopen only with a path-independent external standard and measured migration benefit. |
+| Rename `modules` or `depends_on` | Adds vocabulary migration without removing an active ambiguity. Use Soft Shell descriptions instead. |
+| Rename the scenario concept to journey | Scenario is established and unambiguous as a user-journey artifact; only its field grammar changes. |
+| Add `interface` criterion kind | No consumer or distinct enforcement exists. |
+| Six-axis assurance taxonomy | Existing verdict/disposition surfaces already separate outcomes; add only when a concrete consumer cannot express a needed distinction. |
+| Persist `traceability.yaml` | Authored-edge projections and reverse edges are live IR and would otherwise become stale committed copies. |
+| Runtime `L ∪ N` capability edges | Creates two simultaneous authorities. Comparison is upgrade-preview-only. |
+| Allow multiple `shall` modals | Violates atomic AC and case-level binding granularity. Split the AC. |
+| Automatically write inferred dependencies | Current candidate graph can introduce large cyclic components. `dependency.promote` remains explicit and cycle-checked. |
+| ~~Move existing generated files in 0.10~~ — superseded 2026-08-29 | Original rationale: registry and aliases must land before movement. F11 now satisfies that condition, then relocates only the three projections separately from schema migration with D14 state/recovery fixtures. |
+| Enforce `relocation_required` in 0.10.0 — deferred 2026-09-05 (F11-lite) | 0.10.0 ships alias-aware resolution, the generated-directory notice, and opt-in `clad relocate-generated [--apply]` only. Forcing adopters off the pre-relocation layout has no measured need yet; entry condition for enforcement is adopters relocating in practice. `clad init` scaffolding of the relocated layout follows the same condition. |
+| Generic filesystem/JSON-Patch MCP editor | Cannot provide domain invariants or honest write-set calculation. |
+| Automatically classify legacy ACs as behavior | Converts meaning without evidence. Use `legacy_unclassified` until the node changes. |
+| Guess test selectors for path-only refs | Manufactures proof. Use the accepted node-level baseline fallback. |
+| Claim duplicate elimination proves correctness | Omission, stale evidence, unobserved behavior, and concurrency remain independent failure classes. |
+| Persist a graph or vector index as authority | Live compiler IR already has deterministic identities and exact links; another store adds freshness and opaque-retrieval failure modes. |
+| Preserve a v1 graph compatibility serializer | It would keep kind twins and criterion loss alive as a second public model. Cut the graph surface atomically. |
+| Change frozen `clad_get_context` to resemble GraphIR | It is a distinct accepted wire contract, and pull adoption is not confirmed. Use per-surface versions. |
+| Use generic undirected BFS as the default query | Direction and containment semantics matter, and the corpus simulation shows depth-2 token blow-up. |
+| Require a fixed planner→developer→reviewer→observability topology | Host orchestration is already the shipped contract, and deterministic guarantees must not depend on general persona membership. Reopen only if an ablation proves a necessary negative capability. |
+| Delete the specialist role briefs | They are optional interface manuals and their wording has changed agent interpretation. Remove a brief only after a committed ablation shows that no supported host or contract loses needed guidance. |
+| Add an F7.5 `clad_get_context` v2 | `clad_get_context` v1 stays frozen throughout 0.10; F8 versions the graph surface only. A future context successor needs its own adoption and compatibility decision. |
+| Treat raw `blind: true` or a free-form human claim as verified evidence in 0.2 | A Boolean assertion cannot prove isolation or a human channel. Require a receipt from a supported adapter and preserve unverified input as asserted history. |
+| Treat TTY/pseudo-TTY presence or hand-written receipt YAML as verified | The process cannot prove user presence or a trusted issuer from workspace-controlled input. Bare `clad signoff` is asserted; verified paths require an offline-verifiable external signature. |
+| Perform network identity lookup during a strict gate | Violates synchronous deterministic gating and makes old commits depend on remote state. Verify pinned signed receipts offline; online integrations may issue portable proof at ingestion only. |
+| Embed evidence receipt bodies in attestation | Creates a second receipt authority and merge surface. Keep immutable receipts under `spec/evidence/`; attestation seals their current identities and closure only. |
+| Put workspace schema markers in child spec documents | Mixed selectors permit partial interpretation. `spec.yaml#schema` is the single workspace switch; `receipt_schema` versions only the independent receipt protocol. |
+| Add `feature.unarchive` to the mutation API | Archive is an integration-terminal historical decision. Correct mistakes through VCS before integration instead of adding a second lifecycle transition with unclear proof semantics. |
+| Use feature `contract_sha256` for every criterion receipt | Sibling criteria would invalidate unrelated proof. Bind criterion receipts to their subject closure and keep the broad hash for feature attestation. |
+| Seed impact from every declared feature module | Shared modules amplify one focused edit into dozens of unrelated owners and dependents. Seed from predicted/observed write scope; keep module fan-out lazy when scope is unknown. |
+| Use one revision for both context reuse and writes | Projection retention and byte-level write concurrency are different claims. Keep `context_revision` and `input_revisions` separate. |
+| Apply one payload ceiling by content class or by a two-task aggregate | The measured 27,854-byte value combines implement and verify and made the former wording ambiguous. Enforce 16/24 KiB per task profile after operation-scoped packing; do not raise a class limit from an aggregate. |
+| Make an atomicity heuristic blocking | One modal does not ensure one obligation, while length/conjunction heuristics also flag valid prose. Keep the hard grammar deterministic and the semantic risk advisory. |
+| Defer all cleanup to a final cleanup-only phase | Superseded authorities would coexist through several features and become new dependencies. Retire them in the same proven cutover cycle; keep F1 additive by design. |
+| Require monotonically lower LOC or a monotonically higher test count | Both reward the wrong proxy. Require one authority, no unjustified orphans, preserved behavior, and discriminating replacement tests. |
+| Delete compatibility or historical paths before a replacement is adopted | Absence of a static import does not remove spec, entrypoint, generated, runtime-lookup, or external obligations. Apply the D18 deletion proof after consumer cutover. |
+| Run the full gate after every edit | It multiplies active wait, executes environment/HITL work at the wrong boundary, and encourages hook bypass without strengthening the eventual authoritative obligation set. Keep bounded interactive feedback and one profile-complete completion reduction. |
+| Make local hooks or a local background worker the sole authority | Local surfaces are optional, bypassable, and may lack the release environment or verified evidence channels. They reduce latency; completion, protected push, and release profiles retain authority at their declared boundaries. |
+| Treat the number of registered stages as the Iron Law theory | The upstream draft defines 13 standard stages, while Cladding ships two extensions. Theory belongs to obligations, cumulative profiles, freshness, and failure reduction; preserve runner IDs only as compatibility/reporting surfaces. |
+| Defer the persistent assurance scheduler to 0.10.x | 0.10.0 ships without the scheduler and behaves as `off`; the accepted design keeps `auto` and `off` verdict-equivalent when it lands. Single-flight, stale-result rejection, cancellation, resource locks, and cache-key invariance are release gates; background availability never becomes proof authority. |
+| Make MCP a second compiler, graph, or verdict authority | CLI, MCP, and in-process entry points must share domain kernels. Transport-specific facts would create exactly the drift Spec 0.2 removes. |
+| Require MCP resources, prompts, subscriptions, or sampling for correctness | Supported tools-only hosts would lose the cycle, and optional delivery would become an authority. These surfaces may optimize use but cannot weaken the tools-only path. |
+| Cut over to a task-scoped MCP catalog from byte reduction alone | Smaller metadata does not prove tool discoverability, equivalent task success, or adoption. Require the preregistered host A/B and dynamic-discovery controls. |
+| Keep the evidence-ledger label as the schema 0.2 completion label — rejected 2026-09-07 | The ledger reads any human-authored evidence entry as `independent`, so the person who implements a feature and then signs it flips their own label, while the kernel that attests the completion compares the receipt issuer against the implementation authors and calls the same completion `self-certified`. A schema 0.2 completion therefore reports and enforces the attested scope label: `require` refuses `self-certified` and `unobserved` and keeps `independent` and `not-applicable`. The label is not sealed into the completion event, because it exists only after the gate that consumes that sealed event, and the event validator accepts neither of the two added values. Schema 0.1 keeps the ledger label unchanged. |
+
+## Evolution queue
+
+These are intentionally outside the 0.10.0 core and may evolve independently.
+
+| Item | Entry condition |
+|---|---|
+| ~~Move `index`, `_doc-links`, and `attestation` into `spec/generated/` (0.11)~~ — superseded 2026-08-29 | Original entry condition: registry aliases, old/new reader fixtures, and measured compatibility green. F11 satisfies it in 0.10.0, then owns relocation/recovery. |
+| Additional test-framework adapters | Each adapter has source→selector→JUnit round-trip fixtures and a real adopter. |
+| Executable scenario verification | A scenario runner or binding carrier exists; only then may `scenario_policy: required` imply runtime proof. |
+| Authoring-provider bridge, including Spec Kit input | The canonical IR is stable and a provider can map without weakening identity, proof, or transaction contracts. |
+| Advisory semantic comparison | Deterministic compiler is complete; LLM comparison remains labelled advisory and never defines GREEN. |
+| Cost and false-block benchmark | F1–F6 land and the preregistered new benchmark can compare 0.1 and 0.2 maintenance. |
+| Broader LLM GraphIR retrieval study (40 tasks is the current scale candidate) | AB01–AB12 has first established task-scoped efficiency-when-used; a separately preregistered expansion may test generalization without altering adoption telemetry. Target: optional 0.10.x. |
+| OS secure-store issuer keys (Keychain, Credential Manager, Secret Service) | F9d's file-key issuer is in real use and a live adapter round trip exists on all three platforms. Until then a private key is an owner-only file and D20 states that threat model plainly. Target: 0.10.x. |
+| Blind capability issuer adapter | A host can emit a portable proof that a capability manifest was enforced. Without one a signed blind receipt adds no epistemic independence over the asserted `clad_author_oracle` record, so `blind: true` stays asserted-only. |
+| Viewer proof-detail polish and public graph cursor/`not_modified` support | The minimum v2 viewer/export cutover is stable; add only against a measured payload or navigation need. F9's session-bound diagnostic continuation is not this public surface. Target: 0.10.x. |
+| ~~F10 task-state headless loop (0.10.x)~~ — superseded 2026-08-29 | F10 ships in 0.10.0 after its stated F9 prerequisites. |
+| F10 headless loop — retired 2026-09-05 | Measurement on 2026-09-02 found zero loop runs across 5,176 recorded events over 3.5 months, no README mention, and no automatic invocation, so 0.10.0 removes the loop instead of dispatching from it. Under D18 hygiene the retirement takes the loop-only adapters, the run skill and verb, nine loop-only features (archived with their criteria kept as history), and rebinds eight features that also own surviving code. The host-delegated cycle owns execution; there is no successor loop to gate. |
+| F9c persistent scheduler — deferred to 0.10.x (2026-09-05) | 0.10.0 `clad serve` runs no anticipation and behaves as `off`. Entry condition for 0.10.x: an A/B/C replay fixture measuring at least a 50 percent reduction in active wait with p95 latency within 10 percent. Same-commit test-ledger reuse already ships in the test-run cache; the descriptor cache (skipping Type/Lint re-runs) is unmeasured and defers with it, and `.cladding/cache` is not built. |
+| ~~Generated-file physical migration~~ — superseded 2026-08-29 | Original condition: do not combine it with schema migration. F11 satisfies this as the separate 0.10.0 relocation feature. |
+| Receipt-carrying verification closure for the seal, receipt-free for the expected digests (2026-09-07) | The run authority and the attestation writer must seal the identical closure, and a verified receipt is one of its inputs, so both now include it. The expected-digest producer and the independence inputs deliberately stay outside it: a receipt whose `reviewed_inputs_sha256` came from a receipt-carrying closure would depend on itself and on its siblings and could never stay verified. Considered and rejected: dropping receipts from the writer instead, which would have made a filed review invisible to the record it is evidence for. |
+
+## Change log
+
+Moved to [change-log.md](change-log.md) (append-only).

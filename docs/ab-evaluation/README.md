@@ -2,7 +2,7 @@
 
 # A/B evaluation — Cladding vs Vanilla Claude Code
 
-_Snapshot note (2026-07-05): detector count was 25 at this run; the suite has since grown to 41 (0.8.x). Body preserved as an append-only snapshot._
+_Snapshot note (2026-07-05): this historical M2 report reflects the detector registry available at that run. Body preserved as an append-only snapshot._
 
 This directory holds **comparative case studies** between two development
 modes for the same intent:
@@ -133,6 +133,29 @@ Each `case-*.md` follows the same shape:
 The **Findings** section is what most readers care about: a 6-bullet
 narrative quantifying the structural delta between cladding-managed and
 vanilla development.
+
+## Version campaigns
+
+Separate from the generated case pair above, this directory also holds
+**pre-registered version comparisons** — a released engine against a release
+candidate, written before the runs so the rules cannot follow the numbers:
+
+- [`case-version-ab-093-vs-next.md`](./case-version-ab-093-vs-next.md) — 0.9.3
+  against the language-agnostic core.
+- [`case-version-abc-094-vs-0100.md`](./case-version-abc-094-vs-0100.md) — no
+  engine, 0.9.4, and the 0.10.0 candidate, three arms on one task. Its harness
+  is `scripts/ab-abc/`. **Verdict: GO** — all six pre-registered claims held and
+  none of the six stop conditions fired, on a deterministic table plus three live
+  runs per arm; code quality, coverage and the hidden oracle tied across all
+  three arms, as pre-registered.
+- [`case-0100-feature-scenarios.md`](./case-0100-feature-scenarios.md) — the
+  follow-up to that campaign, asking a narrower question: was every change in
+  0.10.0 actually checked? Every item in the release notes is mapped to a
+  deterministic row, a live host probe, or a written reason it is not a
+  scenario, and the mapping is verified by this repository's own test suite.
+  **Status: 44 rows locked on the shipped build (2026-09-10); the battery found two
+  command-line defects, and the first CI run of the release branch found an
+  attestation-portability defect — all three repaired and re-locked.**
 
 ## Related
 

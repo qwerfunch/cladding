@@ -191,7 +191,7 @@
       "required": ["id", "title", "status"],
       "additionalProperties": false,
       "properties": {
-        "id": {"type": "string", "pattern": "^F-(\\d{3,}|[a-f0-9]{6,})$"},
+        "id": {"type": "string", "pattern": "^F-(\\d{3,}|[a-f0-9]{6,})$", "description": "F-<8 lowercase hex> for new records; legacy F-<3+ digits> and F-<6+ lowercase hex> remain readable."},
         "slug": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$"},
         "title": {"type": "string", "minLength": 1},
         "status": {
@@ -229,7 +229,7 @@
       "required": ["id"],
       "additionalProperties": false,
       "properties": {
-        "id": {"type": "string", "pattern": "^AC-(\\d{3,}|[a-f0-9]{6,})$"},
+        "id": {"type": "string", "pattern": "^AC-(\\d{3,}|[a-f0-9]{6,})$", "description": "AC-<8 lowercase hex> for new records; legacy AC-<3+ digits> and AC-<6+ lowercase hex> remain readable."},
         "condition": {"type": "string"},
         "action": {"type": "string"},
         "response": {"type": "string"},
@@ -265,7 +265,7 @@
       "required": ["id", "title"],
       "additionalProperties": false,
       "properties": {
-        "id": {"type": "string", "pattern": "^S-(\\d{3,}|[a-f0-9]{6,})$"},
+        "id": {"type": "string", "pattern": "^S-(\\d{3,}|[a-f0-9]{6,})$", "description": "S-<8 lowercase hex> for new records; legacy S-<3+ digits> and S-<6+ lowercase hex> remain readable."},
         "slug": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$"},
         "title": {"type": "string", "minLength": 1},
         "flow": {"type": "string"},

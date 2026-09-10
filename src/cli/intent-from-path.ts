@@ -15,6 +15,7 @@
 
 import {existsSync, readFileSync, statSync} from 'node:fs';
 import {isAbsolute, resolve} from 'node:path';
+import {TextDecoder} from 'node:util';
 
 const TEXT_EXTENSIONS = ['.md', '.txt', '.yaml', '.yml', '.markdown'] as const;
 
@@ -77,7 +78,9 @@ export function loadIntentFromPathIfApplicable(
 
   let contents: string;
   try {
-    contents = readFileSync(absolutePath, 'utf-8');
+    // Node's string overload silently replaces malformed UTF-8. Treating that
+    // as intent would mutate the user's request, so decode fatally instead.
+    contents = new TextDecoder('utf-8', {fatal: true}).decode(readFileSync(absolutePath));
   } catch (err) {
     return {
       intent: text,

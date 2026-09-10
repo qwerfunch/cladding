@@ -1,5 +1,4 @@
 id: F-bb15e6
-slug: clad-doctor
 title: clad doctor verb consumes sentinel-miss telemetry (v0.3.40)
 status: done
 modules:
@@ -8,43 +7,33 @@ modules:
   - src/cli/clad.ts
 depends_on:
   - F-65814a
+capability_refs:
+  - harness-cli
+  - mcp-host
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: add a pure aggregation library that reduces an Event slice into the SentinelMissSummary and EventCounts shapes the doctor verb depends on
-    response: 'src/core/telemetry-summary.ts exports summarizeSentinelMisses(events) and summarizeEvents(events); the sentinel-miss reducer groups by payload.phase / payload.cause / payload.fallback, builds a desc-count + asc-name top-5 histogram of payload.missed_sections entries, de-duplicates the last three payload.error strings newest-first, and ignores every event whose type is not sentinel_miss; the event counter returns per-EventType totals over the whole slice; both functions are side-effect free so the same helpers can power a future MCP doctor resource without changes'
-    text: The system shall provide a pure aggregation library reducing an Event slice into SentinelMissSummary and EventCounts shapes so the doctor verb and future telemetry consumers share one reducer.
-    test_refs: [tests/core/telemetry-summary.test.ts]
+    statement: The system shall provide a pure aggregation library reducing an Event
+      slice into SentinelMissSummary and EventCounts shapes so the doctor verb
+      and future telemetry consumers share one reducer.
   - id: AC-002
-    ears: ubiquitous
-    action: add a clad doctor handler that reads events.log.jsonl, runs the aggregation library, and renders the human-readable surface
-    response: 'src/cli/doctor.ts exports runDoctorCommand({cwd?, json?}) that calls readEvents(cwd) via src/events/log.ts, runs both aggregators, and emits one pulse summary line (`pass` when sentinelMiss.total === 0, `note` otherwise) plus an event-type breakdown and, when sentinel-miss events exist, a phase / cause / fallback table, the top-5 missed-sentinels list, the last 3 unique dispatcher errors, and a one-line tuning hint; process.exit(0) on success'
-    text: The system shall add a clad doctor handler that reads events.log.jsonl, runs the aggregation library, and renders the human-readable LLM dispatcher health surface.
-    test_refs: [tests/cli/doctor.test.ts]
+    statement: The system shall add a clad doctor handler that reads
+      events.log.jsonl, runs the aggregation library, and renders the
+      human-readable LLM dispatcher health surface.
   - id: AC-003
-    ears: state
-    condition: while the --json flag is set on clad doctor
-    action: emit the DoctorReport shape verbatim and skip the formatted text surface
-    response: 'runDoctorCommand serialises {cwd, events, sentinelMiss} via JSON.stringify and writes a single chunk to process.stdout; the pulse summary line and the breakdown tables are suppressed so callers parse a clean JSON document; the schema is documented as the stable wire format for MCP clients and follow-up tooling'
-    text: While the --json flag is set on clad doctor, the system shall emit the DoctorReport shape verbatim and skip the formatted text surface so MCP clients parse a clean document.
-    test_refs: [tests/cli/doctor.test.ts]
+    statement: While the --json flag is set on clad doctor, the system shall emit
+      the DoctorReport shape verbatim and skip the formatted text surface so MCP
+      clients parse a clean document.
   - id: AC-004
-    ears: state
-    condition: while events.log.jsonl is absent (greenfield workspace)
-    action: print a friendly note and exit 0 instead of crashing
-    response: 'readEvents returns the empty array when the file does not exist; doctor detects eventCounts.total === 0 and emits pulse(note, "doctor", "no events recorded yet — run `clad init --scan` or a stage to populate ..."); process.exit(0) so an adopter who has not yet exercised cladding sees the same exit semantics as a healthy host; the --json path still emits a valid DoctorReport with zeroed counters in this state'
-    text: While events.log.jsonl is absent, the system shall print a friendly note and exit 0 instead of crashing so a greenfield workspace surfaces the same exit code as a healthy host.
-    test_refs: [tests/cli/doctor.test.ts]
+    statement: While events.log.jsonl is absent, the system shall print a friendly
+      note and exit 0 instead of crashing so a greenfield workspace surfaces the
+      same exit code as a healthy host.
   - id: AC-005
-    ears: state
-    condition: while events.log.jsonl exists but cannot be parsed as JSONL
-    action: emit a fail pulse and exit 1
-    response: 'readEvents throws when JSON.parse fails on any line; runDoctorCommand wraps the read in try/catch and emits pulse(fail, "doctor", err.message) before process.exit(1); the failure is observable to CI consumers but does not leak the partially-aggregated state to stdout so JSON callers cannot mis-parse a corrupt summary'
-    text: While events.log.jsonl exists but cannot be parsed as JSONL, the system shall emit a fail pulse and exit 1 so corrupt telemetry is observable to CI consumers without leaking partial summary state.
-    test_refs: [tests/cli/doctor.test.ts]
+    statement: While events.log.jsonl exists but cannot be parsed as JSONL, the
+      system shall emit a fail pulse and exit 1 so corrupt telemetry is
+      observable to CI consumers without leaking partial summary state.
   - id: AC-006
-    ears: ubiquitous
-    action: register clad doctor in createProgram alongside the existing ten verbs so the CLI exposes the new surface
-    response: 'src/cli/clad.ts createProgram registers program.command("doctor").description(...).option("--cwd <path>").option("--json").action(runDoctorCommand) after the serve verb so the command-order test reflects an eleven-verb registry; the verb description names sentinel-miss frequency by phase / cause / fallback plus the top missed sentinels so --help is self-documenting'
-    text: The system shall register clad doctor in createProgram alongside the existing ten verbs so the CLI exposes the new LLM dispatcher health surface.
-    evidence_refs: [src/cli/clad.ts]
+    statement: The system shall register clad doctor in createProgram alongside the
+      existing ten verbs so the CLI exposes the new LLM dispatcher health
+      surface.
+    evidence_refs:
+      - src/cli/clad.ts

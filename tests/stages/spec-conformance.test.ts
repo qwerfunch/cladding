@@ -46,7 +46,7 @@ describe('runSpecConformance (stage_2.3)', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('no tests/oracle dir → skipped (exitCode=2), runner not invoked', () => {
+  test('[covers:F-c4c5ae/AC-002] no tests/oracle dir → skipped (exitCode=2), runner not invoked', () => {
     seedTs(dir);
     const r = runSpecConformance({cwd: dir});
     expect(r.pass).toBe(false);
@@ -71,7 +71,7 @@ describe('runSpecConformance (stage_2.3)', () => {
     expect(runSpecConformance({cwd: dir}).pass).toBe(true);
   });
 
-  test('oracle-only run restores the prior full JUnit report byte-for-byte', () => {
+  test('[covers:F-c4c5ae/AC-008] oracle-only run restores the prior full JUnit report byte-for-byte', () => {
     seedTs(dir);
     seedOracle(dir);
     const report = join(dir, '.cladding', 'test-report.junit.xml');
@@ -134,7 +134,7 @@ describe('runSpecConformance (stage_2.3)', () => {
     expect(readFileSync(conventional)).toEqual(conventionalBefore);
   });
 
-  test('oracle present + suite fails → blocking exit 1 with stderr (GREEN can fail)', () => {
+  test('[covers:F-c4c5ae/AC-001] oracle present + suite fails → blocking exit 1 with stderr (GREEN can fail)', () => {
     seedTs(dir);
     seedOracle(dir);
     execaSyncMock.mockReturnValueOnce({exitCode: 1, stdout: '', stderr: 'FAIL tests/oracle/x.test.ts'});
@@ -156,7 +156,7 @@ describe('runSpecConformance (stage_2.3)', () => {
     );
   });
 
-  test('missing runner binary (ENOENT) → skipped, not a false failure', () => {
+  test('[covers:F-c4c5ae/AC-003] missing runner binary (ENOENT) → skipped, not a false failure', () => {
     seedTs(dir);
     seedOracle(dir);
     execaSyncMock.mockReturnValueOnce({code: 'ENOENT', exitCode: undefined});

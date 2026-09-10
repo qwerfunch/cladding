@@ -33,7 +33,7 @@ describe('summarizeSentinelMisses', () => {
     expect(s.total).toBe(0);
   });
 
-  test('aggregates by phase / cause / fallback with three events', () => {
+  test('[covers:F-bb15e6/AC-001] aggregates by phase / cause / fallback with three events', () => {
     const events = [
       sentinelMissEvent({phase: 'scan_artifacts', cause: 'dispatcher_error', fallback: 'total', error: 'transport down'}),
       sentinelMissEvent({phase: 'scan_artifacts', cause: 'blank_section', fallback: 'per_artifact', missed_sections: ['CAPABILITIES_YAML']}),
@@ -100,7 +100,7 @@ describe('summarizeEvents', () => {
     expect(summarizeEvents([])).toEqual({total: 0, byType: {}});
   });
 
-  test('counts every event type, omits unseen types', () => {
+  test('[covers:F-bb15e6/AC-001] counts every event type, omits unseen types', () => {
     const events: Event[] = [
       {id: 'a', timestamp: 't', type: 'feature_checkpoint', payload: {}},
       {id: 'b', timestamp: 't', type: 'feature_checkpoint', payload: {}},

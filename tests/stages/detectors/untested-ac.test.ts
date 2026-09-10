@@ -79,7 +79,7 @@ describe('UNTESTED_AC detector', () => {
 // ─── F-c037ae — derived: refs are suggestions, not claims ───
 
 describe('derived: refs (F-c037ae)', () => {
-  test('UNTESTED_AC skips derived: refs from resolution (no finding for an unresolvable suggestion)', () => {
+  test('[covers:F-c037ae/AC-c78837] UNTESTED_AC skips derived: refs from resolution (no finding for an unresolvable suggestion)', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-derived-'));
     try {
       mkdirSync(join(dir, 'spec', 'features'), {recursive: true});

@@ -1,54 +1,49 @@
 id: F-063
-title: Coverage sweep — drive · agents · events · optimizer · ui all covered
+title: Drive and event behavior evidence
 status: done
 modules:
-  - tests/drive/loop.test.ts
+  - src/events/log.ts
+  - src/agents/loader.ts
   - tests/agents/loader.test.ts
   - tests/events/log.test.ts
-  - tests/optimizer/preamble.test.ts
-  - tests/optimizer/tail.test.ts
+  - tests/optimizer/envelope.test.ts
   - tests/ui/pulse.test.ts
   - tests/ui/panel.test.ts
-depends_on: [F-062]
+depends_on:
+  - F-062
+capability_refs: []
 acceptance_criteria:
-  - id: AC-158
-    ears: ubiquitous
-    action: cover the autonomous-loop driver
-    response: tests/drive/loop.test.ts mocks loadSpec / loadPersona / runAgent / stage runners / events / audit and exercises every halt branch (UNCAUGHT_ERROR / ALL_FEATURES_DONE / BLOCKED_FEATURE / LLM_UNAVAILABLE / HUMAN_REQUIRED / MAX_ITERATIONS) plus happy path; src/drive/loop.ts reaches ≥ 85% line coverage
-    text: The system shall ship tests/drive/loop.test.ts bringing src/drive/loop.ts to at least 85% line coverage, with every halt class exercised.
-    test_refs: [tests/drive/loop.test.ts]
   - id: AC-159
-    ears: ubiquitous
-    action: cover the persona loader
-    response: tests/agents/loader.test.ts exercises happy-path frontmatter / missing frontmatter / unterminated frontmatter / unknown-capability filter / missing file / cache reuse / cache clear; src/agents/loader.ts reaches at least 90% line coverage
-    text: The system shall ship tests/agents/loader.test.ts bringing src/agents/loader.ts to at least 90% line coverage.
-    test_refs: [tests/agents/loader.test.ts]
+    statement: The system shall ship tests/agents/loader.test.ts bringing
+      src/agents/loader.ts to at least 90% line coverage.
   - id: AC-160
-    ears: ubiquitous
-    action: cover events.log append / read round-trip
-    response: tests/events/log.test.ts exercises newEvent shape, directory auto-creation, round-trip, absent / empty / whitespace-only log, multi-append order; src/events/log.ts reaches 100% line coverage
-    text: The system shall ship tests/events/log.test.ts bringing src/events/log.ts to 100% line coverage.
-    test_refs: [tests/events/log.test.ts]
+    statement: When a lifecycle event is appended or read, the event log shall
+      preserve valid JSONL append order and safe absent or empty reads while
+      treating unsafe managed paths as observer-only no-ops.
+    kind: behavior
+    notes: >
+      ## Historical schema-0.1 note
+
+      2026-05-19 · v0.2.14 · 3324b23. Event-log fixtures: event shape, directory
+
+      creation, round trips, absent, empty, whitespace, and ordered appends;
+      100%
+
+      line coverage; non-current.
   - id: AC-161
-    ears: ubiquitous
-    action: cover the optimizer remainder (preamble + tail)
-    response: tests/optimizer/preamble.test.ts and tests/optimizer/tail.test.ts each exercise their helpers' branches; both source files reach 100% line coverage and the optimizer/ chapter closes alongside the existing src/optimizer/prune.test.ts
-    text: The system shall ship dedicated tests for src/optimizer/preamble.ts and src/optimizer/tail.ts, bringing both to 100% line coverage so the optimizer chapter closes.
-    test_refs:
-      - tests/optimizer/preamble.test.ts
-      - tests/optimizer/tail.test.ts
+    kind: quality
+    statement: The system shall ship tests/optimizer/envelope.test.ts bringing
+      src/optimizer/envelope.ts to 100% line coverage so the optimizer chapter
+      closes.
   - id: AC-162
-    ears: ubiquitous
-    action: cover the ui modules (pulse + panel)
-    response: tests/ui/pulse.test.ts covers TTY-vs-non-TTY rendering + every PulseKind glyph; tests/ui/panel.test.ts covers default / internal mode, L4 cell derivation, audit-empty fallback, title fallback; both source files reach 100% line coverage and the ui chapter closes alongside the existing tests/ui/softShell.test.ts
-    text: The system shall ship dedicated tests for src/ui/pulse.ts and src/ui/panel.ts, bringing both to 100% line coverage so the ui chapter closes.
-    test_refs:
-      - tests/ui/pulse.test.ts
-      - tests/ui/panel.test.ts
+    statement: The system shall ship dedicated tests for src/ui/pulse.ts and
+      src/ui/panel.ts, bringing both to 100% line coverage so the ui chapter
+      closes.
   - id: AC-163
-    ears: state
-    condition: while the v0.2.14 sweep lands
-    action: raise overall line coverage materially under the widened scope
-    response: vitest --coverage reports overall line coverage rises from 74.42% (v0.2.13 baseline) to ≥ 85% — five additional dirs (agents · drive · events · optimizer · ui) now closed
-    text: While the v0.2.14 sweep lands, overall line coverage shall rise from 74.42% to at least 85%, closing the agents · drive · events · optimizer · ui chapters in a single batch.
-    evidence_refs: [CHANGELOG.md]
+    statement: While current coverage assurance is evaluated, the assurance registry
+      shall derive it from the coverage obligation and treat the v0.2.14
+      measurement as historical evidence only.
+    kind: quality
+    notes: |
+      ## Historical schema-0.1 note
+      v0.2.14’s 74.42% to ≥85% measurement is historical, not current assurance.

@@ -25,7 +25,7 @@ const SSOT_AUDIT_DOC = ['ssot', 'audit'].join('-') + '.md';
 const DELETED_DOCS: readonly string[] = [MARKETPLACE_DOC, SSOT_AUDIT_DOC];
 
 const removedVerb = (v: string): string => ['clad', v].join(' ');
-const REMOVED_VERBS: readonly string[] = [removedVerb('drive'), removedVerb('panel')];
+const REMOVED_VERBS: readonly string[] = [removedVerb('drive'), removedVerb('panel'), removedVerb('run')];
 
 // Known, pre-adjudicated exceptions outside src/ tests/ docs/ — repo-root
 // history, the regenerated doc-link index, and this feature's own shard.
@@ -35,6 +35,7 @@ const TOLERATED_FILES: ReadonlySet<string> = new Set([
   'CHANGELOG.md',
   'spec/_doc-links.yaml',
   'spec/features/docs-prune-987be195.yaml',
+  'spec/generated/migration-baseline-0.1-to-0.2.yaml',
 ]);
 
 // Build artifacts / caches / vendor trees — regenerated, not the SSoT prose
@@ -104,14 +105,14 @@ describe('AC-4c28425b · deleted docs leave zero dangling references outside his
     expect(filesVisited, 'files visited under src/ tests/ docs/').toBeGreaterThan(300);
   });
 
-  test('zero references to the deleted filenames under src/, tests/, docs/', () => {
+  test('[covers:F-987be195/AC-4c28425b] zero references to the deleted filenames under src/, tests/, docs/', () => {
     const {hits} = walkForNeedles(['src', 'tests', 'docs'], DELETED_DOCS);
     for (const doc of DELETED_DOCS) {
       expect(hits.get(doc), `no file under src/ tests/ docs/ mentions ${doc}`).toEqual([]);
     }
   });
 
-  test('repo-wide, the only remaining mentions are the pre-adjudicated tolerated files', () => {
+  test('[covers:F-987be195/AC-4c28425b] repo-wide, the only remaining mentions are the pre-adjudicated tolerated files', () => {
     const {filesVisited, hits} = walkForNeedles(['.'], DELETED_DOCS);
     expect(filesVisited, 'repo-wide scan (minus build/vendor dirs) visits a real number of files').toBeGreaterThan(700);
     for (const doc of DELETED_DOCS) {
@@ -125,14 +126,14 @@ describe('AC-4c28425b · deleted docs leave zero dangling references outside his
     }
   });
 
-  test('docs/README.md tier index no longer lists either deleted doc row', () => {
+  test('[covers:F-987be195/AC-4c28425b] docs/README.md tier index no longer lists either deleted doc row', () => {
     const readme = read('docs/README.md');
     for (const doc of DELETED_DOCS) {
       expect(readme, `docs/README.md row for ${doc}`).not.toContain(doc);
     }
   });
 
-  test('src/init/host-setup.ts carries the project-scoped Antigravity boundary directly', () => {
+  test('[covers:F-987be195/AC-4c28425b] src/init/host-setup.ts carries the project-scoped Antigravity boundary directly', () => {
     const hostSetup = read('src/init/host-setup.ts');
     expect(hostSetup, 'load-bearing WHY: global install must not leak context').toContain(
       'Installing the CLI globally must not make Cladding visible to every AI',
@@ -142,7 +143,7 @@ describe('AC-4c28425b · deleted docs leave zero dangling references outside his
     expect(hostSetup, 'does not point back to the deleted marketplace design').not.toContain(MARKETPLACE_DOC);
   });
 
-  test('src/spec/types.ts J5b comment cites the ac-hash-ids shard, not the deleted doc', () => {
+  test('[covers:F-987be195/AC-4c28425b] src/spec/types.ts J5b comment cites the ac-hash-ids shard, not the deleted doc', () => {
     const typesTs = read('src/spec/types.ts');
     expect(typesTs, 'cites the shard carrying the J5b rationale').toContain('spec/features/ac-hash-ids-a04cd9.yaml');
     expect(typesTs, 'cites the specific AC').toContain('AC-003');
@@ -154,29 +155,28 @@ describe('AC-51b8dbee · the roadmap keeps Transport verbatim and drops removed-
   const ROADMAP = 'docs/multi-provider-roadmap.md';
   const TRANSPORT_HEADING = '## Transport architectural decision';
 
+  // 0.10.0 retired the loop-only adapters, so only the surviving host
+  // transport still cites the Transport decision, and only the adapter
+  // contract still cites the two-modes overview.
   const TRANSPORT_CITING_FILES: readonly string[] = [
     'src/adapters/host/transport.ts',
-    'src/adapters/host/claude-code.ts',
-    'src/adapters/host/generic-mcp.ts',
   ];
   const OTHER_SECTION_CITING_FILES: ReadonlyArray<{file: string; heading: string}> = [
-    {file: 'src/adapters/index.ts', heading: '## Adapter matrix'},
-    {file: 'src/adapters/sdk/anthropic.ts', heading: '## Adapter matrix'},
     {file: 'src/adapters/types.ts', heading: '## Two modes'},
   ];
 
-  test('the Transport architectural decision heading is present verbatim', () => {
+  test('[covers:F-987be195/AC-51b8dbee] the Transport architectural decision heading is present verbatim', () => {
     expect(read(ROADMAP)).toContain(TRANSPORT_HEADING);
   });
 
-  test('zero removed-verb phrases remain in the roadmap', () => {
+  test('[covers:F-987be195/AC-51b8dbee] zero removed-verb phrases remain in the roadmap', () => {
     const roadmap = read(ROADMAP);
     for (const phrase of REMOVED_VERBS) {
       expect(roadmap, `roadmap must not mention "${phrase}"`).not.toContain(phrase);
     }
   });
 
-  test('the three Transport-citing adapter files still name the section, and the section still resolves', () => {
+  test('[covers:F-987be195/AC-51b8dbee] the surviving Transport-citing adapter file still names the section, and the section still resolves', () => {
     const roadmap = read(ROADMAP);
     expect(roadmap).toContain(TRANSPORT_HEADING);
     for (const file of TRANSPORT_CITING_FILES) {
@@ -186,7 +186,7 @@ describe('AC-51b8dbee · the roadmap keeps Transport verbatim and drops removed-
     }
   });
 
-  test('the other three @see anchors (adapter matrix ×2, two-modes overview ×1) still resolve to real headings', () => {
+  test('[covers:F-987be195/AC-51b8dbee] the remaining two-modes @see anchor still resolves to a real heading', () => {
     const roadmap = read(ROADMAP);
     for (const {file, heading} of OTHER_SECTION_CITING_FILES) {
       const content = read(file);
@@ -195,10 +195,10 @@ describe('AC-51b8dbee · the roadmap keeps Transport verbatim and drops removed-
     }
   });
 
-  test('all six @see docs/multi-provider-roadmap.md anchors are accounted for', () => {
-    const allSix = [...TRANSPORT_CITING_FILES, ...OTHER_SECTION_CITING_FILES.map((x) => x.file)];
-    expect(new Set(allSix).size, 'six distinct adapter files').toBe(6);
-    for (const file of allSix) {
+  test('[covers:F-987be195/AC-51b8dbee] every surviving @see docs/multi-provider-roadmap.md anchor is accounted for', () => {
+    const all = [...TRANSPORT_CITING_FILES, ...OTHER_SECTION_CITING_FILES.map((x) => x.file)];
+    expect(new Set(all).size, 'two distinct adapter files survive the retirement').toBe(2);
+    for (const file of all) {
       expect(read(file), `${file} still @see-references ${ROADMAP}`).toContain(ROADMAP);
     }
   });
@@ -211,18 +211,24 @@ describe('AC-28a53560 · four A/B docs carry the dated snapshot footnote near th
     'docs/ab-evaluation/case-payment-saas.md',
     'docs/ab-evaluation/case-existing-adoption.md',
   ];
-  const FOOTNOTE_COUNT_NEEDLE = 'detector count was 25 at this run';
-  const FOOTNOTE_GROWTH_NEEDLE = 'grown to 41';
+  const HISTORICAL_SNAPSHOT_NEEDLE = 'this historical M2 report reflects the detector registry available at that run. Body preserved as an append-only snapshot.';
+  const RETIRED_NUMERIC_SNAPSHOT_NEEDLES = [
+    'detector count was 25 at this run',
+    'grown to 41',
+  ];
 
-  test('all four A/B docs carry the dated snapshot footnote near the top', () => {
+  test('[covers:F-987be195/AC-28a53560] all four A/B docs carry the dated snapshot footnote near the top', () => {
     for (const file of AB_FOOTNOTE_FILES) {
       const lines = read(file).split('\n').slice(0, 15).join('\n');
-      expect(lines, `${file}: footnote (25-detector count) within the first 15 lines`).toContain(FOOTNOTE_COUNT_NEEDLE);
-      expect(lines, `${file}: footnote (growth to 41) within the first 15 lines`).toContain(FOOTNOTE_GROWTH_NEEDLE);
+      expect(lines, `${file}: non-numeric historical snapshot footnote within the first 15 lines`)
+        .toContain(HISTORICAL_SNAPSHOT_NEEDLE);
+      for (const retiredNeedle of RETIRED_NUMERIC_SNAPSHOT_NEEDLES) {
+        expect(lines, `${file}: retired numeric snapshot wording is absent`).not.toContain(retiredNeedle);
+      }
     }
   });
 
-  test('renderCaseReport (the generator) emits the footnote, so it is not a hand-edit the next regen would erase', () => {
+  test('[covers:F-987be195/AC-28a53560] renderCaseReport (the generator) emits the footnote, so it is not a hand-edit the next regen would erase', () => {
     // The two generated case files (case-payment-saas.md, case-existing-adoption.md)
     // are byte-exact snapshots asserted by writeOrAssertReport (tests/scenarios/ab/_report.ts).
     // Re-diffing that here would re-implement the generator's own guard; the actual
@@ -235,6 +241,10 @@ describe('AC-28a53560 · four A/B docs carry the dated snapshot footnote near th
     expect(fnStart, 'renderCaseReport found').toBeGreaterThan(-1);
     expect(fnEnd, 'renderMilestoneTable found (end of renderCaseReport body)').toBeGreaterThan(fnStart);
     const body = generatorSource.slice(fnStart, fnEnd);
-    expect(body, 'the footnote line lives inside renderCaseReport, not elsewhere in the file').toContain(FOOTNOTE_COUNT_NEEDLE);
+    expect(body, 'the footnote line lives inside renderCaseReport, not elsewhere in the file')
+      .toContain(HISTORICAL_SNAPSHOT_NEEDLE);
+    for (const retiredNeedle of RETIRED_NUMERIC_SNAPSHOT_NEEDLES) {
+      expect(body, 'renderCaseReport does not revive retired numeric snapshot wording').not.toContain(retiredNeedle);
+    }
   });
 });

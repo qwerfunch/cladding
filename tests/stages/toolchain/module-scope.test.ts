@@ -33,7 +33,7 @@ function makeModule(rel: string): void {
 }
 
 describe('mapModulesToProjects', () => {
-  test('maps a nested module dir to its colon project path', () => {
+  test('[covers:F-c6c3daaf/AC-0653c05d] maps a nested module dir to its colon project path', () => {
     makeModule('worker/statistics-aggregator/application');
     const projects = mapModulesToProjects(dir, ['worker/statistics-aggregator/application']);
     expect(projects.map((p) => p.path)).toEqual([':worker:statistics-aggregator:application']);
@@ -45,7 +45,7 @@ describe('mapModulesToProjects', () => {
     expect(projects.map((p) => p.path)).toEqual([':worker:statistics-aggregator']);
   });
 
-  test('normalizes a FILE path to its owning module', () => {
+  test('[covers:F-c6c3daaf/AC-0653c05d] normalizes a FILE path to its owning module', () => {
     makeModule('worker/ingest');
     mkdirSync(join(dir, 'worker/ingest/src/main/kotlin'), {recursive: true});
     writeFileSync(join(dir, 'worker/ingest/src/main/kotlin/Foo.kt'), 'package x\n');
@@ -55,7 +55,7 @@ describe('mapModulesToProjects', () => {
     expect(projects.map((p) => p.path)).toEqual([':worker:ingest']);
   });
 
-  test('walks up from a non-module subdir to the nearest module root', () => {
+  test('[covers:F-c6c3daaf/AC-0653c05d] walks up from a non-module subdir to the nearest module root', () => {
     makeModule('app');
     const projects = mapModulesToProjects(dir, ['app/src/main/kotlin/pkg']);
     expect(projects.map((p) => p.path)).toEqual([':app']);
@@ -67,7 +67,7 @@ describe('mapModulesToProjects', () => {
     expect(projects.map((p) => p.path)).toEqual([':']);
   });
 
-  test('dedups modules that resolve to the same project, sorted deterministically', () => {
+  test('[covers:F-c6c3daaf/AC-0653c05d] dedups modules that resolve to the same project, sorted deterministically', () => {
     makeModule('b-mod');
     makeModule('a-mod');
     const projects = mapModulesToProjects(dir, [
@@ -78,7 +78,7 @@ describe('mapModulesToProjects', () => {
     expect(projects.map((p) => p.path)).toEqual([':a-mod', ':b-mod']);
   });
 
-  test('THROWS (no silent fallback) on a path with no Gradle module ancestor', () => {
+  test('[covers:F-c6c3daaf/AC-0653c05d] THROWS (no silent fallback) on a path with no Gradle module ancestor', () => {
     makeModule('a');
     expect(() => mapModulesToProjects(dir, ['a', 'nope/over/here'])).toThrow(/nope\/over\/here/);
   });

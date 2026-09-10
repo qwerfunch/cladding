@@ -8,45 +8,41 @@ modules:
   - src/stages/detectors/README.md
   - tests/stages/fixture-reference.test.ts
   - tests/conformance/registry.test.ts
-depends_on: [F-022, F-052]
+depends_on:
+  - F-022
+  - F-052
+capability_refs: []
 acceptance_criteria:
   - id: AC-115
-    ears: ubiquitous
-    action: maintain a fixture-name SSoT
-    response: conformance/fixtures.yaml lists every fixture name cladding accepts in evidence_refs/test_refs citations, with stage + kind + description per entry
-    text: The system shall maintain conformance/fixtures.yaml as the single source of truth for valid fixture names that cladding's own spec/features may cite.
-    test_refs: [tests/conformance/registry.test.ts]
+    statement: The system shall maintain conformance/fixtures.yaml as the single
+      source of truth for valid fixture names that cladding's own spec/features
+      may cite.
   - id: AC-116
-    ears: state
-    condition: while an AC's evidence_refs (or test_refs for backward compat) contains a fixture:NAME entry
-    action: validate the name against the registry
-    response: registered name → silent; unregistered name → warn finding from FIXTURE_REFERENCE_INVALID
-    text: While an AC declares a fixture:NAME citation, the FIXTURE_REFERENCE_INVALID detector shall emit a warn finding when the name is not present in conformance/fixtures.yaml.
-    test_refs: [tests/stages/fixture-reference.test.ts]
+    statement: While an AC declares a fixture:NAME citation, the
+      FIXTURE_REFERENCE_INVALID detector shall emit a warn finding when the name
+      is not present in conformance/fixtures.yaml.
   - id: AC-117
-    ears: event
-    condition: when conformance/fixtures.yaml is absent from the cwd
-    action: opt out of fixture validation
-    response: detector returns no findings rather than warning on every citation
-    text: When conformance/fixtures.yaml is absent, the detector shall return no findings, so user projects that do not adopt the fixture convention are not punished.
-    test_refs: [tests/stages/fixture-reference.test.ts]
+    statement: When conformance/fixtures.yaml is absent, the detector shall return
+      no findings, so user projects that do not adopt the fixture convention are
+      not punished.
   - id: AC-118
-    ears: ubiquitous
-    action: distinguish runnable from documentary fixtures
-    response: every registry entry declares kind in {runnable, documentary}; runnable entries must match a hardcoded id in conformance/runner.ts, documentary entries are labels-only placeholders that future cycles may promote to runnable
-    text: Every fixture registry entry shall declare kind ∈ {runnable, documentary}; runnable entries must correspond to a fixture id in conformance/runner.ts.
-    test_refs: [tests/conformance/registry.test.ts]
+    statement: The fixture registry shall require each entry to declare kind as
+      runnable or documentary and require each runnable entry to correspond to a
+      fixture id in conformance/runner.ts.
+    kind: constraint
+    rationale: The registry classification must remain traceable to executable
+      fixture identities.
   - id: AC-119
-    ears: state
-    condition: while cladding self-spec has status=done features
-    action: every AC shall declare verification of some kind
-    response: zero done ACs with both test_refs and evidence_refs empty; the MISSING_TESTS detector emits no findings against cladding's own spec
-    text: While cladding self-spec has status=done features, every done AC shall declare at least one test_ref or evidence_ref, so MISSING_TESTS emits no findings against the self-spec.
-    evidence_refs: [spec/features]
+    statement: While the cladding self-spec has done features, the self-spec shall
+      give every done AC at least one test_ref or evidence_ref so MISSING_TESTS
+      emits no findings against it.
+    kind: quality
+    evidence_refs:
+      - spec/features
   - id: AC-120
-    ears: ubiquitous
-    action: register fixtureReference as a 20th cladding-extension detector
-    response: src/stages/detectors/index.ts allDetectors[] includes fixtureReference; the catalog README documents it as a cladding-specific extension to the upstream Ironclad 19
-    text: The system shall register fixtureReference in src/stages/detectors/index.ts and document it in src/stages/detectors/README.md as the 20th detector (cladding extension).
-    test_refs: [tests/stages/fixture-reference.test.ts]
-    evidence_refs: [src/stages/detectors/index.ts, src/stages/detectors/README.md]
+    statement: The system shall register fixtureReference in
+      src/stages/detectors/index.ts and document it in
+      src/stages/detectors/README.md as the 20th detector (cladding extension).
+    evidence_refs:
+      - src/stages/detectors/index.ts
+      - src/stages/detectors/README.md

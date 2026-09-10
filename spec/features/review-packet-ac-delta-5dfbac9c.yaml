@@ -1,54 +1,75 @@
 id: F-5dfbac9c
-slug: review-packet-ac-delta
-title: "Review packet shows how the contract itself moved"
+title: Review packet shows how the contract itself moved
 status: done
 modules:
   - src/changelog/collect.ts
   - src/report/ac-delta.ts
   - src/report/report.ts
   - src/cli/report.ts
+depends_on: []
+capability_refs:
+  - harness-cli
 acceptance_criteria:
   - id: AC-a2278f11
-    ears: event
-    condition: "when a review packet is rendered for a git range"
-    text: "When a review packet is rendered for a git range, then the system shall enumerate every feature spec entry the range touched regardless of that entry's status, so entries still planned or in progress reach the reviewer."
-    test_refs: ["tests/changelog/collect.test.ts"]
-    notes: "WHY: the changelog collector is a SHIPPED filter — it keeps only done/archived transitions and drops planned/in_progress outright. Measured on a live corpus, 74% of the range's spec entries fell into that hole, which would make two of the three new sections structurally unbuildable."
+    statement: When a review packet is rendered for a git range, the report command
+      shall enumerate every feature specification entry touched by the range
+      regardless of status.
+    kind: behavior
+    notes: "WHY: the changelog collector is a SHIPPED filter — it keeps only
+      done/archived transitions and drops planned/in_progress outright. Measured
+      on a live corpus, 74% of the range's spec entries fell into that hole,
+      which would make two of the three new sections structurally unbuildable."
   - id: AC-c32cbab2
-    ears: ubiquitous
-    text: "The system shall classify each acceptance criterion in the range as new, rewritten, removed, or unchanged by joining the base and head revisions on the criterion id, counting a difference in any field that states the obligation — the statement, the EARS pattern, the trigger condition, the action, or the response — as a rewrite, and ignoring differences that are only whitespace."
-    test_refs: ["tests/report/ac-delta.test.ts"]
-    notes: "WHY: a criterion keeps its id across a rewrite — verified on a live reversal where the text flipped polarity while the id held — so the id is a sound join key and the rewrite is invisible to any check that only compares code against the current spec."
+    statement: The system shall classify each acceptance criterion in the range as
+      new, rewritten, removed, or unchanged by joining the base and head
+      revisions on the criterion id, counting a difference in any field that
+      states the obligation — the statement, the EARS pattern, the trigger
+      condition, the action, or the response — as a rewrite, and ignoring
+      differences that are only whitespace.
+    notes: "WHY: a criterion keeps its id across a rewrite — verified on a live
+      reversal where the text flipped polarity while the id held — so the id is
+      a sound join key and the rewrite is invisible to any check that only
+      compares code against the current spec."
   - id: AC-1a6cb22f
-    ears: event
-    condition: "when the base of the range is resolved"
-    text: "When the base of the range is resolved, then the system shall use the merge base of the given ref and HEAD for both the spec comparison and the changed-file set, so edits made on the base branch itself are not attributed to the range under review."
-    test_refs: ["tests/report/report-cli.test.ts"]
-    notes: "WHY: a two-tree compare against a diverged ref reports the base branch's own work as this range's doing. Measured on a live repository, four unrelated features were misattributed this way."
+    statement: When the base of a range is resolved, the report command shall use
+      the merge base of the given ref and HEAD for both specification comparison
+      and the changed-file set so base-branch edits are not attributed to the
+      reviewed range.
+    kind: behavior
+    notes: "WHY: a two-tree compare against a diverged ref reports the base branch's
+      own work as this range's doing. Measured on a live repository, four
+      unrelated features were misattributed this way."
   - id: AC-4b6fe145
-    ears: unwanted
-    condition: "if the merge base cannot be computed"
-    text: "If the merge base cannot be computed, then the system shall fall back to the given ref and still render the packet, rather than failing."
-    test_refs: ["tests/report/report-cli.test.ts"]
-    notes: "WHY: CI checks out at depth 1, where merge-base exits non-zero; unrelated histories do the same. Rendering must degrade, not stop."
+    statement: If the merge base cannot be computed, then the system shall fall back
+      to the given ref and still render the packet, rather than failing.
+    notes: "WHY: CI checks out at depth 1, where merge-base exits non-zero;
+      unrelated histories do the same. Rendering must degrade, not stop."
   - id: AC-e68c868a
-    ears: ubiquitous
-    text: "The system shall report, for each acceptance criterion, whether each declared test reference also changed within the range, distinguishing a concrete path that did not change from a placeholder reference that names no real test file."
-    test_refs: ["tests/report/report.test.ts"]
-    notes: "WHY: a placeholder reference is written by the harness itself as an unconfirmed suggestion; rendering it as an unchanged test would present a harness guess as a reviewed fact. The existing path normalizer already separates the two and must be reused rather than reimplemented."
+    statement: The system shall report, for each acceptance criterion, whether each
+      declared test reference also changed within the range, distinguishing a
+      concrete path that did not change from a placeholder reference that names
+      no real test file.
+    notes: "WHY: a placeholder reference is written by the harness itself as an
+      unconfirmed suggestion; rendering it as an unchanged test would present a
+      harness guess as a reviewed fact. The existing path normalizer already
+      separates the two and must be reused rather than reimplemented."
   - id: AC-8e748acb
-    ears: unwanted
-    condition: "if the new sections surface a discrepancy"
-    text: "If the new sections surface a discrepancy, then the system shall leave the report's exit code unchanged and block nothing."
-    test_refs: ["tests/report/report-cli.test.ts"]
-    notes: "WHY: the review packet renders and never disposes. Every judgement stays with the reviewer and with the existing gate."
+    statement: If the new sections surface a discrepancy, then the system shall
+      leave the report's exit code unchanged and block nothing.
+    notes: "WHY: the review packet renders and never disposes. Every judgement stays
+      with the reviewer and with the existing gate."
   - id: AC-4faef94d
-    ears: ubiquitous
-    text: "The system shall order every delta row by acceptance-criterion id and carry no wall-clock value, so two runs over the same repository state produce byte-identical output."
-    test_refs: ["tests/report/report.test.ts"]
-    notes: "WHY: the packet is an audit artifact; reproducibility is what makes it citable. Extends the determinism contract the existing report already holds."
+    statement: The system shall order every delta row by acceptance-criterion id and
+      carry no wall-clock value, so two runs over the same repository state
+      produce byte-identical output.
+    notes: "WHY: the packet is an audit artifact; reproducibility is what makes it
+      citable. Extends the determinism contract the existing report already
+      holds."
 design_impact:
   classification: additive
-  rationale: "Extends the existing review-packet verb with two sections computed from data the spec already holds; no new capability, no architecture change, no project-context change. Binds to the harness CLI capability that owns the verb."
+  rationale: Extends the existing review-packet verb with two sections computed
+    from data the spec already holds; no new capability, no architecture change,
+    no project-context change. Binds to the harness CLI capability that owns the
+    verb.
   status: resolved
   artifacts: []

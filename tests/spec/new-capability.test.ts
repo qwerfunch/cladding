@@ -46,7 +46,7 @@ describe('linkCapability — accumulative upsert (J2)', () => {
   });
 
   // 1 — no file yet: creates capabilities.yaml with the capability + feature.
-  test('no capabilities.yaml → creates it with the capability containing the feature', () => {
+  test('[covers:F-836a90/AC-001] no capabilities.yaml → creates it with the capability containing the feature', () => {
     const r = linkCapability({capability: 'authentication', feature: 'F-001', cwd: dir});
     expect(r.created).toBe(true);
     expect(r.alreadyLinked).toBe(false);
@@ -74,7 +74,7 @@ describe('linkCapability — accumulative upsert (J2)', () => {
   });
 
   // 3 — capability present, feature NOT yet linked: appends the feature.
-  test('existing capability + new feature → created:false, alreadyLinked:false; features[] has both in order', () => {
+  test('[covers:F-836a90/AC-001] existing capability + new feature → created:false, alreadyLinked:false; features[] has both in order', () => {
     linkCapability({capability: 'authentication', feature: 'F-001', cwd: dir});
     const r = linkCapability({capability: 'authentication', feature: 'F-a1b2c3', cwd: dir});
     expect(r.created).toBe(false);
@@ -87,7 +87,7 @@ describe('linkCapability — accumulative upsert (J2)', () => {
   });
 
   // 4 — capability present, feature already linked: idempotent, no duplicate.
-  test('existing capability + already-linked feature → alreadyLinked:true; feature appears exactly once', () => {
+  test('[covers:F-836a90/AC-001] existing capability + already-linked feature → alreadyLinked:true; feature appears exactly once', () => {
     linkCapability({capability: 'authentication', feature: 'F-001', cwd: dir});
     const r = linkCapability({capability: 'authentication', feature: 'F-001', cwd: dir});
     expect(r.created).toBe(false);
@@ -146,7 +146,7 @@ describe('linkCapability — accumulative upsert (J2)', () => {
 
   // 8 — schema validity: loadSpec resolves the capability + its features (proves the
   // emitted YAML validates against the J2 schema).
-  test('after a link, loadSpec(dir).capabilities resolves the capability and its features', () => {
+  test('[covers:F-836a90/AC-003] after a link, loadSpec(dir).capabilities resolves the capability and its features', () => {
     linkCapability({capability: 'authentication', feature: 'F-001', cwd: dir});
     linkCapability({capability: 'authentication', feature: 'F-a1b2c3', cwd: dir});
 

@@ -6,7 +6,7 @@
 // non-regular / unreadable file) falls back to free-text behavior so
 // existing invocations stay regression-free.
 
-import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, sep} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
@@ -23,7 +23,7 @@ describe('loadIntentFromPathIfApplicable', () => {
   });
 
   // AC-001 — relative path to an existing .md file resolves to its contents.
-  test('loads file contents when argument is a relative .md path under cwd', () => {
+  test('[covers:F-5f6b45/AC-001] loads file contents when argument is a relative .md path under cwd', () => {
     const planBody = '# 결제 SaaS\n\nStripe + Toss 지원.\n\n- 멀티 테넌시\n- webhook 서명 검증\n';
     writeFileSync(join(dir, 'plan.md'), planBody, 'utf-8');
 
@@ -35,7 +35,7 @@ describe('loadIntentFromPathIfApplicable', () => {
   });
 
   // AC-002 — absolute path resolves identically to relative.
-  test('loads file contents for an absolute path', () => {
+  test('[covers:F-5f6b45/AC-002] loads file contents for an absolute path', () => {
     const body = 'absolute plan body';
     const abs = join(dir, 'spec.md');
     writeFileSync(abs, body, 'utf-8');
@@ -63,7 +63,7 @@ describe('loadIntentFromPathIfApplicable', () => {
   );
 
   // AC-003 — path-like but missing file → warning + original text preserved.
-  test('warns and falls back when path-like argument points to a missing file', () => {
+  test('[covers:F-5f6b45/AC-003] warns and falls back when path-like argument points to a missing file', () => {
     const arg = 'docs/no-such-plan.md';
 
     const result = loadIntentFromPathIfApplicable(arg, dir);
@@ -76,18 +76,14 @@ describe('loadIntentFromPathIfApplicable', () => {
   });
 
   // AC-004 — free-text intent (no recognized extension) passes through.
-  test.each([
-    ['결제 SaaS 만들거야'],
-    ['build a payment SaaS'],
-    ['AI 코드 리뷰 봇'],
-    ['simple'],
-    [''],
-  ])('passes free-text intent %p through unchanged with no warning', (input) => {
-    const result = loadIntentFromPathIfApplicable(input, dir);
+  test('[covers:F-5f6b45/AC-004] passes free-text intent through unchanged with no warning', () => {
+    for (const input of ['결제 SaaS 만들거야', 'build a payment SaaS', 'AI 코드 리뷰 봇', 'simple', '']) {
+      const result = loadIntentFromPathIfApplicable(input, dir);
 
-    expect(result.intent).toBe(input);
-    expect(result.loadedFrom).toBeUndefined();
-    expect(result.warning).toBeUndefined();
+      expect(result.intent).toBe(input);
+      expect(result.loadedFrom).toBeUndefined();
+      expect(result.warning).toBeUndefined();
+    }
   });
 
   // AC-005a — directory with recognized extension → warning + fallback.
@@ -105,6 +101,23 @@ describe('loadIntentFromPathIfApplicable', () => {
     expect(result.warning).toContain('non-regular');
   });
 
+  test('[covers:F-5f6b45/AC-005] directory, symlink loop, and invalid UTF-8 warn without throwing or mutating the original intent', () => {
+    const directoryArg = 'planning.md';
+    mkdirSync(join(dir, directoryArg));
+    const loopArg = 'loop.md';
+    symlinkSync(loopArg, join(dir, loopArg));
+    const invalidArg = 'invalid.md';
+    writeFileSync(join(dir, invalidArg), Buffer.from([0xc3, 0x28]));
+
+    for (const arg of [directoryArg, loopArg, invalidArg]) {
+      expect(() => loadIntentFromPathIfApplicable(arg, dir)).not.toThrow();
+      const result = loadIntentFromPathIfApplicable(arg, dir);
+      expect(result.intent).toBe(arg);
+      expect(result.loadedFrom).toBeUndefined();
+      expect(result.warning).toContain('falling back');
+    }
+  });
+
   // AC-005b — windows-style separator is normalized by node:path.resolve.
   test('handles trailing whitespace in the argument by trimming when checking the extension', () => {
     writeFileSync(join(dir, 'plan.md'), 'trimmed body', 'utf-8');
@@ -119,7 +132,7 @@ describe('loadIntentFromPathIfApplicable', () => {
   // same helper. The helper has no concept of "plugin vs npm caller", so any
   // path that works from one works from the other. This test pins the
   // contract: the helper is the single decision point.
-  test('plugin and CLI callers share the same code path (helper is the single decision point)', () => {
+  test('[covers:F-5f6b45/AC-006] plugin and CLI callers share the same code path (helper is the single decision point)', () => {
     const body = 'shared decision point';
     writeFileSync(join(dir, 'p.md'), body, 'utf-8');
 

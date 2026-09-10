@@ -50,7 +50,7 @@ describe('EVIDENCE_MISMATCH detector', () => {
     expect(evidenceMismatch.run({cwd: dir})).toEqual([]);
   });
 
-  test('evidence with missing artifact → error finding', () => {
+  test('[covers:F-057/AC-134] evidence with a missing artifact reports an error', () => {
     appendEvidence(
       dir,
       newEvidence({

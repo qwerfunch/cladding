@@ -29,7 +29,7 @@ describe('estTokens', () => {
 });
 
 describe('code-excerpt', () => {
-  test('reads a code file clipped to the budget with a truncation marker', () => {
+  test('[covers:F-06dfdad6/AC-42bd08] reads a code file clipped to the budget with a truncation marker', () => {
     const dir = makeTmp();
 
     // Long file: 5000 chars of valid-ish TS content.
@@ -57,7 +57,7 @@ describe('code-excerpt', () => {
     expect(full.omitted).toBeUndefined();
   });
 
-  test('rejects path traversal and non-whitelisted/binary/missing files safely', () => {
+  test('[covers:F-06dfdad6/AC-42bd08] rejects path traversal and non-whitelisted/binary/missing files safely', () => {
     const dir = makeTmp();
 
     // withinCwd contract.

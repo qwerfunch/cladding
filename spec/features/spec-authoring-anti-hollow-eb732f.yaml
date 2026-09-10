@@ -1,29 +1,25 @@
-# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
 id: F-eb732f
-slug: spec-authoring-anti-hollow
-title: Anti-hollow spec authoring — rich create tools + inventory auto-sync + INVENTORY_DRIFT (v0.4.x)
+title: Anti-hollow spec authoring — rich create tools + inventory auto-sync +
+  INVENTORY_DRIFT (v0.4.x)
 status: done
 modules:
   - src/stages/detectors/inventory-drift.ts
   - tests/stages/inventory-drift.test.ts
 depends_on:
   - F-3b3690
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: 'let clad_create_feature / clad_create_scenario author a REAL feature in one call — acceptance_criteria (EARS, with auto-assigned AC ids), modules, and scenario flow — instead of only a slug+title stub'
-    response: 'src/spec/new.ts createFeature/createScenario gain optional acceptance_criteria / modules / flow and render them as schema-valid YAML (string scalars via JSON.stringify so arbitrary EARS prose cannot break the emit); src/serve/server.ts extends the MCP inputSchema to accept them. The empty case is unchanged (modules:[] / acceptance_criteria:[]), so a hollow stub is now a deliberate choice, not the only option the tool offers'
-    text: The system shall let the create tools author a feature with its acceptance_criteria and modules in one call, so a created feature is governable rather than a hollow stub.
-    test_refs: [tests/spec/new.test.ts]
+    statement: The system shall let the create tools author a feature with its
+      acceptance_criteria and modules in one call, so a created feature is
+      governable rather than a hollow stub.
   - id: AC-002
-    ears: ubiquitous
-    action: 'recompute and write spec.yaml inventory after a create tool adds a shard, so the declared stats never desync from the on-disk shard count'
-    response: 'src/serve/server.ts syncInventory(cwd) runs computeInventory + writeInventoryToSpecYaml (reused from src/spec/inventory.ts) after clad_create_feature / clad_create_scenario; best-effort (a create never fails on an inventory hiccup, and a spec-less dir is skipped)'
-    text: The system shall keep spec.yaml's inventory in sync on every MCP create so a host LLM cannot leave the stats stale after authoring shards.
-    evidence_refs: [src/serve/server.ts, src/spec/inventory.ts]
+    statement: The system shall keep spec.yaml's inventory in sync on every MCP
+      create so a host LLM cannot leave the stats stale after authoring shards.
+    evidence_refs:
+      - src/serve/server.ts
+      - src/spec/inventory.ts
   - id: AC-003
-    ears: ubiquitous
-    action: 'ship the INVENTORY_DRIFT drift detector — error when spec.yaml inventory.{features,scenarios,capabilities,test_files} disagrees with the real count (computeInventory)'
-    response: 'src/stages/detectors/inventory-drift.ts compares the loaded spec''s declared inventory to computeInventory and emits a blocking error per mismatched dimension pointing at `clad sync`; within-spec-validity policy (no spec / no inventory block → silent skip); registered in src/stages/detectors/index.ts (27→28, build:plugin recounts). This is the guard that makes a stale/hollow inventory fail the gate instead of passing green'
-    text: The system shall fail the drift gate when the declared inventory disagrees with the real shard/test count, so a desynced (hollow) spec can no longer pass.
-    test_refs: [tests/stages/inventory-drift.test.ts]
+    statement: The system shall fail the drift gate when the declared inventory
+      disagrees with the real shard/test count, so a desynced (hollow) spec can
+      no longer pass.

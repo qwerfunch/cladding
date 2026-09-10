@@ -8,7 +8,7 @@ ironclad-track: T9 (multi-agent orchestrator)
 
 ## [CLAIM]
 
-The 6 agent personas — orchestrator · planner (formerly `librarian`) · reviewer · observability · developer (formerly `specialists`) · blind-author — each shipped as a Claude Code subagent (frontmatter + system prompt). Their canonical source lives in this directory; `npm run build:plugin` mirrors them into `plugins/claude-code/agents/`, `plugins/codex/skills/`, and `plugins/antigravity/skills/`.
+The shipped persona catalog is derived from the canonical role briefs in this directory. `npm run build:plugin` mirrors those briefs into `plugins/claude-code/agents/`, `plugins/codex/skills/`, and `plugins/antigravity/skills/`; no fixed roster is a separate authority. `librarian` and `specialists` are compatibility history, not current catalog identities.
 
 ## [PERSONAS]
 

@@ -15,14 +15,35 @@ vi.mock('../../src/stages/detectors/hardcoded-secret.js', () => ({
     run: vi.fn(),
   },
 }));
+vi.mock('../../src/stages/detector-result-cache.js', () => ({
+  readDetectorResult: vi.fn(),
+}));
 
 const {runSecret} = await import('../../src/stages/secret.js');
 const detectorMod = await import('../../src/stages/detectors/hardcoded-secret.js');
 const detectorRun = detectorMod.hardcodedSecret.run as unknown as ReturnType<typeof vi.fn>;
+const cacheMod = await import('../../src/stages/detector-result-cache.js');
+const readDetectorResultMock = cacheMod.readDetectorResult as unknown as ReturnType<typeof vi.fn>;
 
 describe('runSecret (stage_1.6)', () => {
   beforeEach(() => {
     detectorRun.mockReset();
+    readDetectorResultMock.mockReset();
+  });
+
+  test('[covers:F-060/AC-145] cached secret findings preserve error severity and diagnostic order', () => {
+    readDetectorResultMock.mockReturnValueOnce([
+      {detector: 'HARDCODED_SECRET', severity: 'info', message: 'scanner context'},
+      {detector: 'HARDCODED_SECRET', severity: 'error', message: 'first secret'},
+      {detector: 'HARDCODED_SECRET', severity: 'error', message: 'second secret'},
+    ]);
+
+    const result = runSecret({cwd: '/cached-project'});
+
+    expect(readDetectorResultMock).toHaveBeenCalledWith('HARDCODED_SECRET', '/cached-project');
+    expect(detectorRun).not.toHaveBeenCalled();
+    expect(result).toMatchObject({stage: 'stage_1.6', pass: false, exitCode: 1});
+    expect(result.stderr).toBe('first secret\nsecond secret');
   });
 
   test('detector returns no findings → pass=true', () => {
@@ -72,7 +93,7 @@ describe('runSecret (stage_1.6)', () => {
     expect(r.stderr).toBe('leak');
   });
 
-  test('opts forwarded to detector', () => {
+  test('[covers:F-060/AC-145] uncached secret checks forward supplied options to the detector', () => {
     detectorRun.mockReturnValueOnce([]);
     runSecret({cwd: '/p', cmd: 'mysecret', args: ['scan']});
     expect(detectorRun).toHaveBeenCalledWith({cwd: '/p', cmd: 'mysecret', args: ['scan']});

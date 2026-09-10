@@ -7,27 +7,35 @@ modules:
   - README.md
   - README.ko.md
   - GOVERNANCE.md
-depends_on: [F-065]
+depends_on:
+  - F-065
+capability_refs: []
 acceptance_criteria:
   - id: AC-177
-    ears: ubiquitous
-    action: publish the cell 09 benchmark synthesis as a docs artifact in the cladding repo
-    response: docs/benchmarks/event-store-trap-catch.md contains the 8-axis comparison + trap matrix + headline 8/8 vs 2/8 result; docs/benchmarks/event-store-spec-with-traps.md contains the 22-AC + 8-trap problem definition
-    text: The system shall publish the cell 09 benchmark synthesis under docs/benchmarks/ so external readers can find the evidence without needing access to the maintainer's local cladding-abc workspace.
+    statement: The system shall publish the cell 09 benchmark synthesis under
+      docs/benchmarks/ so external readers can find the evidence without needing
+      access to the maintainer's local cladding-abc workspace.
     evidence_refs:
       - docs/benchmarks/event-store-trap-catch.md
       - docs/benchmarks/event-store-spec-with-traps.md
   - id: AC-178
-    ears: ubiquitous
-    action: keep the trap-catch result's living citation in GOVERNANCE.md, not the READMEs
-    response: README.md and README.ko.md do not carry a benchmarks "Evidence" section; the living citation of the trap-catch result (vanilla 25% vs cladding 100%) is GOVERNANCE.md §5 "Differentiation evidence" (GOVERNANCE.md:120), which links docs/benchmarks/event-store-trap-catch.md
-    text: The system shall keep the controlled-benchmark trap-catch citation live in GOVERNANCE.md with a link to the full document; README.md and README.ko.md are not required to carry a benchmarks Evidence section.
-    notes: "## Why\n2026-07-05 drift fix (F-27e56a00): the READMEs were later rewritten without the Evidence section, so the original 'both READMEs carry an Evidence section linking trap-catch' claim went stale — no README carries a benchmarks link today. The surviving, living citation is GOVERNANCE.md:120; evidence_refs re-pointed there to match reality. Prose-only edit; modules list untouched."
+    statement: The system shall keep the controlled-benchmark trap-catch citation
+      live in GOVERNANCE.md with a link to the full document; README.md and
+      README.ko.md are not required to carry a benchmarks Evidence section.
     evidence_refs:
       - GOVERNANCE.md
+    notes: >-
+      ## Why
+
+      2026-07-05 drift fix (F-27e56a00): the READMEs were later rewritten
+      without the Evidence section, so the original 'both READMEs carry an
+      Evidence section linking trap-catch' claim went stale — no README carries
+      a benchmarks link today. The surviving, living citation is
+      GOVERNANCE.md:120; evidence_refs re-pointed there to match reality.
+      Prose-only edit; modules list untouched.
   - id: AC-179
-    ears: ubiquitous
-    action: cite the benchmark in GOVERNANCE.md
-    response: GOVERNANCE.md §5 (v1.0 Graduation Criteria) is amended with a "Differentiation evidence" paragraph that points at docs/benchmarks/event-store-trap-catch.md and notes the result is one data point, not proof
-    text: The system shall cite the controlled benchmark in GOVERNANCE.md as differentiation evidence, with the explicit framing that one data point is not proof.
-    evidence_refs: [GOVERNANCE.md]
+    statement: The system shall cite the controlled benchmark in GOVERNANCE.md as
+      differentiation evidence, with the explicit framing that one data point is
+      not proof.
+    evidence_refs:
+      - GOVERNANCE.md

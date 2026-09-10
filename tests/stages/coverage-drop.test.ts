@@ -33,7 +33,7 @@ describe('COVERAGE_DROP detector', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('coverage-summary.json absent → info finding', () => {
+  test('[covers:F-026/AC-039] coverage-summary.json absent emits an info finding', () => {
     const findings = coverageDrop.run({cwd: dir});
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe('info');
@@ -51,7 +51,7 @@ describe('COVERAGE_DROP detector', () => {
     expect(coverageDrop.run({cwd: dir})).toEqual([]);
   });
 
-  test('line coverage below floor → warn finding with actual + floor', () => {
+  test('[covers:F-057/AC-133] line coverage below floor → warn finding with actual + floor', () => {
     writeSummary(dir, JSON.stringify({total: {lines: {pct: 45.2}}}));
     const findings = coverageDrop.run({cwd: dir});
     expect(findings).toHaveLength(1);

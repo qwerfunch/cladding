@@ -62,6 +62,14 @@ describe('DELIVERABLE_INTEGRITY detector', () => {
     expect(findings[0].message).toMatch(/ship modules but project.deliverable is not declared/);
   });
 
+  test('[covers:F-0f4dd6/AC-027][covers:F-9064ff/AC-864efe] onboarding-seeded missing deliverables are info before the threshold and warn at it', () => {
+    writeSpec({onboardingSeeded: true});
+    expect(run()[0]?.severity).toBe('info');
+
+    writeSpec({featureCount: DEFAULT_MIN_FEATURES_FOR_DELIVERABLE, onboardingSeeded: true});
+    expect(run()[0]?.severity).toBe('warn');
+  });
+
   test('WARN once a grown project still ships modules without a deliverable decision', () => {
     writeSpec({featureCount: DEFAULT_MIN_FEATURES_FOR_DELIVERABLE, onboardingSeeded: true});
     const findings = run();
@@ -77,7 +85,7 @@ describe('DELIVERABLE_INTEGRITY detector', () => {
     expect(findings[0].severity).toBe('warn');
   });
 
-  test('ERROR when deliverable.path is declared but missing on disk', () => {
+  test('[covers:F-9064ff/AC-93cb51] ERROR when deliverable.path is declared but missing on disk', () => {
     writeSpec({deliverable: '  deliverable:\n    path: ./run\n'}); // no ./run written
     const findings = run();
     expect(findings).toHaveLength(1);

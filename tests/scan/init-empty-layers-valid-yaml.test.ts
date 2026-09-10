@@ -99,7 +99,7 @@ describe('AC-a76ab3fd — empty layer array renders layers: [] (valid, loadable)
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('empty layers -> explicit empty-array form, not a bare key', () => {
+  test('[covers:F-284be4f6/AC-a76ab3fd] empty layers -> explicit empty-array form, not a bare key', () => {
     const {architectureYaml} = deterministicInterpret(fakeScan([]));
     expect(architectureYaml).toContain('layers: []');
     // Pre-fix shape: a bare `layers:` with nothing after it on its own
@@ -141,7 +141,7 @@ describe('AC-a76ab3fd — empty layer array renders layers: [] (valid, loadable)
 });
 
 describe('AC-743bfe4e — non-empty layer array keeps the block form unchanged', () => {
-  test('one layer -> block form ("layers:" + its entry), unchanged', () => {
+  test('[covers:F-284be4f6/AC-743bfe4e] one layer -> block form ("layers:" + its entry), unchanged', () => {
     const layers: Layer[] = [{name: 'core', dir: 'core', moduleCount: 5}];
     const {architectureYaml} = deterministicInterpret(fakeScan(layers, {}));
     expect(architectureYaml).not.toContain('layers: []');

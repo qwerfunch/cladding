@@ -1,0 +1,119 @@
+id: F-0dafcf9d
+title: Alias-aware generated artifacts and opt-in relocation
+status: done
+purpose: Schema 0.2 declares spec/generated/ as the final home of the three
+  generated projections, but every reader and writer still hard-codes the
+  pre-relocation paths and the registry never consults its compatibility
+  aliases; resolving each generated artifact where it actually lives, projecting
+  the generated-directory notice, and offering clad relocate-generated as a
+  previewed opt-in move lets adopters reach the final layout without forcing a
+  migration on anyone in 0.10.0.
+modules:
+  - src/spec/layout.ts
+  - src/spec/compiler/artifact-registry.ts
+  - src/spec/attestation.ts
+  - src/spec/edit.ts
+  - src/spec/transaction.ts
+  - src/cli/relocate-generated.ts
+  - src/cli/clad.ts
+  - src/cli/hook.ts
+  - src/stages/detectors/inventory-drift.ts
+  - src/stages/detectors/stale-attestation.ts
+  - src/graph/presentation.ts
+  - tests/spec/layout.test.ts
+  - tests/cli/relocate-generated.test.ts
+  - tests/spec/relocated-layout.test.ts
+  - tests/spec/compiler/artifact-registry.test.ts
+depends_on: []
+capability_refs: []
+acceptance_criteria:
+  - id: AC-8d616512
+    kind: behavior
+    statement: When a caller resolves a compatibility alias path, the artifact
+      registry shall return the same descriptor as the canonical path.
+    notes: resolveArtifactDescriptors matches on the matcher or on any
+      compatibilityAliases entry; resolveManagedWrite therefore admits journal
+      writes at the relocated paths.
+  - id: AC-60f36f9c
+    kind: behavior
+    statement: When a generated projection exists only at its pre-relocation path,
+      the layout probe shall resolve that artifact to its pre-relocation path.
+    notes: "Resolution is per artifact for every artifact that exists; an artifact
+      present at neither path borrows the layout its siblings prove: when at
+      least one relocatable projection exists and every existing one is
+      relocated it resolves to its relocated path, and otherwise — including a
+      workspace holding none of the three — to its pre-relocation path, so fresh
+      workspaces keep the 0.10.0 default layout."
+  - id: AC-d119310e
+    kind: behavior
+    statement: When a generated projection exists only under the generated
+      directory, the layout probe shall resolve that artifact to its relocated
+      path for every reader and writer.
+    notes: Attestation reader and writer, the derived index projection, the
+      doc-links carry-forward, the hook feature counter, the inventory-drift and
+      stale-attestation detectors, and the presentation tier map all consult the
+      probe instead of literal paths.
+  - id: AC-e45228ec
+    kind: behavior
+    statement: When a generated projection exists at both paths, the layout probe
+      shall report a conflict that stops relocation and derived projection
+      writes.
+    notes: A conflict is diagnosed loudly; no writer silently picks one side.
+  - id: AC-b0a7992d
+    kind: behavior
+    statement: When clad relocate-generated runs without the apply flag, the
+      relocation command shall print the planned moves and write nothing.
+    notes: The preview names each artifact with its current path, its target, and
+      the action (move, already relocated, absent, conflict, irregular) plus the
+      .gitattributes follow-up; --json emits the same plan.
+  - id: AC-c91dc861
+    kind: behavior
+    statement: When clad relocate-generated runs with the apply flag on a schema 0.2
+      workspace with pending moves, the relocation command shall move the
+      present projections under the generated directory in one recoverable spec
+      transaction.
+    notes: The move is delete-plus-create with identical bytes inside one F4 journal
+      so a crash recovers through recoverSpecTransaction; the
+      generated-directory notice is re-rendered in the same journal and the
+      spec/index.yaml merge=union line in .gitattributes is retargeted after the
+      journal commits.
+  - id: AC-6c6fc2cd
+    kind: behavior
+    statement: When clad relocate-generated runs with the apply flag on an already
+      relocated workspace, the relocation command shall change no bytes.
+    notes: Idempotence is the completion proof that the second apply is a zero-diff
+      no-op.
+  - id: AC-0d45a5c2
+    kind: behavior
+    statement: When a spec transaction refreshes derived projections in a schema 0.2
+      workspace, the transaction shall render the generated directory notice
+      from the artifact registry.
+    notes: spec/generated/README.md is a derived projection written only when its
+      bytes change; it states where each generated artifact currently lives and
+      where relocation would move it.
+  - id: AC-cfed0959
+    kind: behavior
+    statement: When clad relocate-generated runs in a schema 0.1 workspace, the
+      relocation command shall refuse and point to schema migration.
+    notes: Schema migration and physical relocation stay separate operations.
+  - id: AC-fe71ffb3
+    kind: constraint
+    statement: The relocation feature shall keep the pre-relocation layout fully
+      supported for schema 0.2 workspaces including this repository.
+    rationale: "0.10.0 forces no migration on adopters: relocation is opt-in, this
+      repository stays on the pre-relocation layout, and relocation_required
+      enforcement is deferred until adopters have relocated in practice."
+design_impact:
+  classification: structural
+  rationale: 0.10.0 ships relocation as an opt-in command and keeps the
+    pre-relocation layout fully supported, so the D14 workspace-state table, the
+    self-relocation sentence in model-and-migration.md, and the F11 rows in
+    delivery.md must state the reduced scope and the deferred
+    relocation_required enforcement before the feature completes.
+  status: resolved
+  artifacts:
+    - docs/design/spec-0.2/model-and-migration.md
+    - docs/design/spec-0.2/delivery.md
+  baseline_digests:
+    docs/design/spec-0.2/model-and-migration.md: 4068dfae68fc9fb4b8961e5619fecda03450f93acc25530fffc62f8f214e2c8c
+    docs/design/spec-0.2/delivery.md: 38265d5cfb4139a6aefa969eb6ff88bfae0ef3f49477ebcd5989062e4176470b

@@ -10,13 +10,13 @@ Run `clad rollback <featureId>` from the project root. The verb is the partner o
 
 ```
 clad rollback F-001
-clad rollback F-a3f9c2 --reason "specialist dispatched a regression on the L1 lint gate"
+clad rollback F-a3f9c2e1 --reason "specialist dispatched a regression on the L1 lint gate"
 ```
 
 The output is a single Pulse line plus the restoration command:
 
 ```
-✓ rollback · F-a3f9c2  target head=<sha12> ts=<iso>
+✓ rollback · F-a3f9c2e1  target head=<sha12> ts=<iso>
 Run: git checkout <sha40>
 ```
 
@@ -30,9 +30,9 @@ When the latest checkpoint has no `gitHead` (the project is not a git repo), the
 
 ## When to use
 
-- After an autonomous drive iteration that ended in `RETRY_THRESHOLD`, `GATE_NO_PROGRESS`, or `UNCAUGHT_ERROR`.
+- After an attempt that ended with the gate stuck, failing repeatedly, or erroring out.
 - After a manual implementation attempt that introduced a regression you don't want to bisect.
-- Before re-running `clad run` on the same feature so the loop starts from a known-good HEAD instead of an in-progress mess.
+- Before retrying the same feature so the next attempt starts from a known-good HEAD instead of an in-progress mess.
 
 ## Pair with
 

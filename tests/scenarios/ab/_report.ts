@@ -15,7 +15,7 @@ import type {QueryAnswer} from './_query-bench.js';
 
 /** Optional outcome-quality bundle (F-ba2e05). */
 export interface OutcomeReportInput {
-  /** 4 drift scenarios × 2 groups = 8 results, in DI-1…DI-4 / A,B order. */
+  /** Drift results keyed by DI-1…DI-4 and A/B; non-applicable group rows are omitted. */
   readonly driftResults: readonly DriftCatchResult[];
   /** 5 queries × 2 groups = 10 answers, in Q1…Q5 / A,B order. */
   readonly queryResults: ReadonlyMap<'A' | 'B', readonly QueryAnswer[]>;
@@ -24,6 +24,7 @@ export interface OutcomeReportInput {
 /** Case report top-level options. */
 export interface CaseReportInput {
   readonly caseTitle: string;
+  readonly fixture: string;
   readonly intent: string;
   readonly description: string;
   readonly hypothesisFocus: readonly string[];
@@ -43,10 +44,12 @@ export function renderCaseReport(input: CaseReportInput): string {
   lines.push(`# A/B Evaluation: ${input.caseTitle}`);
   lines.push('');
   lines.push(
-    '_Snapshot note (2026-07-05): detector count was 25 at this run; the suite has since grown to 41 (0.8.x). Body preserved as an append-only snapshot._',
+    '_Snapshot note (2026-07-05): this historical M2 report reflects the detector registry available at that run. Body preserved as an append-only snapshot._',
   );
   lines.push('');
   lines.push(`**Intent:** \`${input.intent}\``);
+  lines.push('');
+  lines.push(`**Fixture:** \`${input.fixture}\``);
   lines.push('');
   lines.push(input.description.trim());
   lines.push('');
@@ -209,7 +212,7 @@ function renderOutcomeSection(outcome: OutcomeReportInput): string {
     const bMatch = outcome.driftResults.find((x) => x.group === 'B' && x.scenarioId === r.scenarioId);
     return !bMatch || !bMatch.caught;
   }).length;
-  lines.push(`**Catch rate**: A = ${aCaughtCount}/${aTotalCount} · B = ${bCaughtCount}/${bTotalCount} · **cladding-exclusive catches = ${cladExclusive}**`);
+  lines.push(`**Catch rate (applicable scenarios)**: A = ${aCaughtCount}/${aTotalCount} · B = ${bCaughtCount}/${bTotalCount} · **cladding-exclusive catches = ${cladExclusive}**`);
   lines.push('');
 
   // AI query benchmark table
@@ -239,7 +242,7 @@ function renderOutcomeSection(outcome: OutcomeReportInput): string {
   const aLowCost = aAnswers.filter((q) => q.answered && q.filesOpened <= 1).length;
   const bAnswerable = bAnswers.filter((q) => q.answered).length;
   const bLowCost = bAnswers.filter((q) => q.answered && q.filesOpened <= 1).length;
-  lines.push(`**Answerability**: A = ${aAnswerable}/${aAnswers.length} answered · B = ${bAnswerable}/${bAnswers.length} answered`);
+  lines.push(`**Answerability (applicable queries)**: A = ${aAnswerable}/${aAnswers.length} answered · B = ${bAnswerable}/${bAnswers.length} answered`);
   lines.push(`**Low-cost answers (≤1 file)**: A = ${aLowCost}/${aAnswers.length} · B = ${bLowCost}/${bAnswers.length}`);
   lines.push('');
 
@@ -248,7 +251,8 @@ function renderOutcomeSection(outcome: OutcomeReportInput): string {
   lines.push('');
   lines.push(`- **H6 — Cladding catches drift vanilla misses**: ${cladExclusive}/${aTotalCount} cladding-exclusive catches. The non-exclusive catches (where both groups catch) are toolchain-only detectors like HARDCODED_SECRET that fire regardless of spec presence — useful baseline but not where cladding's design pays off.`);
   lines.push(`- **H7 — Cladding makes AI agents productive**: A answers ${aLowCost}/${aAnswers.length} queries from ≤1 file; B answers ${bLowCost}/${bAnswers.length}. For the unanswerable B queries, the tree has no canonical source — an AI agent would either give up or hallucinate from inferred context.`);
-  lines.push('- **H8 — Iron Law gates measure detector activity, not codebase health**: when `clad check --strict` runs against vanilla, spec-required detectors silently report 0 findings. The same gate on cladding-managed code uses all 25 detectors. Same gate label, very different evaluation surface.');
+  lines.push('- **H8 — Iron Law gates measure detector activity, not codebase health**: when `clad check --strict` runs against vanilla, spec-required detectors silently report 0 findings. The same gate on cladding-managed code uses the current registered detector set. Same gate label, very different evaluation surface.');
+  lines.push('- **Release evidence**: this is a historical M2 measurement, not a release claim; no later B5 signed receipt is recorded.');
   return lines.join('\n');
 }
 

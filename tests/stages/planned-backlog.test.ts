@@ -80,7 +80,7 @@ describe('PLANNED_BACKLOG detector', () => {
     expect(plannedBacklog.run({cwd: dir})).toEqual([]);
   });
 
-  test('6 stalled module-less planned shards → one warn naming the count', () => {
+  test('[covers:F-3788c2/AC-001] 6 stalled module-less planned shards → one warn naming the count', () => {
     writeModuleless(dir, 6, 'planned');
     const findings = plannedBacklog.run({cwd: dir});
     expect(findings).toHaveLength(1);
@@ -96,6 +96,15 @@ describe('PLANNED_BACKLOG detector', () => {
       const rel = `src/feat${i}.ts`;
       writeModuleFile(dir, rel);
       writeShard(dir, i + 1, {status: 'planned', modules: [rel]});
+    }
+    expect(plannedBacklog.run({cwd: dir})).toEqual([]);
+  });
+
+  test('[covers:F-3788c2/AC-003] existing modules exclude both planned and in-progress features from the backlog', () => {
+    for (let i = 0; i < 6; i++) {
+      const rel = `src/live${i}.ts`;
+      writeModuleFile(dir, rel);
+      writeShard(dir, i + 1, {status: i % 2 === 0 ? 'planned' : 'in_progress', modules: [rel]});
     }
     expect(plannedBacklog.run({cwd: dir})).toEqual([]);
   });
@@ -178,5 +187,19 @@ describe('PLANNED_BACKLOG strict promotion (integration)', () => {
     const report = runDrift({cwd: dir});
     expect(report.pass).toBe(true);
     expect(report.findings.some((f) => f.detector === 'PLANNED_BACKLOG')).toBe(true);
+  });
+
+  test('[covers:F-3788c2/AC-002] backlog is advisory by default and blocking only under strict mode', () => {
+    const direct = plannedBacklog.run({cwd: dir});
+    expect(direct).toHaveLength(1);
+    expect(direct[0]?.severity).toBe('warn');
+
+    const defaultReport = runDrift({cwd: dir});
+    expect(defaultReport.pass).toBe(true);
+    expect(defaultReport.findings.some((f) => f.detector === 'PLANNED_BACKLOG')).toBe(true);
+
+    const strictReport = runDrift({cwd: dir, strict: true});
+    expect(strictReport.pass).toBe(false);
+    expect(strictReport.exitCode).toBe(1);
   });
 });

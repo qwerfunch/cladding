@@ -28,7 +28,7 @@
 // that gathers git/spec/detector state and feeds this renderer.
 
 import type {ChangelogManifest, SpecEntryRevision} from '../changelog/collect.js';
-import {testRefPath} from '../spec/reverse-index.js';
+import {testRefPath} from '../spec/compiler/legacy-reference.js';
 
 import {buildSpecEntryDeltas, type SpecEntryDelta} from './ac-delta.js';
 
@@ -162,7 +162,7 @@ function normalizeOwners(owners: readonly OwningFeature[]): readonly OwningFeatu
  * The third state is load-bearing. `clad sync` writes `derived:<path>` refs into
  * spec entries as unconfirmed suggestions; rendering one as "declared but did
  * not change" would present a harness guess as a reviewed fact. The shared
- * normalizer (src/spec/reverse-index.ts) is what tells the two apart — the same
+ * normalizer (src/spec/compiler/legacy-reference.ts) is what tells the two apart — the same
  * rule the citation index uses, so the packet and the index can never disagree.
  */
 function buildTestRefRows(

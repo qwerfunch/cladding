@@ -44,7 +44,7 @@ const SEED_HEADER = (language: string): string =>
 interface LanguageDefaults {
   /** Display name shown in the seed body. */
   readonly displayName: string;
-  /** 14-signal `Conventions` shape filled with the language's idiomatic defaults. */
+  /** `Conventions` shape filled with the language's idiomatic defaults. */
   readonly conventions: Conventions;
   /** Inline one-line URL to the canonical style guide for the language. */
   readonly styleGuideUrl: string;
@@ -303,6 +303,16 @@ export function renderGreenfieldConventionsMd(language: string, projectName: str
     `| test location | ${c.testLocation} |`,
     `| file header | ${c.fileHeaderPattern ?? '(none)'} |`,
     '',
+    '## Doc tag frequency',
+    '',
+    ...Object.entries(c.docTagCounts).map(([tag, count]) => `- \`${tag}\`: ${count}`),
+    '',
+    '## Module boilerplate (smallest exported module observed)',
+    '',
+    ...(c.moduleBoilerplate
+      ? ['```', c.moduleBoilerplate, '```']
+      : ['(none observed yet)']),
+    '',
     '## Comments & documentation — Why > What',
     '',
     'Comment the **decision and the non-obvious why**, not a restatement of the code. Every exported',
@@ -313,7 +323,7 @@ export function renderGreenfieldConventionsMd(language: string, projectName: str
     '',
     '## Adding a new module',
     '',
-    `Match the baseline above unless the team has agreed otherwise. After writing initial code, re-run \`clad init --scan\` — the observed 14-signal table will divert this seed to \`.cladding/scan/conventions.md.proposal\` so you can diff seed vs reality.`,
+    `Match the baseline above unless the team has agreed otherwise. After writing initial code, re-run \`clad init --scan\` — the observed conventions table will divert this seed to \`.cladding/scan/conventions.md.proposal\` so you can diff seed vs reality.`,
     '',
   ];
   return lines.join('\n');
@@ -376,7 +386,7 @@ export function renderGreenfieldCapabilitiesYaml(projectName: string): string {
     '#     title: "<verbatim heading or feature name>"',
     '#     summary: "<one sentence — what this capability does>"',
     '#     surface: feature | platform | tool | infrastructure',
-    '#     features: [F-<hash6>, ...]  # bind to spec.yaml features',
+    '#     features: [F-<hash8>, ...]  # bind to spec.yaml features',
     'schema: "0.1"',
     'source: README.md',
     'capabilities: []',

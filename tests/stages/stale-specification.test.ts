@@ -42,7 +42,7 @@ describe('STALE_SPECIFICATION detector', () => {
     expect(staleSpecification.run({cwd: dir})).toEqual([]);
   });
 
-  test('archived_at present but status=done → warn finding', () => {
+  test('[covers:F-056/AC-130] archived_at on an active lifecycle reports a warning', () => {
     writeFileSync(
       join(dir, 'spec', 'features', 'F-001.yaml'),
       'id: F-001\ntitle: t\nstatus: done\narchived_at: "2024-01-01T00:00:00Z"\n',
@@ -65,6 +65,38 @@ describe('STALE_SPECIFICATION detector', () => {
     expect(findings[0].severity).toBe('warn');
     expect(findings[0].message).toContain('superseded_by');
     expect(findings[0].message).toContain('no archived_at');
+  });
+
+  test('[covers:F-6f0a2106/AC-6f0a2114] an archived feature whose successor is still in flight reports its surviving modules as info', () => {
+    // Retirement window: the successor OWNS the removal, so while it is
+    // unfinished the surviving module is the expected state, not stale spec.
+    writeFileSync(join(dir, 'stages', 'survivor.ts'), '// still here\nexport const s = 1;\n');
+    writeFileSync(
+      join(dir, 'spec', 'features', 'F-001.yaml'),
+      'id: F-001\ntitle: t\nstatus: archived\narchived_at: "2024-01-01T00:00:00Z"\n'
+      + 'superseded_by: F-002\nmodules: [stages/survivor.ts]\n',
+    );
+    writeFileSync(join(dir, 'spec', 'features', 'F-002.yaml'), 'id: F-002\ntitle: successor\nstatus: in_progress\n');
+    const findings = staleSpecification.run({cwd: dir});
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe('info');
+    expect(findings[0].message).toContain('stages/survivor.ts');
+    expect(findings[0].message).toContain('retirement is owned by successor F-002');
+    expect(findings[0].suggestion).toBeUndefined();
+  });
+
+  test('[covers:F-6f0a2106/AC-6f0a2114] the surviving-module warning returns once the successor is done', () => {
+    writeFileSync(join(dir, 'stages', 'survivor.ts'), '// still here\nexport const s = 1;\n');
+    writeFileSync(
+      join(dir, 'spec', 'features', 'F-001.yaml'),
+      'id: F-001\ntitle: t\nstatus: archived\narchived_at: "2024-01-01T00:00:00Z"\n'
+      + 'superseded_by: F-002\nmodules: [stages/survivor.ts]\n',
+    );
+    writeFileSync(join(dir, 'spec', 'features', 'F-002.yaml'), 'id: F-002\ntitle: successor\nstatus: done\n');
+    const findings = staleSpecification.run({cwd: dir}).filter((finding) => finding.message.includes('F-001'));
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe('warn');
+    expect(findings[0].message).toBe('feature F-001 is archived but 1 module(s) still exist: stages/survivor.ts');
   });
 
   test('status=archived + surviving module on disk → warn finding', () => {
@@ -101,6 +133,27 @@ describe('STALE_SPECIFICATION detector', () => {
   // emits machine-actionable `propose-archive` suggestions on findings
   // that the maintainer can resolve by archiving the feature.
   describe('propose-archive suggestion (Tier 2)', () => {
+    test('[covers:F-b99577/AC-002] all unambiguous stale lifecycle branches propose archive while surviving archived code stays unsuggested', () => {
+      writeFileSync(join(dir, 'stages', 'still-here.ts'), 'export const live = true;\n');
+      writeFileSync(
+        join(dir, 'spec', 'features', 'F-100.yaml'),
+        'id: F-100\ntitle: mismatched archive\nstatus: done\narchived_at: "2024-01-01T00:00:00Z"\n',
+      );
+      writeFileSync(
+        join(dir, 'spec', 'features', 'F-200.yaml'),
+        'id: F-200\ntitle: superseded\nstatus: done\nsuperseded_by: F-100\n',
+      );
+      writeFileSync(
+        join(dir, 'spec', 'features', 'F-300.yaml'),
+        'id: F-300\ntitle: surviving archive\nstatus: archived\narchived_at: "2024-01-01T00:00:00Z"\nmodules: [stages/still-here.ts]\n',
+      );
+      const findings = staleSpecification.run({cwd: dir});
+      const byId = Object.fromEntries(findings.map((finding) => [finding.message.match(/F-\d+/)?.[0], finding]));
+      expect(byId['F-100']?.suggestion).toMatchObject({action: 'propose-archive', args: {featureId: 'F-100'}});
+      expect(byId['F-200']?.suggestion).toMatchObject({action: 'propose-archive', args: {featureId: 'F-200'}});
+      expect(byId['F-300']?.suggestion).toBeUndefined();
+    });
+
     test('archived_at + non-archived status → suggestion carries featureId + reason', () => {
       writeFileSync(
         join(dir, 'spec', 'features', 'F-100.yaml'),
@@ -149,7 +202,7 @@ describe('STALE_SPECIFICATION detector', () => {
       expect(staleSpecification.run({cwd: dir})).toEqual([]);
     });
 
-    test('archived feature with surviving modules → NO suggestion (removal cadence is project-owned)', () => {
+    test('[covers:F-b99577/AC-001] a finding without a remediation suggestion preserves severity and message', () => {
       writeFileSync(join(dir, 'stages', 'survivor.ts'), '// still here\nexport const s = 1;\n');
       writeFileSync(
         join(dir, 'spec', 'features', 'F-500.yaml'),
@@ -157,6 +210,8 @@ describe('STALE_SPECIFICATION detector', () => {
       );
       const findings = staleSpecification.run({cwd: dir});
       expect(findings).toHaveLength(1);
+      expect(findings[0].severity).toBe('warn');
+      expect(findings[0].message).toContain('F-500');
       expect(findings[0].suggestion).toBeUndefined();
     });
   });

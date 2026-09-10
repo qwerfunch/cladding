@@ -31,7 +31,7 @@ export interface ScanOptions {
   readonly roots?: readonly string[];
 }
 
-/** 14 deterministic convention observations. */
+/** Deterministic convention observations. */
 export interface Conventions {
   readonly indent: 'two-space' | 'four-space' | 'tab' | 'mixed';
   readonly quote: 'single' | 'double' | 'mixed';

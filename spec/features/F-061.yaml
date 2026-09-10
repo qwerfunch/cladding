@@ -1,36 +1,60 @@
 id: F-061
-title: Stage runner tests batch 3 — every stage covered
+title: "Stage runner behavior evidence: Performance, Visual, and UAT"
 status: done
 modules:
+  - src/stages/perf.ts
+  - src/stages/visual.ts
+  - src/stages/uat.ts
   - tests/stages/perf.test.ts
   - tests/stages/visual.test.ts
   - tests/stages/uat.test.ts
-depends_on: [F-060]
+  - tests/proof/stage-receipt-reduction.test.ts
+depends_on:
+  - F-060
+capability_refs: []
 acceptance_criteria:
   - id: AC-149
-    ears: ubiquitous
-    action: cover the two npm-script delegating stages
-    response: tests/stages/perf.test.ts and tests/stages/visual.test.ts each exercise unknown / npm-script-missing / exit 0 / non-zero / ENOENT / non-ENOENT throw / null-exit / explicit-override paths with vi.mock('execa'); line coverage on both stage sources reaches at least 85%
-    text: The system shall ship dedicated unit-test files for src/stages/perf.ts and src/stages/visual.ts, bringing each to at least 85% line coverage.
-    test_refs:
-      - tests/stages/perf.test.ts
-      - tests/stages/visual.test.ts
+    statement: When the Performance or Visual obligation applies, the system shall
+      derive runner availability, configuration, and outcome from its sealed
+      descriptor inputs and record a same-run observation as pass, fail, or
+      unobserved, unless the compiler proves not-applicable.
+    notes: >
+      ## Historical schema-0.1 note
+
+      2026-05-19 · v0.2.12 · 5328e63. Performance/Visual execa fixtures:
+      language,
+
+      script, exit, error, null, and override cases; at least 85% line coverage
+      for
+
+      both sources; non-current. Released title: "Stage runner tests batch 3 —
+      every stage covered".
   - id: AC-150
-    ears: ubiquitous
-    action: cover the UAT stage runner (read-only)
-    response: tests/stages/uat.test.ts exercises spec-absent / audit-log-empty / human-pass-satisfies / tool-only-fails / human-note-does-not-satisfy / status-filter / multi-feature paths via real appendEvidence writes; line coverage reaches at least 85%
-    text: The system shall ship tests/stages/uat.test.ts bringing the stage_4.2 UAT runner to at least 85% line coverage using real audit-log writes (no subprocess).
-    test_refs: [tests/stages/uat.test.ts]
+    statement: When UAT applies to a feature, the system shall reduce only a
+      verified current human feature receipt whose signed criterion matrix
+      exactly enumerates the compiled criterion addresses and whose
+      reviewed-input, runtime-dependency, and implementation-author digests
+      match the closure and classify all-pass evidence as pass, an explicit
+      negative as fail, and missing, untrusted, stale, or incomplete-matrix
+      evidence as unobserved.
+    notes: |
+      ## Historical schema-0.1 note
+      2026-05-19 · v0.2.12 · 5328e63. UAT appendEvidence fixtures: absent specs,
+      audit states, human/tool failures, status filters, and multiple features;
+      at least 85% line coverage; non-current.
   - id: AC-151
-    ears: ubiquitous
-    action: close the stage-runner chapter
-    response: every one of the 12 Iron Law stage runners (stage_1.1 through stage_4.2) now carries a dedicated unit-test file at ≥ 75% line coverage; the chapter that opened with v0.2.10 is closed
-    text: The system shall close the stage-runner chapter — every one of the 12 Iron Law stage runners has a dedicated unit-test file at ≥ 75% line coverage.
-    evidence_refs: [CHANGELOG.md]
+    statement: While current runner proof is evaluated, the assurance kernel shall
+      derive it per obligation from current observations and treat the former
+      twelve-runner test-file milestone as historical evidence only.
+    kind: quality
+    notes: |
+      ## Historical schema-0.1 note
+      The twelve-runner, ≥75% milestone is historical, not current proof.
   - id: AC-152
-    ears: state
-    condition: while the v0.2.12 batch lands
-    action: raise overall line coverage past 90%
-    response: vitest --coverage reports overall line coverage rises from 84.23% (v0.2.11 baseline) to ≥ 90%
-    text: While the v0.2.12 batch lands, overall line coverage shall rise from the v0.2.11 baseline (84.23%) to at least 90%, crossing the 90% milestone.
-    evidence_refs: [CHANGELOG.md]
+    statement: While current coverage assurance is evaluated, the assurance registry
+      shall derive it from the coverage obligation and treat the v0.2.12
+      measurement as historical evidence only.
+    kind: quality
+    notes: |
+      ## Historical schema-0.1 note
+      v0.2.12’s 84.23% to ≥90% measurement is historical, not current assurance.

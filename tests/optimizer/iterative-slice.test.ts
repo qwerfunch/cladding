@@ -54,7 +54,7 @@ const ALLOWED_STOPS = [
 ] as const;
 
 describe('buildIterativeImpactSlice', () => {
-  test('widens a narrow miss: a 2-hop dependent chain reaches depth 2', () => {
+  test('[covers:F-96250595/AC-77a026] widens a narrow miss: a 2-hop dependent chain reaches depth 2', () => {
     const result = buildIterativeImpactSlice(chainSpec(), 'F-A');
 
     expect('not_found' in result).toBe(false);
@@ -68,7 +68,7 @@ describe('buildIterativeImpactSlice', () => {
     expect(ids).toContain('F-C');
   });
 
-  test('stops at depth 1 when the radius is already complete', () => {
+  test('[covers:F-96250595/AC-77a026] stops at depth 1 when the radius is already complete', () => {
     const result = buildIterativeImpactSlice(singleDependentSpec(), 'F-A');
 
     expect('not_found' in result).toBe(false);
@@ -79,7 +79,7 @@ describe('buildIterativeImpactSlice', () => {
     expect(result.analysis.coverage).toBe(1);
   });
 
-  test('stops on exhaustion when the reachable graph boundary is hit', () => {
+  test('[covers:F-96250595/AC-77a026] stops on exhaustion when the reachable graph boundary is hit', () => {
     const result = buildIterativeImpactSlice(chainSpec(), 'F-A', {
       coverageThreshold: 1.1,
     });
@@ -93,7 +93,7 @@ describe('buildIterativeImpactSlice', () => {
     expect(result.depthUsed).toBe(3);
   });
 
-  test('reports depthUsed, stoppedBy, and coverage', () => {
+  test('[covers:F-96250595/AC-f77588] reports depthUsed, stoppedBy, and coverage', () => {
     const result = buildIterativeImpactSlice(chainSpec(), 'F-A');
 
     expect('not_found' in result).toBe(false);
@@ -107,14 +107,14 @@ describe('buildIterativeImpactSlice', () => {
     expect(result.analysis.totalKnownDependents).toBeGreaterThanOrEqual(0);
   });
 
-  test('is deterministic for identical spec state', () => {
+  test('[covers:F-96250595/AC-f77588] is deterministic for identical spec state', () => {
     const opts = {coverageThreshold: 0.9} as const;
     const a = buildIterativeImpactSlice(chainSpec(), 'F-A', opts);
     const b = buildIterativeImpactSlice(chainSpec(), 'F-A', opts);
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
   });
 
-  test('a coverage or exhaustion stop never reports coverage below the threshold', () => {
+  test('[covers:F-96250595/AC-f77588] a coverage or exhaustion stop never reports coverage below the threshold', () => {
     const cases: {spec: Spec; query: string; threshold: number; opts?: {coverageThreshold?: number}}[] = [
       {spec: chainSpec(), query: 'F-A', threshold: 0.9},
       {spec: singleDependentSpec(), query: 'F-A', threshold: 0.9},
@@ -136,7 +136,7 @@ describe('buildIterativeImpactSlice', () => {
     }
   });
 
-  test('an unresolved query returns the canonical not_found miss', () => {
+  test('[covers:F-96250595/AC-4c8e3f] an unresolved query returns the canonical not_found miss', () => {
     const result = buildIterativeImpactSlice(chainSpec(), 'F-nope');
 
     expect('not_found' in result).toBe(true);
@@ -147,7 +147,7 @@ describe('buildIterativeImpactSlice', () => {
     expect(typeof result.discovery).toBe('string');
   });
 
-  test('zero known dependents stops honestly: no-known-dependents + coverage null, never a vacuous 1.0 (F-c6a32fff)', () => {
+  test('[covers:F-c6a32fff/AC-67150016] zero known dependents stops honestly: no-known-dependents + coverage null, never a vacuous 1.0 (F-c6a32fff)', () => {
     // Old behavior actively claimed completeness here: coverage=1 via the
     // vacuous 0-denominator arm + stoppedBy 'coverage' — identical for a blank
     // ledger and a genuine leaf, and identical to a real full-coverage stop.

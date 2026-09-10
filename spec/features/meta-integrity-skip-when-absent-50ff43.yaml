@@ -1,29 +1,20 @@
-# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
 id: F-50ff43
-slug: meta-integrity-skip-when-absent
-title: META_INTEGRITY skips (not errors) when src/spec/schema.json is absent — kill the false ENOENT in every user project
+title: META_INTEGRITY skips (not errors) when src/spec/schema.json is absent —
+  kill the false ENOENT in every user project
 status: done
 modules:
   - src/stages/detectors/meta-integrity.ts
   - tests/stages/meta-integrity.test.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: unwanted
-    condition: if src/spec/schema.json is absent (a cladding-managed user project, not the cladding source repo)
-    action: skip the schema-vs-types self-check silently instead of emitting a false ENOENT error
-    response: the schema self-check is a cladding-self guard (that file ships only in cladding's source); its absence means "not the cladding repo", so every user project stops seeing a spurious META_INTEGRITY error it cannot fix (AB1 BASE showed the agent hand-crafting a dummy schema.json to work around it)
-    text: If src/spec/schema.json is absent, the system shall skip the schema self-check rather than report a false error.
-    test_refs: [tests/stages/meta-integrity.test.ts]
+    statement: If src/spec/schema.json is absent, then the META_INTEGRITY detector
+      shall skip the schema self-check rather than report a false error.
+    kind: behavior
   - id: AC-002
-    ears: state
-    condition: while src/spec/schema.json is present but unreadable or invalid JSON
-    action: still emit an error (a present-but-corrupt schema in the cladding repo is a real defect)
-    response: the self-check keeps its teeth where it is meaningful — corruption of cladding's own schema is caught, only true absence is skipped
-    text: While schema.json is present but invalid, the system shall still emit an error.
-    test_refs: [tests/stages/meta-integrity.test.ts]
+    statement: While schema.json is present but invalid, the system shall still emit
+      an error.
   - id: AC-003
-    ears: ubiquitous
-    action: run the spec.yaml schema-version check independently of schema.json presence
-    response: a user project with a wrong spec.yaml schema version is still flagged even though its schema.json is (correctly) absent — the skip is scoped to the self-check only
-    text: The system shall run the spec.yaml schema-version check regardless of schema.json presence.
-    test_refs: [tests/stages/meta-integrity.test.ts]
+    statement: The system shall run the spec.yaml schema-version check regardless of
+      schema.json presence.

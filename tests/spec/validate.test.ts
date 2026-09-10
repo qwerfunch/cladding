@@ -5,6 +5,23 @@ import {describe, expect, test} from 'vitest';
 import {validateSpec} from '../../src/spec/validate.js';
 
 describe('validateSpec', () => {
+  test('[covers:F-052/AC-106] accepts evidence_refs beside executable test_refs', () => {
+    const result = validateSpec({
+      schema: '0.1',
+      project: {name: 'x', language: 'typescript'},
+      features: [{
+        id: 'F-001', title: 't', status: 'done',
+        acceptance_criteria: [{
+          id: 'AC-001',
+          test_refs: ['tests/example.test.ts'],
+          evidence_refs: ['docs/verification.md'],
+        }],
+      }],
+    });
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+  });
+
   test('accepts a minimal valid spec', () => {
     const result = validateSpec({
       schema: '0.1',

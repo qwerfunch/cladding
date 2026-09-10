@@ -18,13 +18,40 @@
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {describe, expect, test} from 'vitest';
-
-import {parseSpec} from '../src/spec/parse.js';
-import type {AcceptanceCriterion, Feature} from '../src/spec/types.js';
+import {parse as parseYaml} from 'yaml';
 
 const ROOT = process.cwd();
 const read = (rel: string): string => readFileSync(join(ROOT, rel), 'utf8');
-const loadFeature = (rel: string): Feature => parseSpec(join(ROOT, rel)) as Feature;
+
+type SchemaVersion = '0.1' | '0.2';
+type RawCriterion = {
+  readonly id?: unknown;
+  readonly action?: unknown;
+  readonly response?: unknown;
+  readonly text?: unknown;
+  readonly statement?: unknown;
+  readonly evidence_refs?: unknown;
+};
+type RawFeature = {readonly acceptance_criteria?: unknown};
+
+/** Reads only authored YAML so this historic-spec assertion does not depend on a consumer projection. */
+function workspaceSchema(): SchemaVersion {
+  const schema = (parseYaml(read('spec.yaml')) as {readonly schema?: unknown}).schema;
+  expect(schema, 'spec.yaml must declare a supported schema').toMatch(/^(?:0\.1|0\.2)$/);
+  return schema as SchemaVersion;
+}
+
+function rawFeature(rel: string): RawFeature {
+  return parseYaml(read(rel)) as RawFeature;
+}
+
+/** Selects the requirement fields that are semantic in the active authored schema. */
+function criterionProse(criterion: RawCriterion): string {
+  const fields = workspaceSchema() === '0.1'
+    ? [criterion.action, criterion.response, criterion.text]
+    : [criterion.statement];
+  return fields.filter((value): value is string => typeof value === 'string').join('\n');
+}
 
 /** Counts lines the way `wc -l` does (a trailing newline isn't a phantom extra line). */
 const lineCount = (body: string): number => body.trimEnd().split('\n').length;
@@ -34,9 +61,10 @@ const V060 = 'docs/benchmarks/v0.6.0-real-user-verification.md';
 const BACKLOG = 'docs/refinement-backlog.md';
 const README = 'docs/README.md';
 const F066 = 'spec/features/F-066.yaml';
+const BENCHMARKS_PRUNE = 'spec/features/benchmarks-prune-27e56a00.yaml';
 
 describe('AC-37cd2624 · superseded run-logs compress to dated abstracts at their original path, policy amended first', () => {
-  test('both abstracts exist at their original paths and stay within the 25-line compression budget', () => {
+  test('[covers:F-27e56a00/AC-37cd2624] both abstracts exist at their original paths and stay within the 25-line compression budget', () => {
     for (const f of [V040, V060]) {
       const lines = lineCount(read(f));
       expect(lines, `${f}: non-trivial content`).toBeGreaterThan(0);
@@ -44,13 +72,13 @@ describe('AC-37cd2624 · superseded run-logs compress to dated abstracts at thei
     }
   });
 
-  test('both abstracts carry a git-history pointer line', () => {
+  test('[covers:F-27e56a00/AC-37cd2624] both abstracts carry a git-history pointer line', () => {
     for (const f of [V040, V060]) {
       expect(read(f), `${f}: git-history pointer`).toContain('git history of this path');
     }
   });
 
-  test('the v0.4.0 abstract names the six-phase design and carries its own headline caveat', () => {
+  test('[covers:F-27e56a00/AC-37cd2624] the v0.4.0 abstract names the six-phase design and carries its own headline caveat', () => {
     const body = read(V040);
     expect(body, 'names the six-phase design').toContain('Six-phase benchmark');
     expect(body, 'the caveat section is present').toContain('Headline caveat');
@@ -60,7 +88,7 @@ describe('AC-37cd2624 · superseded run-logs compress to dated abstracts at thei
     expect(body, 'the caveat states only #1 is uniquely cladding').toContain('only #1 is uniquely cladding');
   });
 
-  test('the v0.6.0 abstract carries the conformance NULLs, the 3 shipped-bug catches, and the oracle-policy defect', () => {
+  test('[covers:F-27e56a00/AC-37cd2624] the v0.6.0 abstract carries the conformance NULLs, the 3 shipped-bug catches, and the oracle-policy defect', () => {
     const body = read(V060);
     expect(body, 'the conformance-NULLs section').toContain('Conformance NULLs');
     expect(body, 'the NULL verdict itself (governance, not correctness)').toContain('not correctness');
@@ -72,14 +100,14 @@ describe('AC-37cd2624 · superseded run-logs compress to dated abstracts at thei
     expect(body, 'the defect classification itself').toContain('design defect');
   });
 
-  test('docs/README.md benchmarks row carries the compression carve-out wording', () => {
+  test('[covers:F-27e56a00/AC-37cd2624] docs/README.md benchmarks row carries the compression carve-out wording', () => {
     const row = read(README).split('\n').find((l) => l.includes('benchmarks/'));
     expect(row, 'docs/README.md has a benchmarks/ authority row').toBeTruthy();
     expect(row as string, 'carve-out: compression is permitted').toContain('may be compressed to a dated abstract');
     expect(row as string, 'carve-out: gated on no live citation').toContain('once no live claim cites its numbers');
   });
 
-  test("docs/refinement-backlog.md's bullet records the reopening evidence and a narrowed (not deleted) outcome", () => {
+  test("[covers:F-27e56a00/AC-37cd2624] docs/refinement-backlog.md's bullet records the reopening evidence and a narrowed (not deleted) outcome", () => {
     const backlog = read(BACKLOG);
     expect(backlog, 'reopened with dated, cross-checked evidence').toContain('Narrowed 2026-07-05');
     expect(backlog, 'ties the reopening to this feature').toContain('F-27e56a00');
@@ -100,7 +128,7 @@ describe('AC-19da3bd1 · the four protected benchmark files stay whole, and the 
     {path: 'docs/benchmarks/prereg-context-hypothesis.md', marker: '## Decision rule (the kill criterion — binding)'},
   ];
 
-  test('non-vacuous guard: all four protected paths are distinct and real', () => {
+  test('[covers:F-27e56a00/AC-19da3bd1] non-vacuous guard: all four protected paths are distinct and real', () => {
     const paths = PROTECTED.map((p) => p.path);
     expect(new Set(paths).size, 'four distinct protected files').toBe(4);
     for (const p of paths) {
@@ -108,13 +136,13 @@ describe('AC-19da3bd1 · the four protected benchmark files stay whole, and the 
     }
   });
 
-  test('each protected file exceeds the 60-line stub threshold (was NOT compressed)', () => {
+  test('[covers:F-27e56a00/AC-19da3bd1] each protected file exceeds the 60-line stub threshold (was NOT compressed)', () => {
     for (const {path} of PROTECTED) {
       expect(lineCount(read(path)), `${path}: line count`).toBeGreaterThan(60);
     }
   });
 
-  test('each protected file carries a distinctive marker sitting well past the top, not front-loaded like a stub', () => {
+  test('[covers:F-27e56a00/AC-19da3bd1] each protected file carries a distinctive marker sitting well past the top, not front-loaded like a stub', () => {
     for (const {path, marker} of PROTECTED) {
       const body = read(path);
       const idx = body.indexOf(marker);
@@ -123,7 +151,7 @@ describe('AC-19da3bd1 · the four protected benchmark files stay whole, and the 
     }
   });
 
-  test('the backlog bullet identifies all four protected files as remaining byte-identical', () => {
+  test('[covers:F-27e56a00/AC-19da3bd1] the backlog bullet identifies all four protected files as remaining byte-identical', () => {
     const backlog = read(BACKLOG);
     expect(backlog, 'declares the four REMAIN byte-identical and protected').toContain(
       'REMAIN byte-identical and protected',
@@ -141,36 +169,60 @@ describe("AC-1e657d14 · F-066's AC-178 matches reality: GOVERNANCE.md is the li
   const RETRACTED_VERB = ['add ', 'an Evidence section to'].join('');
   const RETRACTED_CLAIM = [RETRACTED_VERB, ' README.md'].join('');
 
-  const ac178 = (): AcceptanceCriterion => {
-    const feature = loadFeature(F066);
-    const ac = (feature.acceptance_criteria ?? []).find((a) => a.id === 'AC-178');
+  const ac178 = (): RawCriterion => {
+    const feature = rawFeature(F066);
+    const criteria = Array.isArray(feature.acceptance_criteria) ? feature.acceptance_criteria : [];
+    const ac = criteria.find((candidate): candidate is RawCriterion =>
+      candidate !== null && typeof candidate === 'object' && (candidate as RawCriterion).id === 'AC-178',
+    );
     expect(ac, 'AC-178 present in F-066.yaml').toBeTruthy();
-    return ac as AcceptanceCriterion;
+    return ac as RawCriterion;
   };
-  const prose = (ac: AcceptanceCriterion): string => [ac.action, ac.response, ac.text].join('\n');
+  const prose = (ac: RawCriterion): string => criterionProse(ac);
 
-  test('AC-178 no longer claims the READMEs carry a benchmarks Evidence section', () => {
+  test('[covers:F-27e56a00/AC-1e657d14] AC-178 no longer claims the READMEs carry a benchmarks Evidence section', () => {
     expect(prose(ac178()), 'the retracted claim must be gone').not.toContain(RETRACTED_CLAIM);
   });
 
-  test('planted-needle control — the retracted-claim needle has teeth', () => {
+  test('[covers:F-27e56a00/AC-1e657d14] planted-needle control — the retracted-claim needle has teeth', () => {
     const clean = 'the living citation is GOVERNANCE.md, not the READMEs';
     const poisoned = ['prose ... ', RETRACTED_CLAIM, ' ... prose'].join('');
     expect(clean.includes(RETRACTED_CLAIM), 'clean prose: no hit').toBe(false);
     expect(poisoned.includes(RETRACTED_CLAIM), 'poisoned prose: caught').toBe(true);
   });
 
-  test('AC-178 cites GOVERNANCE.md as the living reference; evidence_refs re-pointed away from the READMEs', () => {
+  test('[covers:F-27e56a00/AC-1e657d14] AC-178 cites GOVERNANCE.md as the living reference; evidence_refs re-pointed away from the READMEs', () => {
     const ac = ac178();
     expect(prose(ac), 'names GOVERNANCE.md').toContain('GOVERNANCE.md');
-    expect(prose(ac), 'names the living GOVERNANCE.md:120 citation').toContain('GOVERNANCE.md:120');
+    if (workspaceSchema() === '0.1') {
+      expect(prose(ac), 'names the legacy GOVERNANCE.md:120 citation').toContain('GOVERNANCE.md:120');
+    }
     expect(ac.evidence_refs, 'evidence_refs re-pointed to GOVERNANCE.md only').toEqual(['GOVERNANCE.md']);
   });
 
-  test('AC-178 still names both READMEs, but only to say a benchmarks Evidence section is not required', () => {
+  test('[covers:F-27e56a00/AC-1e657d14] AC-178 still names both READMEs, but only to say a benchmarks Evidence section is not required', () => {
     const p = prose(ac178());
-    expect(p, 'README.md named').toContain('README.md');
-    expect(p, 'README.ko.md named').toContain('README.ko.md');
-    expect(p, 'the "not required" framing survives').toContain('not required to carry a benchmarks');
+    if (workspaceSchema() === '0.1') {
+      expect(p, 'README.md named').toContain('README.md');
+      expect(p, 'README.ko.md named').toContain('README.ko.md');
+      expect(p, 'the legacy "not required" framing survives').toContain('not required to carry a benchmarks');
+      return;
+    }
+    expect(p, 'the schema-0.2 statement exactly preserves the migrated README exception').toContain(
+      'README.md and README.ko.md are not required to carry a benchmarks Evidence section',
+    );
+  });
+
+  test('schema-0.2 records the no-README-link constraint in F-27e56a00/AC-1e657d14', () => {
+    if (workspaceSchema() === '0.1') return;
+    const feature = rawFeature(BENCHMARKS_PRUNE);
+    const criteria = Array.isArray(feature.acceptance_criteria) ? feature.acceptance_criteria : [];
+    const ac = criteria.find((candidate): candidate is RawCriterion =>
+      candidate !== null && typeof candidate === 'object' && (candidate as RawCriterion).id === 'AC-1e657d14',
+    );
+    expect(ac, 'AC-1e657d14 present in F-27e56a00').toBeTruthy();
+    expect(ac?.statement, 'F-27e56a00/AC-1e657d14 strict statement').toContain(
+      'no README carries a benchmarks link',
+    );
   });
 });

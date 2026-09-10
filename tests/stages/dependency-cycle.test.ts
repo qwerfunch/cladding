@@ -75,7 +75,7 @@ describe('DEPENDENCY_CYCLE detector', () => {
     expect(dependencyCycle.run({cwd: dir})).toEqual([]);
   });
 
-  test('2-cycle F-001 <-> F-002 → exactly one error naming both ids', () => {
+  test('[covers:F-a4b512/AC-003] 2-cycle F-001 <-> F-002 → exactly one error naming both ids', () => {
     writeFeature(dir, 'F-001', ['F-002']);
     writeFeature(dir, 'F-002', ['F-001']);
     const findings = dependencyCycle.run({cwd: dir});
@@ -101,7 +101,7 @@ describe('DEPENDENCY_CYCLE detector', () => {
     expect(findings[0].message).toContain('F-003');
   });
 
-  test('self-loop F-001 depends_on F-001 → exactly one error naming F-001', () => {
+  test('[covers:F-a4b512/AC-001] self-loop F-001 depends_on F-001 → exactly one error naming F-001', () => {
     writeFeature(dir, 'F-001', ['F-001']);
     const findings = dependencyCycle.run({cwd: dir});
     expect(findings).toHaveLength(1);
@@ -111,7 +111,7 @@ describe('DEPENDENCY_CYCLE detector', () => {
     expect(findings[0].message).toContain('F-001');
   });
 
-  test('dangling depends_on (non-existent id) is ignored → no finding', () => {
+  test('[covers:F-a4b512/AC-002] dangling depends_on (non-existent id) is ignored → no finding', () => {
     // F-001 depends_on F-999, which has no shard. The edge points outside the
     // graph and is not traversed here — that dangling-ref concern belongs to
     // REFERENCE_INTEGRITY, not to cycle detection. No loop exists → [].

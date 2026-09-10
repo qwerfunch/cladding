@@ -6,7 +6,11 @@
 //   - feature has `superseded_by` but `archived_at` is missing
 //   - feature.status='archived' but its modules still exist on disk
 //     (archived code not yet removed → warn, not error, because the
-//     removal cadence is project-owned)
+//     removal cadence is project-owned) — except inside the retirement
+//     window, where `superseded_by` names a successor that is not done
+//     yet: the successor owns the removal, so the finding is `info` until
+//     it lands and the warn returns
+
 //   - feature is planned / in_progress with declared modules that are ALL
 //     still absent on disk — the spec-first window (F-c3747d7d): the
 //     documented author-then-implement state, reported at `info` (normal,
@@ -67,13 +71,33 @@ function detect(spec: Spec, cwd: string): readonly DriftFinding[] {
     if (f.status === 'archived') {
       const surviving = (f.modules ?? []).filter((m) => existsSync(join(cwd, m)));
       if (surviving.length > 0) {
-        findings.push({
-          detector: NAME,
-          severity: 'warn',
-          message:
-            `feature ${f.id} is archived but ${surviving.length} module(s) still exist:` +
-            ` ${surviving.join(', ')}`,
-        });
+        // Retirement window: the mirror image of the spec-first window above.
+        // When the archive names a successor that is not done yet, the module
+        // is still standing BECAUSE the replacement is mid-build — removing it
+        // now would break the successor's own code. Retirement is the
+        // successor's job, so this is `info` (normal, not stale) until it is
+        // done, at which point the original `warn` returns unchanged. An
+        // archive with no successor, or one whose successor already landed,
+        // keeps the warn: nothing is pending on its behalf.
+        const successor = f.superseded_by
+          ? spec.features.find((candidate) => candidate.id === f.superseded_by)
+          : undefined;
+        findings.push(successor && successor.status !== 'done'
+          ? {
+            detector: NAME,
+            severity: 'info',
+            message:
+              `feature ${f.id} is archived but ${surviving.length} module(s) still exist:` +
+              ` ${surviving.join(', ')} — retirement is owned by successor ${successor.id},` +
+              ' which is not done yet',
+          }
+          : {
+            detector: NAME,
+            severity: 'warn',
+            message:
+              `feature ${f.id} is archived but ${surviving.length} module(s) still exist:` +
+              ` ${surviving.join(', ')}`,
+          });
       }
     }
     // Spec-first window (F-c3747d7d): a planned/in_progress feature whose

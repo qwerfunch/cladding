@@ -1,0 +1,5 @@
+schema: "1"
+issuers:
+  - issuer: "qwerfunch"
+    issuer_key_id: b3b3febf84aed336596ab5014a5349fb96165a5516f26bc507a568a521bba7bb
+    spki_der: MCowBQYDK2VwAyEA2H94TT+6+Xyn9yWtpn5BqKILPGBQYhGoS2l05Qf3mf0=

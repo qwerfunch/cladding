@@ -1,28 +1,32 @@
 id: F-600272d7
-slug: orchestrator-contract-card
-title: "Orchestrator persona is a declarative cycle contract card, not choreography"
+title: Orchestrator persona is a declarative cycle contract card, not choreography
 status: done
 modules:
   - src/agents/orchestrator.md
   - docs/feature-cycle.md
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-ee97a22e
-    ears: ubiquitous
-    response: "src/agents/orchestrator.md matches none of: /routing table/i, /dispatch (them )?concurrently/i, /invocation principles/i"
-    text: "The orchestrator persona shall contain no procedural choreography — no intent-routing table and no imperative agent-sequencing or concurrent-dispatch instructions; how work is decomposed across agents is the host's decision."
-    test_refs: ["tests/choreography-guard.test.ts"]
+    statement: The orchestrator persona shall contain no procedural choreography —
+      no intent-routing table and no imperative agent-sequencing or
+      concurrent-dispatch instructions; how work is decomposed across agents is
+      the host's decision.
   - id: AC-805ee617
-    ears: ubiquitous
-    response: "orchestrator.md declares stages + outcome conditions, the independence condition (evidence-based label), the hand-off contract, and contains the literal 'the host owns execution'"
-    text: "The orchestrator persona shall declare the per-feature cycle as a contract: stage outcome conditions (spec-first, gated completion), the independence condition tied to the evidence-based label (independent | self-certified), the hand-off data contract, and an explicit statement that execution form — agent count, models, parallelism, progress UI — is owned by the host."
-    test_refs: ["tests/choreography-guard.test.ts"]
+    statement: "The orchestrator persona shall declare the per-feature cycle as a
+      contract: stage outcome conditions (spec-first, gated completion), the
+      independence condition tied to the evidence-based label (independent |
+      self-certified), the hand-off data contract, and an explicit statement
+      that execution form — agent count, models, parallelism, progress UI — is
+      owned by the host."
   - id: AC-bc42f601
-    ears: ubiquitous
-    response: "docs/feature-cycle.md contains the literal 'CI/SDK lane' positioning for headless clad run"
-    text: "The feature-cycle guide shall position headless `clad run` as the CI/SDK lane, and interactive host-engine execution as the default path."
-    test_refs: ["tests/choreography-guard.test.ts"]
+    statement: The feature-cycle guide shall position headless `clad run` as the
+      CI/SDK lane, and interactive host-engine execution as the default path.
 design_impact:
   classification: none
-  rationale: "Prose-layer change: the orchestrator persona stops prescribing execution form (host-owned per the role-contract architecture) and instead declares the cycle contract the deterministic gates already enforce. No engine code or capability changes."
+  rationale: "Prose-layer change: the orchestrator persona stops prescribing
+    execution form (host-owned per the role-contract architecture) and instead
+    declares the cycle contract the deterministic gates already enforce. No
+    engine code or capability changes."
   status: resolved
   artifacts: []

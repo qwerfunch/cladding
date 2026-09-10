@@ -1,9 +1,9 @@
 // Cladding · drift detector · DEPENDENCY_CYCLE
 //
 // Catches a cycle in the `features[].depends_on` DAG. The audit found this gap:
-// `nextReady` (src/drive/loop.ts) advances only a feature whose dependencies are
+// Feature selection advances only a feature whose dependencies are
 // all `done`, so a cycle (A depends_on B depends_on A) leaves every member
-// permanently un-ready — the drive loop silently deadlocks and misreports it as
+// permanently un-ready — planning silently deadlocks and misreports it as
 // a generic BLOCKED_FEATURE. REFERENCE_INTEGRITY validates that each `depends_on`
 // id EXISTS, but never that the graph is ACYCLIC. This detector closes that.
 //
@@ -74,7 +74,7 @@ function detect(spec: Spec): readonly DriftFinding[] {
             path: 'spec.yaml',
             message:
               `circular depends_on cycle: ${cycle.join(' → ')} — these features can never all ` +
-              'become ready, so the drive loop deadlocks. Break the cycle by removing one edge.',
+              'become ready, so the work never starts. Break the cycle by removing one edge.',
           });
         }
       } else if (c === WHITE) {

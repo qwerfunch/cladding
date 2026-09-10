@@ -37,7 +37,8 @@
 // ARCHITECTURE_VIOLATION detector would immediately flag. So the stage
 // list is parsed from the cli SOURCE TEXT, never imported.
 //
-// @see spec/features/F-080.yaml — this extension.
+// @see spec/features/F-080.yaml AC-241 /
+//      AC-242 / AC-243 / AC-244 / AC-245 — this extension.
 
 import {existsSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';

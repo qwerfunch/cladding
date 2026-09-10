@@ -6,23 +6,17 @@ modules:
 depends_on:
   - F-003
   - F-028
+capability_refs: []
 acceptance_criteria:
   - id: AC-043
-    ears: event
-    condition: when a metric in perf/current.json regresses against
-      perf/baseline.json by more than 10%
-    action: emit a warn finding listing the metric and regression percentage
-    response: stage_1.3 surfaces but does not fail
-    text: When a metric in perf/current.json regresses against perf/baseline.json by
-      more than 10%, the detector shall emit a warn finding listing the metric
-      name and regression percentage.
-    evidence_refs: [fixture:F-030_AC-043]
-
+    statement: When a metric in perf/current.json regresses against
+      perf/baseline.json by more than 10%, the detector shall emit a warn
+      finding listing the metric name and regression percentage.
+    evidence_refs:
+      - fixture:F-030_AC-043
   - id: AC-044
-    ears: unwanted
-    condition: if either perf/baseline.json or perf/current.json is absent
-    action: emit a single info finding rather than failing
-    response: detector is opt-in on prior stage_3.2 runs
-    text: If either perf/baseline.json or perf/current.json is absent, the detector
-      shall emit a single info finding rather than failing the stage.
-    evidence_refs: [fixture:F-030_AC-044]
+    statement: If either perf/baseline.json or perf/current.json is absent, then the
+      detector shall emit a single info finding rather than fail the stage.
+    kind: behavior
+    evidence_refs:
+      - fixture:F-030_AC-044

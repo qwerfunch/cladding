@@ -1,9 +1,11 @@
 import {describe, it, expect} from 'vitest';
 import {
   parseJUnitReport,
+  parseVitestJsonReport,
   lookupTestRef,
   isPathLike,
 } from '../../src/stages/junit-report.js';
+import {reduceTestBindings} from '../../src/proof/bindings.js';
 import {evaluateAcVerification} from '../../src/stages/detectors/unverified-ac.js';
 import type {Spec} from '../../src/spec/types.js';
 
@@ -60,7 +62,7 @@ const vitestFailXml = `<?xml version="1.0" encoding="utf-8"?>
 // ---------------------------------------------------------------------------
 
 describe('file= attribute is the anchor (F-d980359c)', () => {
-  it('finds a pytest testcase by its file= path with pass===1', () => {
+  it('[covers:F-d980359c/AC-23f0da78] finds a pytest testcase by its file= path with pass===1', () => {
     const report = parseJUnitReport(pytestXml);
     const status = lookupTestRef(report, 'tests/test_foo.py');
     expect(status).toBeDefined();
@@ -69,7 +71,7 @@ describe('file= attribute is the anchor (F-d980359c)', () => {
 });
 
 describe('dotted classname → slash-converted FQCN indexing (F-d980359c)', () => {
-  it('indexes a dotted FQCN under its slash-converted key', () => {
+  it('[covers:F-d980359c/AC-07b10521] indexes a dotted FQCN under its slash-converted key', () => {
     const report = parseJUnitReport(javaXml);
     expect(report.has('com/example/FooTest')).toBe(true);
   });
@@ -86,7 +88,7 @@ describe('dotted classname → slash-converted FQCN indexing (F-d980359c)', () =
 });
 
 describe('extension-agnostic matching (F-d980359c)', () => {
-  it('matches a ref WITH an extension against a key WITHOUT one (pytest)', () => {
+  it('[covers:F-d980359c/AC-5daf7fc6] matches a ref WITH an extension against a key WITHOUT one (pytest)', () => {
     // key derived from classname `tests.test_foo` (no extension)
     const report = parseJUnitReport(pytestXml);
     const status = lookupTestRef(report, 'tests/test_foo.py');
@@ -109,7 +111,7 @@ describe('confident-or-degrade on unmappable report (F-d980359c)', () => {
     expect(isPathLike('com.example.FooTest')).toBe(true);
   });
 
-  it('degrades to an empty finding array on a jest describe-title report', () => {
+  it('[covers:F-d980359c/AC-d47d2a88] degrades to an empty finding array on a jest describe-title report', () => {
     const report = parseJUnitReport(jestXml);
     const findings = evaluateAcVerification(
       specWith(['src/MyComponent.test.tsx']),
@@ -120,7 +122,7 @@ describe('confident-or-degrade on unmappable report (F-d980359c)', () => {
 });
 
 describe('vitest regression guard (F-d980359c)', () => {
-  it('keeps a path-like classname pass working as before', () => {
+  it('[covers:F-d980359c/AC-dce7cb54] keeps a path-like classname pass working as before', () => {
     const report = parseJUnitReport(vitestPassXml);
     const status = lookupTestRef(report, 'tests/foo.test.ts');
     expect(status).toBeDefined();
@@ -132,5 +134,49 @@ describe('vitest regression guard (F-d980359c)', () => {
     const status = lookupTestRef(report, 'tests/foo.test.ts');
     expect(status).toBeDefined();
     expect(status!.fail).toBe(1);
+  });
+});
+
+describe('current Vitest JSON report parser', () => {
+  const cwd = '/workspace';
+
+  it('returns undefined for invalid JSON and an invalid reporter shape', () => {
+    for (const bytes of ['{', '{}', '{"testResults":{}}']) {
+      expect(parseVitestJsonReport(bytes, cwd)).toBeUndefined();
+    }
+  });
+
+  it('rejects out-of-root descendants and the exact parent path while preserving in-root Windows paths', () => {
+    for (const name of ['/outside/tests/unsafe.test.ts', '..']) {
+      const report = parseVitestJsonReport(JSON.stringify({testResults: [{
+        name, assertionResults: [{status: 'passed', fullName: 'unsafe'}],
+      }]}), cwd);
+      expect(report?.cases).toEqual([]);
+      expect(report?.size).toBe(0);
+    }
+
+    const inRoot = parseVitestJsonReport(JSON.stringify({testResults: [{
+      name: 'tests\\inside.test.ts', assertionResults: [{status: 'passed', fullName: 'inside'}],
+    }]}), cwd);
+    expect(inRoot?.cases).toEqual([expect.objectContaining({file: 'tests/inside.test.ts', name: 'inside'})]);
+  });
+
+  it('falls back from invalid ancestor titles without matching a structured suite selector', () => {
+    const title = '[covers:F-aaaaaaaa/AC-bbbbbbbb] nested';
+    const binding = [{
+      criterion: 'F-aaaaaaaa/AC-bbbbbbbb', framework: 'vitest' as const,
+      file: 'tests/nested.test.ts', selector: `suite > ${title}`, carrier: 'title' as const,
+    }];
+    for (const ancestorTitles of ['suite', ['suite', 7]]) {
+      const report = parseVitestJsonReport(JSON.stringify({testResults: [{
+        name: 'tests/nested.test.ts', assertionResults: [{
+          status: 'passed', ancestorTitles, title, fullName: `suite ${title}`,
+        }],
+      }]}), cwd);
+      expect(report?.cases?.[0]).toMatchObject({name: `suite ${title}`, sourceTitle: title});
+      expect(reduceTestBindings(binding, report!)).toEqual([
+        expect.objectContaining({state: 'unverified', matched: 0, pass: 0}),
+      ]);
+    }
   });
 });

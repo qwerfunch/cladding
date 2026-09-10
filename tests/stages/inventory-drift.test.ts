@@ -10,9 +10,17 @@ import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
 import {inventoryDrift} from '../../src/stages/detectors/inventory-drift.js';
-import {writeFeatureIndex} from '../../src/spec/inventory.js';
+import {renderFeatureIndexYaml} from '../../src/spec/inventory.js';
 
 const BASE = 'schema: "0.1"\nproject: {name: x, language: typescript}\nfeatures: []\n';
+
+/** Test-only materialization of the pure renderer. */
+function writeFeatureIndexProjection(dir: string): boolean {
+  const body = renderFeatureIndexYaml(dir);
+  if (body === null) return false;
+  writeFileSync(join(dir, 'spec', 'index.yaml'), body);
+  return true;
+}
 
 /** spec.yaml body with (or without) a declared inventory.features count. */
 function specYaml(declaredFeatures: number | null): string {
@@ -38,7 +46,7 @@ describe('INVENTORY_DRIFT detector', () => {
     );
   }
 
-  test('errors when declared inventory.features < actual shard count (the hollow-spec desync)', () => {
+  test('[covers:F-eb732f/AC-003] errors when declared inventory.features < actual shard count (the hollow-spec desync)', () => {
     writeFileSync(join(dir, 'spec.yaml'), specYaml(0)); // declares 0
     addShard('F-aaa111', 'one');
     addShard('F-bbb222', 'two'); // 2 shards on disk, inventory says 0
@@ -85,7 +93,7 @@ describe('INVENTORY_DRIFT detector', () => {
 // ─── F-37b4a8 — stale committed index is drift ───
 
 describe('index staleness (F-37b4a8)', () => {
-  test('flags a committed index whose id set disagrees with shards, names both directions, cures with clad sync', () => {
+  test('[covers:F-37b4a8/AC-f1a3f5] flags a committed index whose id set disagrees with shards, names both directions, cures with clad sync', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-invdrift-idx-'));
     try {
       mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
@@ -106,12 +114,12 @@ describe('index staleness (F-37b4a8)', () => {
     }
   });
 
-  test('a regenerated (fresh) index produces no index finding', () => {
+  test('[covers:F-37b4a8/AC-f1a3f5] a regenerated (fresh) index produces no index finding', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-invdrift-fresh-'));
     try {
       mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
       writeFileSync(join(dir, 'spec', 'features', 'real-aaaa11.yaml'), 'id: F-aaaa11\nslug: real\ntitle: real\nstatus: done\nmodules: []\nacceptance_criteria:\n  - {id: AC-001, ears: ubiquitous, text: t, test_refs: [spec.yaml]}\n');
-      writeFeatureIndex(dir);
+      writeFeatureIndexProjection(dir);
       writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\nproject: {name: x, language: typescript}\nfeatures: []\n');
       const findings = inventoryDrift.run({cwd: dir});
       expect(findings.find((f) => f.path === 'spec/index.yaml')).toBeUndefined();
@@ -120,7 +128,7 @@ describe('index staleness (F-37b4a8)', () => {
     }
   });
 
-  test('flags a committed index whose row status disagrees with the shard, cured by clad sync', () => {
+  test('[covers:F-37b4a8/AC-f1a3f5] flags a committed index whose row status disagrees with the shard, cured by clad sync', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-invdrift-status-'));
     try {
       mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
