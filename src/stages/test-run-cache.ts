@@ -20,7 +20,7 @@
 // primed and cleared ONLY at the gate-run seam — cli/clad.ts runCheckStages —
 // and the caller MUST clear in a `finally`. The stage loop is synchronous, so a
 // session primed around it and cleared in finally cannot serve a stale run
-// mid-gate. The MCP serve layer runs gates via a `bin/clad` subprocess, so the
+// mid-gate. The MCP serve layer runs gates via a `bin/clad.mjs` subprocess, so the
 // session lives entirely inside one process run; tests drive these functions
 // in-process, so the finally-clear discipline is mandatory — a leaked session
 // would hand one test's run (and its already-unlinked temp json) to the next.

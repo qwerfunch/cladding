@@ -1,6 +1,13 @@
 #!/usr/bin/env node
 // Cladding · `clad` CLI shim.
 //
+// The filename MUST keep a module extension. npm's generated shim runs
+// `node <path>/bin/clad.mjs`, and under `"type": "module"` Node's ESM
+// loader rejects an extensionless file outright (ERR_UNKNOWN_FILE_EXTENSION
+// on Node 16) — the crash happens inside Node, before a single line here
+// runs, so nothing below could report it. Measured: Node 16 refuses the
+// extensionless form, 18/20/22 accept it, and every release accepts `.mjs`.
+//
 // Production path: `dist/clad.js` is an esbuild bundle (single file,
 // zero runtime dev-deps); we import it directly. Built by `npm run
 // build`; auto-built by `npm install` via the `prepare` script.
@@ -15,6 +22,22 @@ import {dirname, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import process from 'node:process';
+
+// Keep in step with `engines.node` in package.json — a source-level test pins
+// the two together. The bundled command-line parser (commander) declares
+// `>=20` and the esbuild target is `node20`, so this is the honest floor.
+const NODE_FLOOR = 20;
+
+// Runs BEFORE the bundle import on purpose: the bundle is what throws on an
+// unsupported release, so a check placed after it would never be reached.
+const running = process.versions.node;
+if (Number(running.split('.')[0]) < NODE_FLOOR) {
+  process.stderr.write(
+    `cladding requires Node ${NODE_FLOOR} or newer. This is Node ${running}.\n` +
+      'Upgrade Node, then run the command again.\n',
+  );
+  process.exit(1);
+}
 
 const here = dirname(fileURLToPath(import.meta.url));
 const bundle = resolve(here, '..', 'dist', 'clad.js');

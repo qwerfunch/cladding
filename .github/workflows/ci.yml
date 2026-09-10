@@ -56,4 +56,67 @@ jobs:
         # cladding dogfoods its OWN drift gate under --strict: stale module
         # paths, hollow `done` features, and archived-but-live modules fail
         # CI instead of accumulating silently. Deterministic, no toolchain.
-        run: node bin/clad check --tier=pre-commit --strict
+        run: node bin/clad.mjs check --tier=pre-commit --strict
+
+  entry:
+    # The published entry point, exercised through npm's own bin shim — the
+    # path a user hits, which `node bin/clad.mjs` never covers. It exists
+    # because an extensionless entry shipped and died inside Node's ESM loader
+    # on an unsupported release, on a platform and a Node version this
+    # workflow tested on neither axis. Smoke only: pack, global install, one
+    # command. Node 18 stands in for the release that broke — below the
+    # declared floor, so it proves the refusal speaks instead of crashing.
+    name: entry · ${{ matrix.os }} · node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-latest, node: 20, expect: version}
+          - {os: ubuntu-latest, node: 22, expect: version}
+          - {os: windows-latest, node: 22, expect: version}
+          - {os: ubuntu-latest, node: 18, expect: refusal}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install and build
+        run: npm ci && npm run build
+
+      - name: Pack
+        run: npm pack --pack-destination .
+
+      # The tarball is built on a supported Node, then installed and run on the
+      # matrix Node — otherwise `npm ci` itself would fail below the floor and
+      # the entry point would never be reached.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install the tarball globally
+        shell: bash
+        run: npm install -g ./cladding-*.tgz
+
+      - name: The entry point reports its version
+        if: matrix.expect == 'version'
+        shell: bash
+        run: |
+          set -euo pipefail
+          clad --version
+
+      - name: The entry point refuses an unsupported Node with a sentence
+        if: matrix.expect == 'refusal'
+        shell: bash
+        run: |
+          set +e
+          output=$(clad --version 2>&1)
+          status=$?
+          set -e
+          echo "$output"
+          test "$status" -ne 0 || { echo "expected a non-zero exit below the floor"; exit 1; }
+          grep -q 'requires Node 20 or newer' <<<"$output"
+          grep -q 'Upgrade Node' <<<"$output"

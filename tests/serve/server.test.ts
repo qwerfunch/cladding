@@ -158,7 +158,7 @@ describe('serve/server — MCP read surface', () => {
   test('[covers:F-073/AC-206] a generic client consumes a tool, resource, and prompt through the real clad serve stdio command without provider credentials', async () => {
     const transport = new StdioClientTransport({
       command: process.execPath,
-      args: [fileURLToPath(new URL('../../bin/clad', import.meta.url)), 'serve'],
+      args: [fileURLToPath(new URL('../../bin/clad.mjs', import.meta.url)), 'serve'],
       cwd: dir,
       env: stdioClientEnv(),
       stderr: 'pipe',

@@ -22,7 +22,10 @@
     "mcp-server", "claude-code-plugin"
   ],
   "bin": {
-    "clad": "./bin/clad"
+    "clad": "./bin/clad.mjs"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "files": [
     "bin/",
@@ -58,7 +61,7 @@
     "validate:spec-0.2:release": "tsx scripts/spec-0.2-validate.ts --release",
     "conformance": "tsx conformance/runner.ts",
     "benchmark": "tsx src/cli/benchmark.ts",
-    "clad": "node bin/clad",
+    "clad": "node bin/clad.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",

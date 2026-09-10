@@ -7,7 +7,8 @@ the detail behind them: where each host is wired, how the MCP server works, and 
 
 ## Project activation boundary
 
-`npm install -g cladding` installs only the CLI. Run `clad setup` **inside each project that should use Cladding**. Nothing is installed into a host's global skill or MCP catalog.
+`npm install -g cladding` installs only the CLI. It requires Node 20 or newer; on an older release the
+command reports the version it needs and stops. Run `clad setup` **inside each project that should use Cladding**. Nothing is installed into a host's global skill or MCP catalog.
 
 | Host | Project-scoped location |
 |---|---|

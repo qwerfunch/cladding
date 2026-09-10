@@ -2372,7 +2372,7 @@ export function createProgram(): Command {
   return program;
 }
 
-// CLI entry — `tsx cli/clad.ts ...` or `node bin/clad ...`.
+// CLI entry — `tsx cli/clad.ts ...` or `node bin/clad.mjs ...`.
 //
 // Unlike helper modules, this file IS the CLI entry, so the bundled
 // build (esbuild → dist/clad.js) must always trigger parsing. The

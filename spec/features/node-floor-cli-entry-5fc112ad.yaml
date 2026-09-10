@@ -1,0 +1,64 @@
+id: F-5fc112ad
+title: Loadable CLI entry + declared Node floor — an unsupported runtime gets a
+  sentence, not a loader stack trace
+status: done
+purpose: "A user who installed globally on Node 16 got a raw
+  ERR_UNKNOWN_FILE_EXTENSION trace from Node's internals: the extensionless
+  entry file is rejected by the ESM loader before any cladding code runs, and no
+  declared engine floor let the install warn. Make the entry loadable on every
+  Node and refuse an unsupported one with one actionable sentence."
+modules:
+  - bin/clad.mjs
+  - package.json
+depends_on: []
+capability_refs: []
+acceptance_criteria:
+  - id: AC-d9a07c76
+    kind: constraint
+    statement: While the package declares the ESM module type, the published
+      command-line entry file shall carry a JavaScript module extension that
+      Node resolves on every release, so no runtime rejects the entry before
+      cladding's own code can report anything.
+    rationale: Node 16 refuses an extensionless file under the ESM module type and
+      dies inside its own loader, so the extension is what lets cladding speak
+      at all.
+    notes: >-
+      ## Why
+
+
+      Measured in containers: Node 16 refuses an extensionless file under
+      "type": "module"; Node 18, 20 and 22 accept it. Adding the extension makes
+      the launcher load on every release including 16, which is what lets the
+      guard below speak at all. Not a platform defect — the same rejection
+      reproduces on Linux.
+  - id: AC-3e98ffb1
+    kind: behavior
+    statement: When the command-line tool starts on a Node release below the
+      declared floor, the system shall report the required version, the running
+      version and the upgrade action, and exit non-zero before importing the
+      engine bundle.
+    notes: >-
+      ## Why
+
+
+      The bundle is what would otherwise throw, so the check has to run before
+      the import or it never runs at all. The floor is Node 20: the bundled
+      command-line parser declares it and the build already targets it. This
+      adds no support for older releases — it converts a crash into an
+      instruction.
+    evidence_refs:
+      - .github/workflows/ci.yml
+  - id: AC-e5fce752
+    kind: constraint
+    statement: The Node floor declared in the package manifest engines field and the
+      floor the entry launcher enforces shall be the same major version, so the
+      install-time warning and the run-time refusal can never disagree.
+    rationale: A declared floor that drifts from the enforced one makes the
+      install-time warning and the run-time refusal contradict each other.
+    notes: >-
+      ## Why
+
+
+      The engines field alone is not a fix — npm prints EBADENGINE and installs
+      anyway. It is documentation plus a hint for engine-strict users, and it is
+      worthless if it drifts from the number the launcher actually enforces.

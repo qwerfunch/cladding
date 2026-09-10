@@ -152,7 +152,7 @@ At the F6 boundary, the active fixture ledger names P01–P10, L01–L04, B01–
 - Commit the full preregistered fixture matrix before claiming it as evidence; self-consistency rejects missing, duplicate, or unmapped IDs.
 - Build the committed plugin mirrors before F1 completion and require the build to produce no uncommitted mirror drift after regeneration.
 - Use `clad done` as the one authoritative feature-completion strict gate and attestation refresh; do not duplicate the same full gate on an unchanged tree.
-- Cover legacy profile aliases with fixtures. Run the final release gate exactly once: `node bin/clad check --profile release --strict`; do not repeat the full gate through an alias.
+- Cover legacy profile aliases with fixtures. Run the final release gate exactly once: `node bin/clad.mjs check --profile release --strict`; do not repeat the full gate through an alias.
 - Register newly shipped public terms in the glossary and keep detector-count/self-consistency checks green.
 - Run the D19 A–E topology/context suite as F9 acceptance and prove that removing general persona prompts changes neither contract, deterministic gate, verdict, nor stale scope. F5 fixtures must accept valid portable receipts and reject bad signatures/trust; F9 adds the real signed human production path while preserving the asserted fallback; the blind capability adapter is deferred.
 - F9–F11 minimally fixture the issuer, L4 closure, and relocation mechanisms. Live human evidence is only a real human-signed receipt in each Codex and Claude Code MCP11 cycle; deterministic trust snapshots are protocol/mechanism evidence.

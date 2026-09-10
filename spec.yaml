@@ -6,14 +6,14 @@ project:
   version: 0.10.0
   repository: https://github.com/qwerfunch/cladding
   deliverable:
-    path: ./bin/clad
+    path: ./bin/clad.mjs
     smoke_args:
       - --version
     is_safe_to_smoke: true
   smoke:
     - kind: cli
       run:
-        - ./bin/clad
+        - ./bin/clad.mjs
         - --help
       expect:
         token: Reference Ironclad CLI
@@ -21,7 +21,7 @@ project:
         exits 0 (F-g' dogfood: liveness→pass)."
     - kind: cli
       run:
-        - ./bin/clad
+        - ./bin/clad.mjs
         - --version
       expect:
         token: "0."
@@ -62,7 +62,7 @@ project:
 
 # Auto-maintained by `clad sync` (F-5b9f9f). Do not edit by hand.
 inventory:
-  features: 304
+  features: 305
   scenarios: 2
   capabilities: 6
   test_files: 336

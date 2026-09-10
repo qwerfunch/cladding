@@ -30,7 +30,7 @@ Run all four. The first three must pass cleanly; the fourth must be green (the 1
 npm test
 npm run typecheck
 npm run lint
-node bin/clad check
+node bin/clad.mjs check
 ```
 
 ## 4. Code & comment style

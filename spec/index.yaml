@@ -167,6 +167,7 @@ features:
   F-5d3ed2: {slug: postmortem-on-rollback, status: archived, modules: 0}
   F-5dfbac9c: {slug: review-packet-ac-delta, status: done, modules: 4}
   F-5f6b45: {slug: init-path-intent, status: done, modules: 2}
+  F-5fc112ad: {slug: node-floor-cli-entry, status: done, modules: 2}
   F-600272d7: {slug: orchestrator-contract-card, status: done, modules: 2}
   F-6349870d: {slug: spec-02-adopter-binding-guidance, status: done, modules: 6}
   F-63b989e5: {slug: impact-card-language-parity, status: done, modules: 2}
