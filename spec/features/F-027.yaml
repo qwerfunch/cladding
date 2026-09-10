@@ -6,12 +6,13 @@ modules:
   - src/stages/util.ts
 depends_on:
   - F-004
+capability_refs: []
 acceptance_criteria:
   - id: AC-040
-    ears: ubiquitous
-    action: delegate smoke / e2e testing to the project's own toolchain
-    response: returns a stage_3.1 StageResult; missing script → exitCode 2 (skipped)
-    text: The system shall delegate smoke / e2e testing to the project's own
-      toolchain (default `npm run smoke`), returning a stage_3.1 result with the
-      runner's exit code. A missing script is treated as skipped, not failed.
-    evidence_refs: [self-dogfood:stage:smoke]
+    statement: When the Smoke obligation applies and no qualified adapter
+      observation exists, the assurance kernel shall classify it as unobserved
+      and not as skipped, NA, or green because its script is missing.
+    kind: behavior
+    notes: |
+      ## Historical schema-0.1 note
+      The default npm smoke runner and skipped result are historical, not proof.

@@ -1,7 +1,7 @@
 // Cladding · Spec 0.2 design-validation harness (F-0a29d024).
 
-import {readFileSync, readdirSync} from 'node:fs';
-import {join, resolve} from 'node:path';
+import {existsSync, readFileSync, readdirSync} from 'node:fs';
+import {isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
@@ -11,6 +11,20 @@ import {parse as parseYaml} from 'yaml';
 import {readEventsIncludingRolled} from '../src/events/log.js';
 import {summarizeAdoption} from '../src/events/session-report.js';
 import {clearAuditObserversForTesting} from '../src/hitl/audit.js';
+import {
+  createTrustSnapshot,
+  parsePortableReceiptYaml,
+  receiptDigest,
+  receiptFeatureId,
+  verifyPortableReceipt,
+  type PortableReceipt,
+} from '../src/proof/receipt.js';
+import {parseTrustRegistry} from '../src/proof/trust.js';
+import {resolveManagedWrite} from '../src/spec/compiler/artifact-registry.js';
+import {compileSpecWorkspace, compilerCorpusView} from '../src/spec/compiler/compile.js';
+import {scanIndependentCorpus} from '../src/spec/compiler/corpus-snapshot.js';
+import {previewSchema02Migration} from '../src/spec/compiler/migration-preview.js';
+import {parseStrictStatement} from '../src/spec/statement-parser.js';
 import {
   buildServer,
   PERSONA_IDS,
@@ -37,13 +51,20 @@ interface DecisionRequirement {
 interface CaseRequirement {
   readonly id: string;
   readonly decision: string;
+  readonly implementation: 'pending' | 'validation-active';
+  /** Exact executable test title for F4-promoted cases. */
+  readonly test_ref?: string;
 }
 
 interface IntegrationJourney {
   readonly id: string;
   readonly decisions: readonly string[];
-  readonly status: 'simulated' | 'implementation_pending' | 'not_run';
+  readonly status: 'simulated' | 'validation-active' | 'implementation_pending' | 'not_run';
   readonly scenario: string;
+  /** Exact executable test reference required of a validation-active journey. */
+  readonly test_ref?: string;
+  /** MCP scenario row whose recorded evidence decides this journey's status. */
+  readonly evidence_from?: string;
 }
 
 interface HostAbTask {
@@ -53,12 +74,49 @@ interface HostAbTask {
   readonly fault_control: string;
 }
 
+interface HostAbPolicy {
+  readonly host: string;
+  readonly max_calls: number;
+  readonly blocking: boolean;
+}
+
+/** One recorded reference-host cycle: copies of what that host actually produced. */
+interface ReferenceHostEvidence {
+  readonly host: string;
+  readonly receipt_ref: string;
+  readonly trust_ref: string;
+  readonly attestation_ref: string;
+  readonly recorded_at: string;
+}
+
+interface McpScenarioRequirement {
+  readonly id: string;
+  readonly implementation: 'pending' | 'validation-active';
+  readonly slice?:
+    | 'f5-receipt-operation'
+    | 'f5-receipt-ingestion-and-asserted-fallback'
+    | 'graph-v2-focused-projection-and-statistics';
+  /** Exact executable test reference required of a validation-active scenario. */
+  readonly test_ref?: string;
+  /** Recorded host-cycle evidence; only the reference-host row carries it. */
+  readonly evidence?: readonly ReferenceHostEvidence[];
+}
+
+/** The scenarios one named release may not ship without. */
+interface ReleaseBoundary {
+  readonly release: string;
+  readonly blocking: readonly string[];
+}
+
 export interface ValidationManifest {
   readonly schema: number;
   readonly decisions: readonly DecisionRequirement[];
   readonly preregistered_cases: readonly CaseRequirement[];
   readonly integration_journeys: readonly IntegrationJourney[];
-  readonly mcp_scenarios: readonly string[];
+  readonly mcp_scenarios: readonly McpScenarioRequirement[];
+  readonly release_boundary: ReleaseBoundary;
+  readonly mcp_reference_hosts: readonly string[];
+  readonly host_ab: HostAbPolicy;
   readonly host_ab_tasks: readonly HostAbTask[];
 }
 
@@ -100,7 +158,7 @@ export interface ValidationReport {
     readonly largest_task_profile_bytes: number;
     readonly task_profile_reduction_ratio: number;
     readonly adoption_verdict: string;
-    readonly reference_host_spec_02_e2e: 'not_run';
+    readonly reference_host_spec_02_e2e: 'pass' | 'not_run';
     readonly host_smoke: HostSmokeSummary | null;
   };
 }
@@ -126,6 +184,9 @@ export const TASK_PROFILE_TOOLS = {
   'spec-edit': [
     'clad_list_features',
     'clad_get_feature',
+    'clad_prepare_spec_edit',
+    'clad_edit_spec',
+    'clad_begin',
     'clad_create_feature',
     'clad_resolve_design_impact',
     'clad_create_scenario',
@@ -147,6 +208,8 @@ export const TASK_PROFILE_TOOLS = {
     'clad_run_gate',
     'clad_verdict',
     'clad_author_oracle',
+    'clad_ingest_receipt',
+    'clad_signoff',
     'clad_get_events',
     'clad_get_graph',
   ],
@@ -308,16 +371,37 @@ function checkPreregisteredCases(cwd: string, manifest: ValidationManifest): Val
     .map(([prefix, count]) => `${prefix}01–${prefix}${String(count).padStart(2, '0')}`)
     .filter((range) => !delivery.includes(range));
   const unmapped = manifest.preregistered_cases.filter((entry) => !owners.has(entry.decision));
+  const active = manifest.preregistered_cases
+    .filter((entry) => entry.implementation === 'validation-active')
+    .map((entry) => entry.id)
+    .sort();
+  const expectedActive = [
+    ...Array.from({length: 10}, (_, index) => `P${String(index + 1).padStart(2, '0')}`),
+    ...Array.from({length: 4}, (_, index) => `L${String(index + 1).padStart(2, '0')}`),
+    ...Array.from({length: 6}, (_, index) => `B${String(index + 1).padStart(2, '0')}`),
+    ...Array.from({length: 6}, (_, index) => `C${String(index + 1).padStart(2, '0')}`),
+    ...Array.from({length: 4}, (_, index) => `T${String(index + 1).padStart(2, '0')}`),
+    ...Array.from({length: 4}, (_, index) => `U${String(index + 1).padStart(2, '0')}`),
+    ...Array.from({length: 3}, (_, index) => `A${String(index + 1).padStart(2, '0')}`),
+  ].sort();
+  const promotedCases = manifest.preregistered_cases.filter((entry) => /^(?:B|C|T|U|A)\d\d$/.test(entry.id));
+  const missingTestRefs = promotedCases.filter((entry) => entry.implementation === 'validation-active' && !entry.test_ref).map((entry) => entry.id);
+  const testRefs = promotedCases.map((entry) => entry.test_ref).filter((entry): entry is string => entry !== undefined);
+  const duplicateTestRefs = testRefs.length - new Set(testRefs).size;
   const valid = stableJson([...ids].sort()) === stableJson([...expected].sort())
     && unique(ids)
     && undocumentedGroups.length === 0
-    && unmapped.length === 0;
+    && unmapped.length === 0
+    && stableJson(active) === stableJson(expectedActive)
+    && missingTestRefs.length === 0
+    && duplicateTestRefs === 0
+    && manifest.preregistered_cases.filter((entry) => !expectedActive.includes(entry.id)).every((entry) => entry.implementation === 'pending');
   return {
     id: 'preregistered-case-ledger',
     status: valid ? 'pass' : 'fail',
     evidence: valid
-      ? '37 unique preregistered case IDs are mapped and documented; this is a ledger check, not 37 passing implementations.'
-      : `count=${ids.length}; duplicates=${ids.length - new Set(ids).size}; undocumented_groups=${undocumentedGroups.join(',') || 'none'}; unmapped=${unmapped.map((entry) => entry.id).join(',') || 'none'}`,
+      ? 'Validation-active fixture IDs: P01-P10, L01-L04, B01-B06, C01-C06, T01-T04, U01-U04, A01-A03. The 37 declared ledger rows are not complete runtime evidence: runtime pass count is not asserted here; F7 scenario contract fixtures, the F8 public GraphIR cutover, and the F9d registered file-key issuer path are validation-active, the two reference-host cycles are decided by recorded receipt evidence (MCP11/J13), and the F9 scheduler/cache runtime is deferred to 0.10.x.'
+      : `count=${ids.length}; duplicates=${ids.length - new Set(ids).size}; active=${active.join(',')}; undocumented_groups=${undocumentedGroups.join(',') || 'none'}; unmapped=${unmapped.map((entry) => entry.id).join(',') || 'none'}; missing_test_refs=${missingTestRefs.join(',') || 'none'}; duplicate_test_refs=${duplicateTestRefs}`,
   };
 }
 
@@ -330,41 +414,438 @@ function implementationCheck(manifest: ValidationManifest): ValidationCheck {
   };
 }
 
-function checkJourneyLedger(manifest: ValidationManifest): ValidationCheck {
+/**
+ * Compares every source-bearing historic-proof field while preserving the
+ * scanner as an independent YAML reader rather than a compiler consumer.
+ */
+function migrationBindingParity(
+  compilation: ReturnType<typeof compileSpecWorkspace>,
+  migrationProofs: ReturnType<typeof scanIndependentCorpus>['migrationProofs'],
+): boolean {
+  const compilerBindings = [...(compilation.migrationProofs ?? [])];
+  const scannerBindings = [...(migrationProofs ?? [])];
+  return stableJson(compilerBindings.sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right))))
+    === stableJson(scannerBindings.sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right))));
+}
+
+/** Validates the F7 scenario boundary without promoting F8-F9 mechanisms. */
+function checkCompilerRegistry(root: string, manifest: ValidationManifest): ValidationCheck {
+  const active = manifest.decisions.filter((decision) => decision.implementation === 'validation-active').map((decision) => decision.id).sort();
+  const expectedActive = ['D05', 'D06', 'D07', 'D08', 'D09', 'D10', 'D11', 'D12', 'D13', 'D14', 'D17', 'D20', 'D21', 'D22', 'D23', 'D24'];
+  if (stableJson(active) !== stableJson(expectedActive)) {
+    return {id: 'compiler-registry-boundary', status: 'fail', evidence: `F7 requires validation-active decisions ${expectedActive.join(', ')}; found ${active.join(', ')}.`};
+  }
+  const otherTransitions = manifest.decisions
+    .filter((decision) => !expectedActive.includes(decision.id) && decision.implementation !== 'pending')
+    .map((decision) => decision.id);
+  if (otherTransitions.length > 0) {
+    return {id: 'compiler-registry-boundary', status: 'fail', evidence: `Only ${expectedActive.join(', ')} may be validation-active at the F7 boundary; found ${otherTransitions.join(', ')}.`};
+  }
+  try {
+    const compilation = compileSpecWorkspace(root);
+    const snapshot = scanIndependentCorpus(root);
+    const parity = stableJson(compilerCorpusView(compilation)) === stableJson(snapshot.records);
+    const project = resolveManagedWrite({path: 'spec.yaml', region: 'project', operation: 'update'}).id === 'spec-project-region';
+    const inventory = resolveManagedWrite({path: 'spec.yaml', region: 'inventory', operation: 'update'}).id === 'spec-inventory-region';
+    const receipt = resolveManagedWrite({
+      path: 'spec/evidence/F-182eaa53/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.yaml',
+      operation: 'create',
+    }).id === 'evidence-receipt';
+    const migrationProofs = snapshot.migrationProofs ?? [];
+    const unresolved = compilation.schemaVersion === '0.1'
+      ? compilation.edges.some((edge) => edge.raw === 'self-dogfood:stage:commit-postcommit' && edge.state === 'unresolved')
+      : migrationProofs.some((proof) => proof.raw === 'self-dogfood:stage:commit-postcommit' && proof.resolution === 'unresolved');
+    const parser = parseStrictStatement('The system shall preserve a strict statement.').status === 'valid';
+    const schemaBoundaryValid = compilation.schemaVersion === '0.1'
+      ? (() => {
+        const preview = previewSchema02Migration(root);
+        return preview.mode === 'preview'
+          && preview.project.assuranceLevel === 'L2'
+          && preview.project.scenarioPolicy === 'advisory'
+          && preview.capabilityEdgeProof.equal;
+      })()
+      : compilation.schemaVersion === '0.2'
+        && compilation.migrationBaseline !== undefined
+        && migrationProofs.length > 0
+        && migrationBindingParity(compilation, snapshot.migrationProofs)
+        && migrationProofs.every((proof) => proof.source.path === 'spec/generated/migration-baseline-0.1-to-0.2.yaml'
+          && proof.source.yamlPath.endsWith('.raw'));
+    const valid = parity && project && inventory && receipt && unresolved && parser && schemaBoundaryValid
+      && compilation.edges.every((edge) => edge.provenance !== 'observed');
+    return {
+      id: 'compiler-registry-boundary',
+      status: valid ? 'pass' : 'fail',
+      evidence: valid
+        ? `D05-D14 compiler/proof/attestation inputs, the D09 scenario policy and closure slice, the D17 GraphIR v2 cutover, D20 portable receipt mechanics, and the D21-D23 assurance kernel/profile/verdict slice cover ${snapshot.records.semanticOwners.length} semantic owners, ${snapshot.derived.proofOccurrences} live authored proof records, and ${migrationProofs.length} source-located migration bindings. F8 public GraphIR cutover and the F9d registered file-key issuer path are validation-active; the two reference-host cycles are decided by recorded receipt evidence (MCP11/J13) and the F9 scheduler/cache runtime is deferred to 0.10.x.`
+        : 'D05-D14 compiler/proof/attestation inputs, the D09 scenario policy, the D17 closure slice, D20 portable receipt mechanics, D21-D23 profiles, region ownership, or authored-only provenance failed.',
+    };
+  } catch (error) {
+    return {id: 'compiler-registry-boundary', status: 'fail', evidence: error instanceof Error ? error.message : String(error)};
+  }
+}
+
+/**
+ * Resolves a "path#title" reference: the file must exist and carry that title.
+ *
+ * A promoted row whose reference does not resolve is a status with nothing
+ * behind it, which is exactly the state this ledger exists to forbid.
+ */
+function testReferenceResolves(root: string, reference: string | undefined): boolean {
+  if (reference === undefined) return false;
+  const separator = reference.indexOf('#');
+  if (separator <= 0 || separator === reference.length - 1) return false;
+  const path = join(root, reference.slice(0, separator));
+  return existsSync(path) && readFileSync(path, 'utf8').includes(reference.slice(separator + 1));
+}
+
+/**
+ * Resolves one evidence reference that must be a committed copy under
+ * `docs/dogfood/` carrying its host as a path segment.
+ *
+ * Containment is decided after resolution rather than by string prefix, so
+ * neither an absolute path nor a `docs/dogfood/../..` escape can pass.
+ */
+function referenceHostEvidencePath(root: string, reference: unknown, host: string): string | null {
+  if (typeof reference !== 'string' || reference.length === 0 || isAbsolute(reference)) return null;
+  const base = join(root, 'docs', 'dogfood');
+  const relativePath = relative(base, resolve(root, reference));
+  if (relativePath.length === 0 || relativePath.startsWith('..') || isAbsolute(relativePath)) return null;
+  if (!relativePath.split(sep).includes(host)) return null;
+  return join(base, relativePath);
+}
+
+/** One host's recorded reference-host cycle, satisfied or with its exact reason. */
+export interface ReferenceHostOutcome {
+  readonly host: string;
+  readonly satisfied: boolean;
+  readonly reason: string;
+  /** Receipt digest, used only to prove two hosts did not file one artifact twice. */
+  readonly digest: string | null;
+}
+
+/** The reference-host evidence state every consumer of J13/MCP11 reads. */
+export interface ReferenceHostEvidenceResult {
+  readonly outcomes: readonly ReferenceHostOutcome[];
+  readonly satisfied: boolean;
+}
+
+/**
+ * Confirms each recorded reference-host receipt is signed by a registered
+ * issuer in its own recorded trust snapshot.
+ *
+ * This deliberately proves less than `clad check` does. It cannot recompute the
+ * host's workspace digests, so it never asserts the receipt is current; it
+ * asserts signature validity, issuer membership in the recorded snapshot,
+ * receipt format identity, host identity, and that the copied attestation row
+ * names the receipt's own feature.
+ *
+ * @param root - Repository root.
+ * @param manifest - Validation ledger.
+ * @returns Per-host outcomes and whether every declared host is satisfied.
+ */
+export function evaluateReferenceHostEvidence(
+  root: string,
+  manifest: ValidationManifest,
+): ReferenceHostEvidenceResult {
+  const row = manifest.mcp_scenarios.find((scenario) => scenario.id.startsWith('MCP11-'));
+  const records = row?.evidence ?? [];
+  const hosts = manifest.mcp_reference_hosts;
+  const outcomes = hosts.map((host): ReferenceHostOutcome => {
+    const matching = records.filter((record) => record?.host === host);
+    if (matching.length === 0) return {host, satisfied: false, reason: 'no recorded evidence', digest: null};
+    if (matching.length > 1) return {host, satisfied: false, reason: 'more than one evidence record', digest: null};
+    const record = matching[0];
+    const receiptPath = referenceHostEvidencePath(root, record.receipt_ref, host);
+    const trustPath = referenceHostEvidencePath(root, record.trust_ref, host);
+    const attestationPath = referenceHostEvidencePath(root, record.attestation_ref, host);
+    if (receiptPath === null || trustPath === null || attestationPath === null) {
+      return {host, satisfied: false, reason: 'evidence reference is not a host-owned copy under docs/dogfood/', digest: null};
+    }
+    if (typeof record.recorded_at !== 'string' || record.recorded_at.length === 0) {
+      return {host, satisfied: false, reason: 'evidence record has no recorded_at', digest: null};
+    }
+    for (const path of [receiptPath, trustPath, attestationPath]) {
+      if (!existsSync(path)) return {host, satisfied: false, reason: `recorded evidence file is absent: ${relative(root, path)}`, digest: null};
+    }
+    let receipt: PortableReceipt;
+    try { receipt = parsePortableReceiptYaml(readFileSync(receiptPath, 'utf8')); } catch (error) {
+      return {host, satisfied: false, reason: `receipt is not a valid portable receipt: ${(error as Error).message}`, digest: null};
+    }
+    let snapshot;
+    try { snapshot = createTrustSnapshot(parseTrustRegistry(readFileSync(trustPath, 'utf8'))); } catch (error) {
+      return {host, satisfied: false, reason: `recorded trust snapshot is unreadable: ${(error as Error).message}`, digest: null};
+    }
+    const registered = snapshot.keys.some((key) => key.issuerKeyId === receipt.issuer_key_id && key.issuer === receipt.issuer);
+    if (!registered) return {host, satisfied: false, reason: 'receipt issuer is not registered in the recorded trust snapshot', digest: null};
+    // No expected-digest context exists for a foreign workspace, so a valid
+    // signature reports `missing_expected_context`. That is the strongest
+    // honest outcome here: signed by a registered issuer, currentness unknown.
+    const verification = verifyPortableReceipt(receipt, snapshot);
+    if (verification.reason !== 'verified' && verification.reason !== 'missing_expected_context') {
+      return {host, satisfied: false, reason: `receipt signature is not usable: ${verification.reason}`, digest: null};
+    }
+    const feature = receiptFeatureId(receipt);
+    if (!readFileSync(attestationPath, 'utf8').includes(feature)) {
+      return {host, satisfied: false, reason: `attestation copy does not carry the receipt subject feature ${feature}`, digest: null};
+    }
+    return {host, satisfied: true, reason: `signed by a registered issuer in the recorded snapshot for ${feature}`, digest: receiptDigest(receipt)};
+  });
+  const digests = outcomes.map((outcome) => outcome.digest).filter((digest): digest is string => digest !== null);
+  // Two hosts filing one artifact twice is one cycle, not two.
+  const duplicated = hosts.length > 1 && new Set(digests).size !== digests.length;
+  const resolved = duplicated
+    ? outcomes.map((outcome) => outcome.satisfied
+      ? {...outcome, satisfied: false, reason: 'two hosts recorded the same receipt'}
+      : outcome)
+    : outcomes;
+  return {
+    outcomes: resolved,
+    satisfied: resolved.length > 0 && resolved.every((outcome) => outcome.satisfied),
+  };
+}
+
+/**
+ * Builds the two checks that read reference-host evidence.
+ *
+ * Both are derived from one evaluation so the journey view and the MCP view of
+ * the same cycles can never report different states.
+ *
+ * @param manifest - Validation ledger.
+ * @param referenceHosts - Shared reference-host evidence state.
+ * @returns The journey and MCP reference-host checks.
+ */
+export function referenceHostChecks(
+  manifest: ValidationManifest,
+  referenceHosts: ReferenceHostEvidenceResult,
+): {readonly journey: ValidationCheck; readonly e2e: ValidationCheck} {
+  const satisfied = referenceHosts.satisfied;
+  const recorded = referenceHosts.outcomes.map((outcome) => `${outcome.host} ${outcome.reason}`).join('; ');
+  const unmet = referenceHosts.outcomes.filter((outcome) => !outcome.satisfied)
+    .map((outcome) => `${outcome.host}: ${outcome.reason}`).join('; ');
+  return {
+    journey: {
+      id: 'integration-journey-reference-host',
+      status: satisfied ? 'pass' : 'not_run',
+      evidence: satisfied
+        ? `J13 reads recorded ${manifest.mcp_reference_hosts.join(' and ')} cycles, each signed by a registered issuer in the recorded snapshot: ${recorded}.`
+        : `J13 requires the implemented Spec 0.2 runtime plus real Codex and Claude Code reference-host cycles; legacy read-surface smoke is not substituted. ${unmet}`,
+    },
+    e2e: {
+      id: 'mcp-reference-host-spec-02-e2e',
+      status: satisfied ? 'pass' : 'not_run',
+      evidence: satisfied
+        ? `Both reference hosts recorded a full Spec 0.2 cycle whose receipt is signed by a registered issuer in the recorded snapshot: ${recorded}.`
+        : `Existing host smoke covers the legacy read surface, not the required Codex and Claude Code full Spec 0.2 edit→verify→L4 cycles. ${unmet}`,
+    },
+  };
+}
+
+/**
+ * Reports every blocking scenario of the declared release boundary.
+ *
+ * Without the release flag an unmet boundary is `not_run`, so ordinary
+ * validation keeps its exit code; the release ritual is the only caller that
+ * escalates the same state to `fail`.
+ *
+ * @param root - Repository root.
+ * @param manifest - Validation ledger.
+ * @param referenceHosts - Shared reference-host evidence state.
+ * @param options - `release` escalates an unmet boundary to a failure.
+ * @returns The release-boundary check.
+ */
+export function checkReleaseBoundary(
+  root: string,
+  manifest: ValidationManifest,
+  referenceHosts: ReferenceHostEvidenceResult,
+  options: {readonly release?: boolean} = {},
+): ValidationCheck {
+  const boundary = manifest.release_boundary;
+  const id = 'release-boundary';
+  if (boundary === undefined || typeof boundary.release !== 'string' || !Array.isArray(boundary.blocking)) {
+    return {id, status: 'fail', evidence: 'The ledger declares no release_boundary with a release and a blocking list.'};
+  }
+  const scenarios = new Map(manifest.mcp_scenarios.map((scenario) => [scenario.id, scenario]));
+  const measurement = manifest.mcp_scenarios.filter((scenario) => scenario.id.startsWith('MCP12-')).map((scenario) => scenario.id);
+  const abTasks = new Set(manifest.host_ab_tasks.map((task) => task.id));
+  const journeys = new Set(manifest.integration_journeys.map((journey) => journey.id));
+  const structural = boundary.blocking.flatMap((entry) => {
+    if (measurement.includes(entry)) return [`${entry} is an adoption/telemetry measurement and may not block a release`];
+    if (abTasks.has(entry) || journeys.has(entry)) return [`${entry} is a host A/B or journey row and may not block a release`];
+    if (!scenarios.has(entry)) return [`${entry} is not a declared MCP scenario`];
+    return [];
+  });
+  if (new Set(boundary.blocking).size !== boundary.blocking.length) structural.push('the blocking list repeats a scenario');
+  if (structural.length > 0) {
+    return {id, status: 'fail', evidence: `release ${boundary.release} boundary is malformed: ${structural.join('; ')}`};
+  }
+  const rows = boundary.blocking.map((entry) => {
+    const scenario = scenarios.get(entry) as McpScenarioRequirement;
+    if (entry.startsWith('MCP11-')) {
+      const unmet = referenceHosts.outcomes.filter((outcome) => !outcome.satisfied);
+      return {
+        id: entry,
+        satisfied: referenceHosts.satisfied,
+        reason: referenceHosts.satisfied
+          ? `both reference hosts recorded evidence signed by a registered issuer in the recorded snapshot`
+          : unmet.map((outcome) => `${outcome.host}: ${outcome.reason}`).join('; ') || 'no reference host is declared',
+      };
+    }
+    if (scenario.implementation !== 'validation-active') {
+      return {id: entry, satisfied: false, reason: 'the scenario is still pending'};
+    }
+    if (!testReferenceResolves(root, scenario.test_ref)) {
+      return {id: entry, satisfied: false, reason: 'the scenario test reference does not resolve'};
+    }
+    return {id: entry, satisfied: true, reason: `validation-active with a resolving test reference`};
+  });
+  const unmet = rows.filter((row) => !row.satisfied);
+  const evidence = unmet.length === 0
+    ? `Release ${boundary.release} blocks on ${rows.length} scenario(s); every one is satisfied: ${rows.map((row) => row.id).join(', ')}.`
+    : `Release ${boundary.release} blocks on ${rows.length} scenario(s); ${unmet.length} unmet — ${unmet.map((row) => `${row.id} (${row.reason})`).join('; ')}. Satisfied: ${rows.filter((row) => row.satisfied).map((row) => row.id).join(', ') || 'none'}.`;
+  if (unmet.length === 0) return {id, status: 'pass', evidence};
+  return {
+    id,
+    status: options.release === true ? 'fail' : 'not_run',
+    evidence: options.release === true ? `Release run refused: ${evidence}` : evidence,
+  };
+}
+
+/**
+ * Holds the journey ledger to its own claims, including the reference-host invariant.
+ *
+ * @param root - Repository root.
+ * @param manifest - Validation ledger.
+ * @param referenceHosts - Shared reference-host evidence state.
+ * @returns The journey ledger check.
+ */
+export function checkJourneyLedger(
+  root: string,
+  manifest: ValidationManifest,
+  referenceHosts: ReferenceHostEvidenceResult,
+): ValidationCheck {
   const expected = Array.from({length: 13}, (_, index) => `J${String(index + 1).padStart(2, '0')}`);
   const ids = manifest.integration_journeys.map((journey) => journey.id);
   const decisions = new Set(manifest.decisions.map((decision) => decision.id));
   const invalid = manifest.integration_journeys.filter((journey) =>
     journey.decisions.length === 0 || journey.decisions.some((decision) => !decisions.has(decision)),
   );
-  const valid = stableJson(ids) === stableJson(expected) && unique(ids) && invalid.length === 0;
+  // A validation-active journey claims a RUNNING test, so the reference must resolve: the
+  // named file has to exist and has to carry the named title. An unresolvable reference is a
+  // promoted status with nothing behind it, which is exactly the state this ledger forbids.
+  //
+  // A journey that names `evidence_from` is the one exception. Its discriminating artifact is
+  // the recorded evidence of the scenario it names, not a local test: the `disagreeing` rule
+  // below holds it to exactly that evidence in both directions. Demanding a test reference as
+  // well would ask for a second, weaker witness of a claim the evidence already decides.
+  const active = manifest.integration_journeys.filter((journey) => journey.status === 'validation-active');
+  const testBacked = active.filter((journey) => journey.evidence_from === undefined);
+  const unresolved = testBacked.filter((journey) => !testReferenceResolves(root, journey.test_ref));
+  // A journey whose evidence lives in an MCP row may not narrate a status the
+  // recorded evidence does not support, in either direction.
+  const evidenceBound = manifest.integration_journeys.filter((journey) => journey.evidence_from !== undefined);
+  const disagreeing = evidenceBound.filter((journey) => {
+    const named = manifest.mcp_scenarios.some((scenario) => scenario.id === journey.evidence_from);
+    if (!named) return true;
+    return (journey.status === 'validation-active') !== referenceHosts.satisfied;
+  });
+  const evidenceBacked = active.filter((journey) => journey.evidence_from !== undefined);
+  const valid = stableJson(ids) === stableJson(expected) && unique(ids) && invalid.length === 0
+    && unresolved.length === 0 && disagreeing.length === 0;
+  const referenceHostState = referenceHosts.satisfied
+    ? 'the reference-host cycle backed by recorded host evidence'
+    : 'the unrun reference-host cycle';
   return {
     id: 'integration-journey-ledger',
     status: valid ? 'pass' : 'fail',
     evidence: valid
-      ? 'J01-J13 map model simulations, pending implementation journeys, and the unrun reference-host cycle without collapsing their states.'
-      : `journey_ids=${ids.join(',')}; invalid=${invalid.map((journey) => journey.id).join(',') || 'none'}`,
+      ? `J01-J13 map model simulations, ${testBacked.length} validation-active journey(s) with resolvable test references (${testBacked.map((journey) => journey.id).join(', ') || 'none'}), ${evidenceBacked.length} decided by recorded scenario evidence (${evidenceBacked.map((journey) => journey.id).join(', ') || 'none'}), pending implementation journeys, and ${referenceHostState} without collapsing their states.`
+      : `journey_ids=${ids.join(',')}; invalid=${invalid.map((journey) => journey.id).join(',') || 'none'}; unresolved_test_ref=${unresolved.map((journey) => journey.id).join(',') || 'none'}; evidence_status_disagreement=${disagreeing.map((journey) => journey.id).join(',') || 'none'}`,
   };
 }
 
-function checkMcpScenarioLedger(manifest: ValidationManifest): ValidationCheck {
-  const scenarioIds = manifest.mcp_scenarios.map((scenario) => scenario.split('-', 1)[0]);
+/**
+ * Holds the MCP scenario ledger to the release boundary and to resolving references.
+ *
+ * The reference-host row is the one exception to the test reference rule,
+ * mirroring the journey ledger's `evidence_from` exemption: its discriminating
+ * artifact is the recorded evidence `evaluateReferenceHostEvidence` verifies,
+ * and the `disagreeing` rule below holds its label to exactly that evidence in
+ * both directions. No other row is bought out of its test reference by an
+ * evidence array, because nothing reads that array.
+ *
+ * @param root - Repository root.
+ * @param manifest - Validation ledger.
+ * @param referenceHosts - Shared reference-host evidence state.
+ * @returns The MCP scenario ledger check.
+ */
+export function checkMcpScenarioLedger(
+  root: string,
+  manifest: ValidationManifest,
+  referenceHosts: ReferenceHostEvidenceResult,
+): ValidationCheck {
+  const scenarioIds = manifest.mcp_scenarios.map((scenario) => scenario.id.split('-', 1)[0]);
   const expectedScenarios = Array.from({length: 12}, (_, index) => `MCP${String(index + 1).padStart(2, '0')}`);
   const taskIds = manifest.host_ab_tasks.map((task) => task.id);
   const expectedTasks = Array.from({length: 12}, (_, index) => `AB${String(index + 1).padStart(2, '0')}`);
   const taskProfiles = new Set(Object.keys(TASK_PROFILE_TOOLS));
   const invalidProfiles = manifest.host_ab_tasks.filter((task) => !taskProfiles.has(task.profile));
+  const declaredReferenceHosts = stableJson(manifest.mcp_reference_hosts) === stableJson(['codex', 'claude-code']);
+  const referenceEvidenceCount = (manifest.mcp_scenarios.find((scenario) => scenario.id.startsWith('MCP11-'))?.evidence ?? []).length;
+  const codexOnlyAb = manifest.host_ab.host === 'codex'
+    && manifest.host_ab.max_calls === 24
+    && manifest.host_ab.blocking === false;
+  const mcp04Artifacts = [
+    'src/proof/ingest.ts', 'src/cli/ingest-receipt.ts', 'src/serve/server.ts',
+    'tests/cli/ingest-receipt.test.ts', 'tests/serve/proof-evidence.test.ts',
+  ];
+  const mcp04Evidence = mcp04Artifacts.every((path) => existsSync(join(root, path)))
+    && readFileSync(join(root, 'tests/serve/proof-evidence.test.ts'), 'utf8').includes('MCP04/MCP09')
+    && readFileSync(join(root, 'tests/cli/ingest-receipt.test.ts'), 'utf8').includes('same kernel');
+  // The release boundary owns which rows must be active; this check only holds
+  // the ledger to it, so the two can never drift apart into separate truths.
+  // Sorted on both sides: reordering the boundary list is not a ledger defect.
+  const activeIds = manifest.mcp_scenarios
+    .filter((scenario) => scenario.implementation === 'validation-active')
+    .map((scenario) => scenario.id).sort();
+  const expectedActiveIds = [...(manifest.release_boundary?.blocking ?? [])].sort();
+  // Promotion without a resolving test reference is the vacuous state this row
+  // forbids — except for the reference-host row, whose recorded evidence is
+  // verified elsewhere and decides it instead. The exemption is scoped to that
+  // row alone: an evidence array anywhere else has no verifier behind it.
+  const evidenceDecided = (scenario: McpScenarioRequirement): boolean =>
+    scenario.id.startsWith('MCP11-') && (scenario.evidence ?? []).length > 0;
+  const testBackedActive = manifest.mcp_scenarios
+    .filter((scenario) => scenario.implementation === 'validation-active' && !evidenceDecided(scenario));
+  const unresolvedActive = testBackedActive
+    .filter((scenario) => !testReferenceResolves(root, scenario.test_ref))
+    .map((scenario) => scenario.id);
+  // The reference-host row may not narrate a label the recorded evidence does
+  // not support, in either direction.
+  const referenceRow = manifest.mcp_scenarios.find((scenario) => scenario.id.startsWith('MCP11-'));
+  const disagreeing = referenceRow !== undefined
+    && (referenceRow.implementation === 'validation-active') !== referenceHosts.satisfied
+    ? [referenceRow.id]
+    : [];
   const valid = stableJson(scenarioIds) === stableJson(expectedScenarios)
-    && unique(manifest.mcp_scenarios)
+    && unique(manifest.mcp_scenarios.map((scenario) => scenario.id))
     && stableJson(taskIds) === stableJson(expectedTasks)
     && unique(taskIds)
-    && invalidProfiles.length === 0;
+    && invalidProfiles.length === 0
+    && declaredReferenceHosts
+    && codexOnlyAb
+    && stableJson(activeIds) === stableJson(expectedActiveIds)
+    && unresolvedActive.length === 0
+    && disagreeing.length === 0
+    && manifest.mcp_scenarios.find((scenario) => scenario.id.startsWith('MCP04-'))?.slice === 'f5-receipt-operation'
+    && manifest.mcp_scenarios.find((scenario) => scenario.id.startsWith('MCP08-'))?.slice === 'graph-v2-focused-projection-and-statistics'
+    && manifest.mcp_scenarios.find((scenario) => scenario.id.startsWith('MCP09-'))?.slice === 'f5-receipt-ingestion-and-asserted-fallback'
+    && mcp04Evidence;
   return {
     id: 'mcp-scenario-ledger',
     status: valid ? 'pass' : 'fail',
     evidence: valid
-      ? 'MCP01-MCP12 and AB01-AB12 are uniquely preregistered; the A/B ledger caps the live comparison at 24 host task calls.'
-      : `mcp=${scenarioIds.join(',')}; ab=${taskIds.join(',')}; invalid_profiles=${invalidProfiles.map((task) => task.id).join(',') || 'none'}`,
+      ? `${testBackedActive.length} MCP scenario(s) are validation-active with resolving test references (${testBackedActive.map((scenario) => scenario.id).join(', ') || 'none'}) and MCP11 decided by recorded scenario evidence, matching the declared release boundary; MCP04 receipt-operation parity, MCP09 receipt ingestion/asserted fallback, and the MCP08 F8 graph-v2 focused-projection slice keep their slice literals; the reference-host row carries ${referenceEvidenceCount} recorded evidence record(s), the F9 scheduler/cache runtime is deferred to 0.10.x, and the non-blocking Codex A/B caps at 24 calls.`
+      : `mcp=${scenarioIds.join(',')}; mcp04_artifacts=${mcp04Evidence}; active=${activeIds.join(',')}; expected_active=${expectedActiveIds.join(',')}; unresolved_test_ref=${unresolvedActive.join(',') || 'none'}; evidence_status_disagreement=${disagreeing.join(',') || 'none'}; ab=${taskIds.join(',')}; hosts=${manifest.mcp_reference_hosts.join(',')}; ab_policy=${JSON.stringify(manifest.host_ab)}; invalid_profiles=${invalidProfiles.map((task) => task.id).join(',') || 'none'}`,
   };
 }
 
@@ -402,7 +883,7 @@ function simulateMergeAndTransaction(): ValidationCheck {
   return {
     id: 'model-merge-transaction',
     status: valid ? 'pass' : 'fail',
-    evidence: 'J03 model: feature-owned edges permit disjoint-shard writes while the same write set still conflicts; crash recovery remains J07 implementation work.',
+    evidence: 'J03 model: feature-owned edges permit disjoint-shard writes while the same write set still conflicts; T01-T04 and J07 cover journal recovery at the F4 boundary.',
   };
 }
 
@@ -653,9 +1134,15 @@ function taskProfileCatalogs(snapshot: CatalogSnapshot): Readonly<Record<string,
 }
 
 /** Builds the V0 report. Passing validation infrastructure never proves pending product behavior. */
-export async function validateSpec02(cwd = process.cwd()): Promise<ValidationReport> {
+export async function validateSpec02(
+  cwd = process.cwd(),
+  options: {readonly release?: boolean} = {},
+): Promise<ValidationReport> {
   const root = resolve(cwd);
   const manifest = loadValidationManifest(root);
+  // One evaluation, four consumers: the boundary row, the journey invariant, and
+  // the two reference-host checks must never disagree about the same evidence.
+  const referenceHosts = evaluateReferenceHostEvidence(root, manifest);
   const snapshot = await inspectMcp(root);
   const fullCatalog = stableJson({tools: snapshot.tools, resources: snapshot.resources, prompts: snapshot.prompts});
   const profiles = taskProfileCatalogs(snapshot);
@@ -682,8 +1169,10 @@ export async function validateSpec02(cwd = process.cwd()): Promise<ValidationRep
     checkDecisionOwnership(root, manifest),
     checkDocumentationRatchets(root),
     checkPreregisteredCases(root, manifest),
-    checkJourneyLedger(manifest),
-    checkMcpScenarioLedger(manifest),
+    checkJourneyLedger(root, manifest, referenceHosts),
+    checkMcpScenarioLedger(root, manifest, referenceHosts),
+    checkReleaseBoundary(root, manifest, referenceHosts, options),
+    checkCompilerRegistry(root, manifest),
     simulateWhyAndIdentity(),
     simulateMergeAndTransaction(),
     simulateProofAndTopology(),
@@ -695,11 +1184,7 @@ export async function validateSpec02(cwd = process.cwd()): Promise<ValidationRep
       status: 'implementation_pending',
       evidence: `Runtime-dependent journeys remain pending: ${manifest.integration_journeys.filter((journey) => journey.status === 'implementation_pending').map((journey) => journey.id).join(', ')}.`,
     },
-    {
-      id: 'integration-journey-reference-host',
-      status: 'not_run',
-      evidence: 'J13 requires the implemented Spec 0.2 runtime and one real reference host; legacy read-surface smoke is not substituted.',
-    },
+    referenceHostChecks(manifest, referenceHosts).journey,
     implementationCheck(manifest),
     catalogCheck(snapshot),
     {
@@ -715,11 +1200,7 @@ export async function validateSpec02(cwd = process.cwd()): Promise<ValidationRep
         ? `${TOOL_NAMES.length - classified.size} tools are unclassified.`
         : `Largest proposed task-scoped catalog is ${(reductionRatio * 100).toFixed(1)}% smaller by controlled bytes; discoverability and host behavior are not yet proven.`,
     },
-    {
-      id: 'mcp-reference-host-spec-02-e2e',
-      status: 'not_run',
-      evidence: 'Existing host smoke covers the legacy read surface, not a full Spec 0.2 edit→verify→attest cycle.',
-    },
+    referenceHostChecks(manifest, referenceHosts).e2e,
     {
       id: 'mcp-adoption',
       status: adoption.verdict === 'confirmed' ? 'pass' : 'inconclusive',
@@ -728,7 +1209,7 @@ export async function validateSpec02(cwd = process.cwd()): Promise<ValidationRep
     {
       id: 'live-host-token-ab',
       status: 'not_run',
-      evidence: 'No provider-controlled 12-task × 2-arm run was supplied; deterministic catalog bytes remain a cost input, not an LLM-efficiency result.',
+      evidence: 'No Codex-controlled 12-task × 2-arm run was supplied; deterministic catalog bytes remain a cost input, not an LLM-efficiency result.',
     },
   ];
   return stableValue({
@@ -747,7 +1228,7 @@ export async function validateSpec02(cwd = process.cwd()): Promise<ValidationRep
       largest_task_profile_bytes: largestProfileBytes,
       task_profile_reduction_ratio: reductionRatio,
       adoption_verdict: adoption.verdict,
-      reference_host_spec_02_e2e: 'not_run',
+      reference_host_spec_02_e2e: referenceHosts.satisfied ? 'pass' : 'not_run',
       host_smoke: summarizeHostSmoke(root),
     },
   }) as ValidationReport;
@@ -767,10 +1248,32 @@ export function renderValidationReport(report: ValidationReport): string {
   return `${lines.join('\n')}\n`;
 }
 
+/**
+ * Runs the validator exactly as its command line does.
+ *
+ * `--release` asks the release question rather than the reporting one: an unmet
+ * release boundary becomes a failure and therefore a nonzero exit code.
+ *
+ * @param argv - Command-line arguments without the node and script entries.
+ * @param cwd - Workspace root to validate.
+ * @returns The report, the rendered output, and the process exit code.
+ */
+export async function runValidatorCli(
+  argv: readonly string[],
+  cwd = process.cwd(),
+): Promise<{readonly report: ValidationReport; readonly output: string; readonly exitCode: number}> {
+  const report = await validateSpec02(cwd, {release: argv.includes('--release')});
+  return {
+    report,
+    output: argv.includes('--json') ? stableJson(report) : renderValidationReport(report),
+    exitCode: report.checks.some((check) => check.status === 'fail') ? 1 : 0,
+  };
+}
+
 async function main(): Promise<void> {
-  const report = await validateSpec02();
-  process.stdout.write(process.argv.includes('--json') ? stableJson(report) : renderValidationReport(report));
-  if (report.checks.some((check) => check.status === 'fail')) process.exitCode = 1;
+  const {output, exitCode} = await runValidatorCli(process.argv.slice(2));
+  process.stdout.write(output);
+  if (exitCode !== 0) process.exitCode = exitCode;
 }
 
 const invokedPath = process.argv[1] === undefined ? '' : resolve(process.argv[1]);

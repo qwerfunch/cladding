@@ -53,7 +53,7 @@ describe('selectDispatcher', () => {
     vi.restoreAllMocks();
   });
 
-  test('returns null when noLlm is true even with API key present', () => {
+  test('[covers:F-7fa4a7/AC-003] returns null when noLlm is true even with API key present', () => {
     process.env.ANTHROPIC_API_KEY = 'sk-test-noop';
     expect(selectDispatcher({noLlm: true})).toBeNull();
   });
@@ -62,7 +62,7 @@ describe('selectDispatcher', () => {
     expect(selectDispatcher()).toBeNull();
   });
 
-  test('returns null when noLlm is true via option override', () => {
+  test('[covers:F-417ff0/AC-002] returns null when noLlm is true via option override', () => {
     expect(selectDispatcher({noLlm: true, apiKey: 'sk-explicit'})).toBeNull();
   });
 
@@ -80,7 +80,7 @@ describe('selectDispatcher', () => {
   // v0.3.34 — MCP sampling wins over the Anthropic SDK fallback so
   // hosted environments (clad serve + Claude Code/Cursor/Continue)
   // don't need cladding to hold its own API credentials.
-  test('MCP server registration takes priority over ANTHROPIC_API_KEY', async () => {
+  test('[covers:F-7fa4a7/AC-002] MCP server registration takes priority over ANTHROPIC_API_KEY', async () => {
     process.env.ANTHROPIC_API_KEY = 'sk-should-not-be-used';
     setHostMcpServer(fakeSamplingServer('mcp-reply'));
     const dispatcher = selectDispatcher();
@@ -89,7 +89,7 @@ describe('selectDispatcher', () => {
     expect(text).toBe('mcp-reply');
   });
 
-  test('MCP dispatcher passes the prompt verbatim through createMessage', async () => {
+  test('[covers:F-7fa4a7/AC-001] MCP dispatcher passes the prompt verbatim through createMessage', async () => {
     let received = '';
     setHostMcpServer({
       async createMessage(params) {
@@ -106,7 +106,62 @@ describe('selectDispatcher', () => {
     expect(received).toBe('the exact prompt');
   });
 
-  test('MCP dispatcher returns empty string when the reply has no text block', async () => {
+  test('[covers:F-417ff0/AC-001] MCP sampling wins, an injected direct client refines with only an API key, and offline stays deterministic', async () => {
+    let samplingCalls = 0;
+    let directClientCalls = 0;
+    setHostMcpServer({
+      async createMessage() {
+        samplingCalls += 1;
+        return {
+          model: 'host-selected-model',
+          role: 'assistant' as const,
+          content: {type: 'text' as const, text: 'MCP refinement'},
+        };
+      },
+    });
+    const mcp = selectDispatcher({
+      apiKey: 'direct-only-test-key',
+      createAnthropicClient: () => {
+        directClientCalls += 1;
+        throw new Error('MCP must win before the direct client is constructed.');
+      },
+    });
+    expect(mcp).toEqual(expect.any(Function));
+    await expect(mcp!('refine through the host')).resolves.toBe('MCP refinement');
+    expect(samplingCalls).toBe(1);
+    expect(directClientCalls).toBe(0);
+
+    setHostMcpServer(null);
+    let directConfig: {apiKey: string} | undefined;
+    let directRequest: {model: string; max_tokens: number; messages: {role: 'user'; content: string}[]} | undefined;
+    const direct = selectDispatcher({
+      apiKey: 'direct-only-test-key',
+      model: 'local-direct-model',
+      createAnthropicClient: (config) => {
+        directConfig = config;
+        return {
+          messages: {
+            async create(request) {
+              directRequest = request;
+              return {content: [{type: 'text', text: 'Direct refinement'}]};
+            },
+          },
+        };
+      },
+    });
+    expect(direct).toEqual(expect.any(Function));
+    await expect(direct!('refine through the direct client')).resolves.toBe('Direct refinement');
+    expect(directConfig).toEqual({apiKey: 'direct-only-test-key'});
+    expect(directRequest).toEqual({
+      model: 'local-direct-model',
+      max_tokens: DEFAULT_MAX_TOKENS,
+      messages: [{role: 'user', content: 'refine through the direct client'}],
+    });
+
+    expect(selectDispatcher()).toBeNull();
+  });
+
+  test('[covers:F-7fa4a7/AC-004] MCP dispatcher returns empty string when the reply has no text block', async () => {
     setHostMcpServer({
       async createMessage() {
         return {
@@ -130,12 +185,12 @@ describe('selectDispatcher', () => {
 // ─── F-b43066 — current-generation defaults + config-file model override ───
 
 describe('model resolution (F-b43066)', () => {
-  test('defaults are current-generation with a 16k output ceiling', () => {
+  test('[covers:F-b43066/AC-3c366e] defaults are current-generation with a 16k output ceiling', () => {
     expect(DEFAULT_MODEL).toBe('claude-sonnet-4-6');
     expect(DEFAULT_MAX_TOKENS).toBe(16384);
   });
 
-  test('precedence: explicit opts.model > config agent.model > built-in default', () => {
+  test('[covers:F-b43066/AC-5119fe] precedence: explicit opts.model > config agent.model > built-in default', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-model-'));
     try {
       // no config → default
@@ -151,7 +206,7 @@ describe('model resolution (F-b43066)', () => {
     }
   });
 
-  test('a malformed config file degrades to the default (never throws)', () => {
+  test('[covers:F-b43066/AC-5119fe] a malformed config file degrades to the default (never throws)', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-model-bad-'));
     try {
       mkdirSync(join(dir, '.cladding'), {recursive: true});

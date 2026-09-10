@@ -1,37 +1,26 @@
-# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
 id: F-315fd7
-slug: scenario-coverage-detector
-title: SCENARIO_COVERAGE detector — grown projects capture cross-feature flows (v0.4.x, S-b)
+title: SCENARIO_COVERAGE detector — grown projects capture cross-feature flows
+  (v0.4.x, S-b)
 status: done
 modules:
   - src/stages/detectors/scenario-coverage.ts
   - src/stages/detectors/index.ts
 depends_on:
   - F-f44d1b
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: event
-    condition: when a project has at least DEFAULT_MIN_FEATURES_FOR_SCENARIOS features but declares no scenarios
-    action: 'emit one warn that cross-feature user-journey flows are not captured'
-    response: 'scenarios are Tier A but thinly enforced — both A/B builds shipped 0 scenarios over 20+ features and stayed green; this scale-gated, status-blind signal closes that gap, completing the deferred SCENARIO_COVERAGE from ssot-model.md'
-    text: When a grown project declares no scenarios, the system shall warn that cross-feature flows are uncaptured.
-    test_refs: [tests/stages/scenario-coverage.test.ts]
+    statement: When a grown project declares no scenarios, the system shall warn
+      that cross-feature flows are uncaptured.
   - id: AC-002
-    ears: unwanted
-    condition: if a scenario declares an empty features[] list
-    action: 'report that the scenario binds no features as a warning, relaxing only marked onboarding seeds to information below the maturity threshold'
-    text: If a scenario binds no features, the system shall warn about the unresolved link, except that a project explicitly marked as onboarding-seeded may retain it as information until the design-maturity threshold.
-    test_refs: [tests/stages/scenario-coverage.test.ts]
+    statement: If a scenario binds no features, then the detector shall warn about
+      the unresolved link except when an onboarding-seeded project retains it as
+      information until the design-maturity threshold.
+    kind: behavior
   - id: AC-003
-    ears: ubiquitous
-    action: 'classify grown-project scenario-coverage findings as warn while retaining only explicitly marked early onboarding seeds as info'
-    response: 'the grown-project signal rides the existing warn/strict dial, while generated future journeys do not alter the established behavior of legacy or hand-authored projects'
-    text: The system shall make grown-project scenario-coverage gaps blocking under strict mode while keeping explicitly marked early onboarding seeds informational and all unmarked hollow scenarios advisory.
-    test_refs: [tests/stages/scenario-coverage.test.ts]
+    statement: The system shall make grown-project scenario-coverage gaps blocking
+      under strict mode while keeping explicitly marked early onboarding seeds
+      informational and all unmarked hollow scenarios advisory.
   - id: AC-004
-    ears: event
-    condition: when a scenario's flow names a feature by its slug that the scenario does not bind in features[]
-    action: 'warn that the scenario is under-bound (its declared coverage under-states the flow it walks), naming the unbound feature(s)'
-    response: 'the A/B re-measurement surfaced a scenario that named 10 features in its flow but bound 7; exact-slug matching against real features means free prose and non-slug parentheticals never false-fire'
-    text: When a scenario's flow references a feature slug it does not bind, the system shall warn that the scenario under-states its coverage.
-    test_refs: [tests/stages/scenario-coverage.test.ts]
+    statement: When a scenario's flow references a feature slug it does not bind,
+      the system shall warn that the scenario under-states its coverage.

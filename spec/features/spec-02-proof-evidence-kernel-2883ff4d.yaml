@@ -1,0 +1,82 @@
+id: F-2883ff4d
+title: Spec 0.2 proof and portable evidence kernel
+status: done
+modules:
+  - src/proof/types.ts
+  - src/proof/vitest-jest.ts
+  - src/proof/bindings.ts
+  - src/proof/legacy-bindings.ts
+  - src/proof/fs-safety.ts
+  - src/proof/receipt.ts
+  - src/proof/ingest.ts
+  - src/proof/view.ts
+  - src/proof/signoff.ts
+  - src/stages/junit-report.ts
+  - src/stages/detectors/unverified-ac.ts
+  - src/hitl/identity.ts
+  - src/hitl/audit.ts
+  - src/cli/signoff.ts
+  - src/cli/ingest-receipt.ts
+  - src/cli/clad.ts
+  - src/serve/server.ts
+  - tests/proof/vitest-jest.test.ts
+  - tests/proof/legacy-bindings.test.ts
+  - tests/proof/receipt.test.ts
+  - tests/proof/ingest.test.ts
+  - tests/proof/view.test.ts
+  - tests/proof/signoff.test.ts
+  - tests/proof/fs-safety.test.ts
+  - tests/cli/ingest-receipt.test.ts
+  - tests/serve/proof-evidence.test.ts
+  - tests/stages/unverified-ac.test.ts
+  - scripts/spec-0.2-validate.ts
+  - tests/design/spec-0.2/requirements.yaml
+  - tests/design/spec-0.2/design-validation.test.ts
+  - src/spec/transaction.ts
+  - src/spec/compiler/artifact-registry.ts
+depends_on: []
+capability_refs: []
+acceptance_criteria:
+  - id: AC-2883ff01
+    statement: The proof kernel shall normalize native Vitest and Jest testcase
+      declarations into one owned binding record.
+  - id: AC-2883ff02
+    statement: The proof kernel shall recognize only consecutive leading covers
+      carriers and reject an unknown composite criterion address.
+    kind: behavior
+  - id: AC-2883ff03
+    statement: The proof kernel shall reduce exact JUnit testcase observations
+      without allowing unrelated same-file passes to verify a criterion.
+  - id: AC-2883ff04
+    statement: The proof kernel shall retain an unchanged legacy test binding only
+      until a live binding or intent change replaces that baseline path.
+  - id: AC-2883ff05
+    statement: The proof kernel shall validate and canonically frame portable
+      receipts before deriving their content address.
+  - id: AC-2883ff06
+    statement: The proof kernel shall verify a portable receipt only against an
+      injected immutable offline trust snapshot and complete typed digest
+      context.
+  - id: AC-2883ff07
+    statement: When a valid portable receipt is ingested, the proof kernel shall
+      create or idempotently preserve its exact journaled content-addressed
+      evidence file.
+  - id: AC-2883ff08
+    statement: The proof kernel shall reduce only current verified receipt-local
+      Audit, UAT, and blind claims while retaining explicit failures.
+  - id: AC-2883ff09
+    statement: When a local user records a signoff, the proof kernel shall persist
+      asserted history and surface the human-required boundary for schema 0.2
+      verification.
+  - id: AC-2883ff10
+    statement: The proof kernel shall preserve the schema 0.1 compatibility view
+      while routing schema 0.2 evidence through one proof view.
+design_impact:
+  classification: structural
+  rationale: F5 adds the proof/evidence authority between schema compiler inputs
+    and later F6 assurance closures without adding a product issuer.
+  status: resolved
+  artifacts:
+    - docs/design/spec-0.2/proof-and-editing.md
+    - docs/design/spec-0.2/evidence.md
+    - docs/design/spec-0.2/delivery.md

@@ -8,20 +8,16 @@ modules:
   - src/spec/validate.ts
   - src/spec/cli.ts
   - src/spec/load.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-015
-    ears: ubiquitous
-    action: parse the spec.yaml file and validate it against schema.json
-    response: returns valid=true with empty errors or valid=false with
-      point-by-point messages
-    text: The system shall parse spec.yaml and validate it against schema.json,
+    statement: The system shall parse spec.yaml and validate it against schema.json,
       returning point-by-point errors when invalid.
-    evidence_refs: [self-dogfood:spec:validate]
+    evidence_refs:
+      - self-dogfood:spec:validate
   - id: AC-016
-    ears: state
-    condition: while the schema field equals the supported version
-    action: accept the spec as a candidate for downstream detectors
-    response: T4 native detectors consume the validated payload
-    text: While the spec.schema field matches the supported version, the system
+    statement: While the spec.schema field matches the supported version, the system
       shall accept the document as input for downstream drift detectors.
-    evidence_refs: [fixture:F-010_AC-016]
+    evidence_refs:
+      - fixture:F-010_AC-016

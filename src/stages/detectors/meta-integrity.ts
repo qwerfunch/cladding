@@ -7,7 +7,8 @@
 //   - spec/schema.json declares the four root-level fields the runtime
 //     types in spec/types.ts depend on (schema · project · features +
 //     optional scenarios/architecture)
-//   - spec.yaml's `schema` version matches the schema's `$id` line
+//   - schema 0.1's `schema` version matches the compatibility mirror; a
+//     schema 0.2 root instead reaches the compiler-validated loader view
 //
 // This is the "self-validates the validator" detector. Cheap, but
 // invaluable as cladding evolves — refactoring the schema and
@@ -22,7 +23,9 @@ import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js
 const NAME = 'META_INTEGRITY';
 
 const REQUIRED_ROOT_KEYS = ['schema', 'project', 'features'] as const;
-const SUPPORTED_SCHEMA_VERSION = '0.1';
+// `spec/schema.json` is deliberately a schema-0.1 compatibility mirror. The
+// schema-0.2 authority is `compileSpecWorkspaceWithLockHeld` through loadSpec.
+const SUPPORTED_SCHEMA_VERSIONS = new Set(['0.1', '0.2']);
 
 interface SchemaShape {
   required?: readonly string[];
@@ -75,13 +78,13 @@ function runMetaIntegrity(opts: CommandStageOptions): readonly DriftFinding[] {
 
   try {
     const spec = loadSpec(cwd);
-    if (spec.schema !== SUPPORTED_SCHEMA_VERSION) {
+    if (!SUPPORTED_SCHEMA_VERSIONS.has(spec.schema)) {
       findings.push({
         detector: NAME,
         severity: 'error',
         message:
           `spec.yaml schema='${spec.schema}' but supported version is` +
-          ` '${SUPPORTED_SCHEMA_VERSION}'`,
+          ` one of '${[...SUPPORTED_SCHEMA_VERSIONS].join("', '")}'`,
       });
     }
   } catch {

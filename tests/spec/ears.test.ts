@@ -65,7 +65,7 @@ describe('checkEarsShape — pure rule (reused by createFeature, Lever ①)', ()
     expect(checkEarsShape(undefined, 'if x')).toMatch(/condition is present but ears pattern is not declared/);
   });
 
-  test('checkAc delegates to checkEarsShape (consistency)', () => {
+  test('[covers:F-dddb89/AC-002] checkAc delegates to checkEarsShape (consistency)', () => {
     const viaShape = checkEarsShape('ubiquitous', 'when x');
     const viaAc = checkAc(feature, {id: 'A', ears: 'ubiquitous', condition: 'when x'});
     expect(viaAc).toHaveLength(1);

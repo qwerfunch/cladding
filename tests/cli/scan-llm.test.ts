@@ -98,7 +98,7 @@ function fakeScan(): ScanResult {
 }
 
 describe('buildPrompt', () => {
-  test('includes the four sentinel sections', () => {
+  test('[covers:F-d3bde4/AC-001] includes the four sentinel sections', () => {
     const p = buildPrompt(fakeScan());
     expect(p).toContain('=== CONVENTIONS_MD ===');
     expect(p).toContain('=== ARCHITECTURE_YAML ===');
@@ -114,7 +114,7 @@ describe('buildPrompt', () => {
     expect(p).toContain('cli → core');
   });
 
-  test('packs README headings into the capabilities block when projectContext is populated', () => {
+  test('[covers:F-d3bde4/AC-001] packs README headings into the capabilities block when projectContext is populated', () => {
     const p = buildPrompt(fakeScanWithReadme());
     expect(p).toContain('--- README headings (capability candidates) ---');
     expect(p).toContain('- Install');
@@ -153,7 +153,7 @@ describe('parseLlmResponse', () => {
 });
 
 describe('interpretWithLlm', () => {
-  test('returns mode=llm and prepends the auto-generated header to conventions', async () => {
+  test('[covers:F-17df0a/AC-001] returns mode=llm and routes all deep-scan artifacts through the dispatcher', async () => {
     const dispatch = vi.fn(async () =>
       '=== CONVENTIONS_MD ===\n# A\n=== ARCHITECTURE_YAML ===\nlayers: []\n=== SCENARIO_FLOWS ===\ncore-flow: x\ncli-flow: y\n=== CAPABILITIES_YAML ===\nschema: "0.1"\nsource: README.md\ncapabilities:\n  - id: install\n    title: "Install"\n    summary: "How to install."\n    surface: tool\n',
     );
@@ -194,6 +194,17 @@ describe('interpretWithLlm', () => {
 });
 
 describe('deterministicInterpret', () => {
+  test('[covers:F-9b643e/AC-005] no dispatcher returns deterministic conventions, architecture, scenarios, and README capabilities', async () => {
+    const result = await interpretScanWithFallback(fakeScanWithReadme(), null);
+    expect(result.mode).toBe('deterministic');
+    expect(result.conventionsMd).toContain('two-space');
+    expect(result.conventionsMd).toContain('Module boilerplate');
+    expect(result.architectureYaml).toContain('name: core');
+    expect(result.architectureYaml).toContain('name: cli');
+    expect(result.scenarioFlows.get('core-flow')).toContain('Flow through core/');
+    expect(result.capabilitiesYaml).toContain('- id: install');
+  });
+
   test('mode=deterministic and conventions table renders all 14 signals', () => {
     const r = deterministicInterpret(fakeScan());
     expect(r.mode).toBe('deterministic');
@@ -252,7 +263,7 @@ describe('renderCapabilitiesYaml', () => {
     expect(out.endsWith('\n')).toBe(true);
   });
 
-  test('slugifies headings into kebab-case ids and preserves titles verbatim', () => {
+  test('[covers:F-d3bde4/AC-002] slugifies headings into kebab-case ids and preserves titles verbatim', () => {
     const out = renderCapabilitiesYaml(['Install', 'Status & Roadmap', 'CLI']);
     expect(out).toContain('- id: install');
     expect(out).toContain('title: "Install"');
@@ -323,7 +334,7 @@ describe('parseProjectContextResponse', () => {
 });
 
 describe('renderProjectContextMdWithLlm', () => {
-  test('renders refined prose when dispatcher returns labelled response', async () => {
+  test('[covers:F-417ff0/AC-003] renders refined prose when dispatcher returns labelled response', async () => {
     const dispatch = vi.fn(async () =>
       '=== WHY ===\nCoordination cost was eating teams.\n' +
         '=== WHAT ===\nDeclarative specs replace meetings.\n' +
@@ -354,10 +365,18 @@ describe('renderProjectContextMdWithLlm', () => {
     expect(md).not.toContain('with LLM refinement');
   });
 
-  test('dispatcher error collapses to the deterministic body', async () => {
+  test('[covers:F-417ff0/AC-004] dispatcher error collapses to the deterministic body', async () => {
     const dispatch = vi.fn<(p: string) => Promise<string>>(async () => {
       throw new Error('network');
     });
+    const md = await renderProjectContextMdWithLlm(fakeProjectContext(), 'demo', dispatch);
+    expect(md).toContain('A small library that does one focused thing.');
+    expect(md).not.toContain('with LLM refinement');
+    expect(dispatch).toHaveBeenCalledOnce();
+  });
+
+  test('[covers:F-417ff0/AC-004] unparsable dispatcher response collapses to the deterministic body', async () => {
+    const dispatch = vi.fn(async () => 'unlabelled prose cannot supply project context sections');
     const md = await renderProjectContextMdWithLlm(fakeProjectContext(), 'demo', dispatch);
     expect(md).toContain('A small library that does one focused thing.');
     expect(md).not.toContain('with LLM refinement');
@@ -391,7 +410,7 @@ describe('interpretScanWithFallback', () => {
     expect(r.capabilitiesYaml).toContain('summary: "How to install."');
   });
 
-  test('per-artifact capabilities fallback: missing CAPABILITIES_YAML still keeps mode=llm and ships deterministic capabilities', async () => {
+  test('[covers:F-d3bde4/AC-003] per-artifact capabilities fallback: missing CAPABILITIES_YAML still keeps mode=llm and ships deterministic capabilities', async () => {
     const dispatch = vi.fn(async () =>
       '=== CONVENTIONS_MD ===\n# Refined conventions\nProse here.\n' +
         '=== ARCHITECTURE_YAML ===\nversion: "0.1"\nlayers:\n  - name: core\n    modules: ["core/**"]\n    forbidden_imports: []\n' +
@@ -406,7 +425,7 @@ describe('interpretScanWithFallback', () => {
     expect(r.capabilitiesYaml).toContain('- id: install');
   });
 
-  test('collapses to deterministic when dispatcher throws', async () => {
+  test('[covers:F-17df0a/AC-003] collapses to deterministic when dispatcher throws', async () => {
     const dispatch = vi.fn<(p: string) => Promise<string>>(async () => {
       throw new Error('transport down');
     });
@@ -415,15 +434,36 @@ describe('interpretScanWithFallback', () => {
     expect(dispatch).toHaveBeenCalledOnce();
   });
 
-  test('collapses to deterministic when dispatcher returns empty architecture section', async () => {
+  test('[covers:F-9b643e/AC-004] parses only labelled sentinel sections and falls back for missing or malformed sections', async () => {
     const dispatch = vi.fn(async () => '=== CONVENTIONS_MD ===\n# only conv\n');
     const r = await interpretScanWithFallback(fakeScan(), dispatch);
     expect(r.mode).toBe('deterministic');
     // Layer name from deterministic, not from the empty LLM reply.
     expect(r.architectureYaml).toContain('name: core');
+
+    const malformed = vi.fn(async () =>
+      '=== CONVENTIONS_MD ===\n# present\n' +
+        '=== ARCHITECTURE_YAML ===\nlayers: [\n' +
+        '=== SCENARIO_FLOWS ===\ncore-flow: present\n',
+    );
+    const malformedResult = await interpretScanWithFallback(fakeScan(), malformed);
+    expect(malformedResult.mode).toBe('deterministic');
+    expect(malformedResult.architectureYaml).toContain('name: core');
+
+    const malformedAuxiliary = vi.fn(async () =>
+      '=== CONVENTIONS_MD ===\n# present\n' +
+        '=== ARCHITECTURE_YAML ===\nlayers: []\n' +
+        '=== SCENARIO_FLOWS ===\nnot a labelled flow\n' +
+        '=== CAPABILITIES_YAML ===\ncapabilities: not-a-list\n',
+    );
+    const auxiliaryResult = await interpretScanWithFallback(fakeScanWithReadme(), malformedAuxiliary);
+    expect(auxiliaryResult.mode).toBe('llm');
+    expect(auxiliaryResult.scenarioFlows.get('core-flow')).toContain('Flow through core/');
+    expect(auxiliaryResult.capabilitiesYaml).toContain('capabilities:');
+    expect(auxiliaryResult.capabilitiesYaml).toContain('- id: install');
   });
 
-  test('collapses to deterministic when dispatcher returns header-only conventions', async () => {
+  test('[covers:F-17df0a/AC-002] collapses to deterministic when dispatcher returns header-only conventions', async () => {
     const dispatch = vi.fn(async () =>
       '=== CONVENTIONS_MD ===\n\n=== ARCHITECTURE_YAML ===\nversion: "0.1"\nlayers: []\n',
     );
@@ -447,7 +487,7 @@ describe('sentinel_miss telemetry', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('emits one total miss when dispatcher throws (scan_artifacts phase)', async () => {
+  test('[covers:F-65814a/AC-003] emits one total miss when dispatcher throws (scan_artifacts phase)', async () => {
     const dispatch = vi.fn<(p: string) => Promise<string>>(async () => {
       throw new Error('transport down');
     });
@@ -462,7 +502,7 @@ describe('sentinel_miss telemetry', () => {
     });
   });
 
-  test('emits one total miss with missed_sections when conventions/architecture sentinel is blank', async () => {
+  test('[covers:F-65814a/AC-002] [covers:F-65814a/AC-003] emits one total miss with missed_sections when conventions/architecture sentinel is blank', async () => {
     const dispatch = vi.fn(async () => '=== CONVENTIONS_MD ===\n# only conv\n');
     await interpretScanWithFallback(fakeScanWithReadme(), dispatch, dir);
     const events = readEvents(dir).filter((e) => e.type === 'sentinel_miss');
@@ -475,7 +515,7 @@ describe('sentinel_miss telemetry', () => {
     expect(events[0].payload.missed_sections).toContain('ARCHITECTURE_YAML');
   });
 
-  test('emits one per_artifact miss when only capabilities is blank but conventions+architecture pass', async () => {
+  test('[covers:F-65814a/AC-002][covers:F-65814a/AC-004] emits one per_artifact miss when only capabilities is blank but conventions+architecture pass', async () => {
     const dispatch = vi.fn(async () =>
       '=== CONVENTIONS_MD ===\n# Refined\n' +
         '=== ARCHITECTURE_YAML ===\nversion: "0.1"\nlayers:\n  - name: core\n    modules: ["core/**"]\n    forbidden_imports: []\n' +
@@ -510,7 +550,7 @@ describe('sentinel_miss telemetry', () => {
     expect(events).toHaveLength(0);
   });
 
-  test('project_context phase: emits dispatcher_error on throw', async () => {
+  test('[covers:F-65814a/AC-001] [covers:F-65814a/AC-005] project_context phase: emits dispatcher_error on throw', async () => {
     const dispatch = vi.fn<(p: string) => Promise<string>>(async () => {
       throw new Error('mcp closed');
     });
@@ -525,7 +565,7 @@ describe('sentinel_miss telemetry', () => {
     });
   });
 
-  test('project_context phase: emits blank_section per_artifact when WHY/WHAT/PURPOSE are blank', async () => {
+  test('[covers:F-65814a/AC-005] project_context phase: emits blank_section per_artifact when WHY/WHAT/PURPOSE are blank', async () => {
     // Reply parses but leaves all three sentinels empty.
     const dispatch = vi.fn(async () => '=== WHY ===\n=== WHAT ===\n=== PURPOSE ===\n');
     await renderProjectContextMdWithLlm(fakeProjectContext(), 'demo', dispatch, dir);

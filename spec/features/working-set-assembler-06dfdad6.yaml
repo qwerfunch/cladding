@@ -1,62 +1,69 @@
 id: F-06dfdad6
-slug: working-set-assembler
-title: "Working-set assembler — one token-budgeted, code-bearing context payload (forward+backward fused) for LLM dev"
+title: Working-set assembler — one token-budgeted, code-bearing context payload
+  (forward+backward fused) for LLM dev
 status: done
-depends_on:
-  - F-d2c806
-  - F-7794a6bc
 modules:
   - src/optimizer/working-set.ts
   - src/optimizer/code-excerpt.ts
   - src/serve/server.ts
+depends_on:
+  - F-d2c806
+  - F-7794a6bc
+capability_refs: []
 acceptance_criteria:
   - id: AC-62d89e
-    ears: event
-    condition: "when buildWorkingSet is called with a feature id, slug, or module path"
-    action: "resolve the focus feature; for a module path claimed by multiple features pick the alphabetically-first owner id as focus and list all co-owners; for an unrecognized query return a not_found miss"
-    response: "a deterministic focus resolution that never throws on bad input"
-    text: "When buildWorkingSet runs, the system shall resolve the focus from id/slug/module (module multi-owner → alphabetically-first owner + co-owners listed) or return a not_found miss."
-    test_refs:
-      - "tests/optimizer/working-set.test.ts#resolves id, slug, and module path (multi-owner picks first + lists co-owners)"
-      - "tests/optimizer/working-set.test.ts#unknown query returns a not_found miss"
-    notes: "## Why\nFreeze F-d2c806's buildContextSlice + clad_get_context (schema_version=1, existing tests) — this is an ADDITIVE buildWorkingSet, never a mutation of the existing slice (sim verdict: backward-compat blocker)."
+    statement: When buildWorkingSet runs, the system shall resolve the focus from
+      id/slug/module (module multi-owner → alphabetically-first owner +
+      co-owners listed) or return a not_found miss.
+    notes: >-
+      ## Why
+
+      Freeze F-d2c806's buildContextSlice + clad_get_context (schema_version=1,
+      existing tests) — this is an ADDITIVE buildWorkingSet, never a mutation of
+      the existing slice (sim verdict: backward-compat blocker).
   - id: AC-d2b3c8
-    ears: ubiquitous
-    text: "The working set shall fuse, in one structured payload: must-edit (focus feature + full ACs), needs (forward depends_on ancestors), breaks-if-changed (backward dependents + the regression test union — a module query seeds EVERY co-owner, not just the focus owner), verify (scenarios + test_refs + oracle_refs + EARS unwanted/state high-risk AC flags), and guidance (ai_hints preferred_patterns) — so one call replaces the forward+backward two-call dance and the hand-grep."
-    test_refs:
-      - "tests/optimizer/working-set.test.ts#fuses forward needs + backward breaks + verify + guidance into one payload"
-      - "tests/optimizer/working-set.test.ts#flags EARS unwanted/state acceptance criteria as high-risk"
-      - "tests/optimizer/working-set.test.ts#a module query seeds ALL co-owners — their dependents and tests reach breaks_if_changed"
-    notes: "## Correction (0.7.1)\n0.7.0 computed the backward radius from the alphabetically-first owner only — a shared file's other owners contributed nothing (src/cli/clad.ts on cladding-self: impacted 0 vs the real 83). The module query now passes through to the iterative slice, which seeds all owners."
+    statement: The working-set assembler shall fuse in one structured payload
+      `must-edit` with the focus feature and full ACs, needs with forward
+      depends_on ancestors, `breaks-if-changed` with backward dependents and the
+      regression-test union where a module query seeds every co-owner, verify
+      with scenarios and test_refs and oracle_refs and EARS unwanted or state
+      high-risk AC flags, and guidance with ai_hints preferred_patterns so one
+      call replaces the forward-and-backward two-call dance and hand-grep.
+    kind: behavior
+    notes: >-
+      ## Correction (0.7.1)
+
+      0.7.0 computed the backward radius from the alphabetically-first owner
+      only — a shared file's other owners contributed nothing (src/cli/clad.ts
+      on cladding-self: impacted 0 vs the real 83). The module query now passes
+      through to the iterative slice, which seeds all owners.
   - id: AC-42bd08
-    ears: event
-    condition: "when the working set includes a focus module's source"
-    action: "read it through a path-safe reader — resolve within cwd, allow only a code-extension whitelist, return a binary/too-large/missing marker instead of throwing, and clip long files with a truncation marker"
-    response: "the LLM sees the actual code to edit, safely and bounded (no path traversal, no binary dump, no budget blowout)"
-    text: "When source is included, the system shall read it via a cwd-bounded, extension-whitelisted, clipping reader that degrades to a marker on binary/missing/oversize."
-    test_refs:
-      - "tests/optimizer/code-excerpt.test.ts#reads a code file clipped to the budget with a truncation marker"
-      - "tests/optimizer/code-excerpt.test.ts#rejects path traversal and non-whitelisted/binary/missing files safely"
+    statement: When source is included, the system shall read it via a cwd-bounded,
+      extension-whitelisted, clipping reader that degrades to a marker on
+      binary/missing/oversize.
   - id: AC-05ea70
-    ears: unwanted
-    condition: "if the assembled payload would exceed the token budget (default 3000, configurable)"
-    action: "clip droppable sections in priority order — distant transitive ancestors, then code excerpts, then the backward radius (deeper dependents from the far end first, then their tests; the depth-1 direct set is never dropped) — measuring each fit WITH the pending truncation marker, and record every clip in budget.truncated[]; the focus (must-edit + ACs) is always retained"
-    response: "the payload fits the budget even at hub features and tight caller budgets, the LLM is told exactly what was omitted, and the focus + direct blast radius are never dropped"
-    text: "While the payload would exceed the token budget, the system shall clip droppable sections (ancestors, then code, then deeper backward dependents/tests — never the depth-1 direct set) with marker-inclusive fit checks, and record budget.truncated[]; the focus is always retained even if it alone exceeds the cap."
-    test_refs:
-      - "tests/optimizer/working-set.test.ts#enforces the token budget and records what was truncated"
-      - "tests/optimizer/working-set.test.ts#budget pressure clips deeper dependents (and reports it) but never the depth-1 direct set"
-    notes: "## Correction (0.7.1)\n0.7.0 never clipped breaks_if_changed, so hub features + module fan-out broke the budget contract exactly where scale bites (simulated: fan-out doubles breach paths 17→33/144, worst 2.9x). Clip order (breaks AFTER code) was simulation-compared against clip-before-code and is strictly better; marker-inclusive fit checks close the +3..10-token overshoot the old loops carried."
+    statement: While the payload would exceed the token budget, the working-set
+      assembler shall clip ancestors then code then deeper backward dependents
+      and tests but never the depth-1 direct set, use marker-inclusive fit
+      checks, record budget.truncated[], and retain the focus even when it alone
+      exceeds the cap.
+    kind: quality
+    notes: >-
+      ## Correction (0.7.1)
+
+      0.7.0 never clipped breaks_if_changed, so hub features + module fan-out
+      broke the budget contract exactly where scale bites (simulated: fan-out
+      doubles breach paths 17→33/144, worst 2.9x). Clip order (breaks AFTER
+      code) was simulation-compared against clip-before-code and is strictly
+      better; marker-inclusive fit checks close the +3..10-token overshoot the
+      old loops carried.
   - id: AC-c2cef0
-    ears: event
-    condition: "when the MCP server registers its tools"
-    action: "expose a NEW clad_get_working_set tool (leaving clad_get_context and its schema_version untouched), and enumerate the skill node kind in clad_get_graph's description"
-    response: "hosts get the richer working set opt-in, with zero change to the existing context tool"
-    text: "When tools register, the system shall add clad_get_working_set without altering clad_get_context, and clad_get_graph's description shall list the skill kind."
-    test_refs:
-      - "tests/serve/server.test.ts#registers clad_get_working_set without touching clad_get_context"
+    statement: When tools register, the tool registry shall add clad_get_working_set
+      without altering clad_get_context and include the skill kind in the
+      clad_get_graph description.
+    kind: behavior
   - id: AC-833f1c
-    ears: ubiquitous
-    text: "For identical spec state and identical file contents, buildWorkingSet shall produce byte-identical structural ordering (stable sorts, no timestamps/random) so a host can cache and diff it."
-    test_refs:
-      - "tests/optimizer/working-set.test.ts#is deterministic for identical spec + files"
+    statement: The buildWorkingSet function shall produce byte-identical structural
+      ordering without timestamps or randomness for identical specification
+      state and file contents so a host can cache and diff it.
+    kind: quality

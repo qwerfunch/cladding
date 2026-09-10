@@ -56,7 +56,7 @@ describe('STALE_TESTS detector', () => {
     expect(staleTests.run({cwd: dir})).toEqual([]);
   });
 
-  test('test mtime >30 days older than newest source → warn finding', () => {
+  test('[covers:F-056/AC-130] a controlled stale test mtime reports a warning', () => {
     const src = join(dir, 'stages', 'alpha.ts');
     const t = join(dir, 'tests', 'alpha.test.ts');
     writeFileSync(src, 'export const a = 1;\n');

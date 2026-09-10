@@ -1,40 +1,54 @@
 id: F-060
-title: Stage runner tests batch 2 (5 stages)
+title: Stage runner behavior evidence
 status: done
 modules:
+  - src/stages/arch.ts
+  - src/stages/secret.ts
+  - src/stages/unit.ts
+  - src/stages/cov.ts
   - tests/stages/arch.test.ts
   - tests/stages/secret.test.ts
   - tests/stages/unit.test.ts
   - tests/stages/cov.test.ts
   - tests/stages/smoke.test.ts
-depends_on: [F-059]
+depends_on:
+  - F-059
+capability_refs: []
 acceptance_criteria:
   - id: AC-145
-    ears: ubiquitous
-    action: cover the two detector-adapter stages
-    response: tests/stages/arch.test.ts and tests/stages/secret.test.ts each mock the underlying detector (architectureViolation / hardcodedSecret) and exercise no-findings / info-only / single-error / multi-error / mixed-severity / opts-forwarding paths; line coverage on both stage sources reaches at least 75%
-    text: The system shall ship dedicated unit-test files for src/stages/arch.ts and src/stages/secret.ts, bringing each to at least 75% line coverage by mocking the underlying detector.
-    test_refs:
-      - tests/stages/arch.test.ts
-      - tests/stages/secret.test.ts
+    statement: When an architecture or secret detector-adapter stage reports an
+      observation, the stage adapter shall preserve its supplied options,
+      applicable shared result, error severity, and finding order in the stage
+      result.
+    kind: behavior
+    notes: >
+      ## Historical schema-0.1 note
+
+      2026-05-19 · v0.2.11 · e0dec700. Architecture/Secret detector fixtures: no
+
+      findings, severity mixes, and options; at least 75% line coverage for both
+
+      sources; non-current. Released title: "Stage runner tests batch 2 (5
+      stages)".
   - id: AC-146
-    ears: ubiquitous
-    action: cover the unit and coverage stage runners
-    response: tests/stages/unit.test.ts and tests/stages/cov.test.ts each exercise unknown-language / explicit override / exit 0 / non-zero / stderr-present / stderr-absent / null-exit branches with vi.mock('execa'); line coverage on both stage sources reaches at least 85%
-    text: The system shall ship dedicated unit-test files for src/stages/unit.ts and src/stages/cov.ts, bringing each to at least 85% line coverage.
-    test_refs:
-      - tests/stages/unit.test.ts
-      - tests/stages/cov.test.ts
+    statement: When a unit or coverage runner is observed, the stage adapter shall
+      distinguish successful execution and executed failure from unavailable
+      execution classified as unobserved and reserve not applicable for
+      compiler-derived applicability.
+    kind: behavior
+    notes: |
+      ## Historical schema-0.1 note
+      2026-05-19 · v0.2.11 · e0dec700. Unit/Coverage execa fixtures: language,
+      override, exit, stderr, and null outcomes; at least 85% line coverage for
+      both sources; non-current.
   - id: AC-147
-    ears: ubiquitous
-    action: cover the smoke stage (richer branch tree)
-    response: tests/stages/smoke.test.ts exercises unknown / npm-script-missing / npm-script-present-exit-0 / non-zero / ENOENT / non-ENOENT throw / null-exit / explicit-override paths; line coverage reaches at least 85%
-    text: The system shall ship tests/stages/smoke.test.ts bringing the stage_3.1 smoke runner to at least 85% line coverage.
-    test_refs: [tests/stages/smoke.test.ts]
+    statement: The system shall ship tests/stages/smoke.test.ts bringing the
+      stage_3.1 smoke runner to at least 85% line coverage.
   - id: AC-148
-    ears: state
-    condition: while the v0.2.11 batch lands
-    action: raise overall line coverage further past the 70% floor
-    response: vitest --coverage reports overall line coverage rises from 72.58% (v0.2.10 baseline) to at least 80%
-    text: While the v0.2.11 batch lands, overall line coverage shall rise from the v0.2.10 baseline (72.58%) to at least 80%, deepening the headroom above the 70% floor.
-    evidence_refs: [CHANGELOG.md]
+    statement: While current coverage assurance is evaluated, the assurance registry
+      shall derive it from the coverage obligation and treat the v0.2.11
+      measurement as historical evidence only.
+    kind: quality
+    notes: |
+      ## Historical schema-0.1 note
+      v0.2.11’s 72.58% to ≥80% measurement is historical, not current assurance.

@@ -1,5 +1,4 @@
 id: F-65814a
-slug: sentinel-miss-telemetry
 title: sentinel-miss telemetry surfaces LLM fallbacks in events.log (v0.3.39)
 status: done
 modules:
@@ -8,42 +7,31 @@ modules:
   - src/cli/init.ts
 depends_on:
   - F-d3bde4
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: add a sentinel_miss EventType plus a standard payload schema so the harness can record every LLM dispatcher fallback as a structured event in .cladding/events.log.jsonl
-    response: 'src/events/log.ts EventType union grows a "sentinel_miss" arm; the payload schema is documented inline as {phase: "scan_artifacts"|"project_context", cause: "blank_section"|"dispatcher_error", fallback: "total"|"per_artifact", missed_sections?: string[], error?: string}; appendEvent and newEvent need no behavioural change because the existing JSONL writer already accepts arbitrary payloads keyed by EventType'
-    text: The system shall add a sentinel_miss EventType plus a standard payload schema so every LLM dispatcher fallback is captured as a structured event in .cladding/events.log.jsonl.
-    test_refs: [tests/cli/scan-llm.test.ts]
+    statement: The system shall add a sentinel_miss EventType plus a standard
+      payload schema so every LLM dispatcher fallback is captured as a
+      structured event in .cladding/events.log.jsonl.
   - id: AC-002
-    ears: ubiquitous
-    action: track which labelled sentinels the LLM left blank in the parsed reply so the outer fallback wrapper can distinguish per_artifact misses from total misses
-    response: 'src/cli/scan/llm.ts InterpretedScan grows a readonly string[] missedSections field; interpretWithLlm populates it by inspecting sections.conventions / sections.architecture / sections.scenarios / sections.capabilities for blank trims; deterministicInterpret sets missedSections to [] because it never consumed an LLM reply'
-    text: The system shall track which labelled sentinels the LLM left blank in the parsed reply so the outer fallback wrapper can distinguish per_artifact misses from total misses.
-    test_refs: [tests/cli/scan-llm.test.ts]
+    statement: The system shall track which labelled sentinels the LLM left blank in
+      the parsed reply so the outer fallback wrapper can distinguish
+      per_artifact misses from total misses.
   - id: AC-003
-    ears: state
-    condition: while the dispatcher throws or the LLM reply leaves CONVENTIONS_MD or ARCHITECTURE_YAML blank
-    action: emit a sentinel_miss event with fallback "total" and collapse to deterministicInterpret
-    response: 'interpretScanWithFallback accepts an optional cwd parameter; the try/catch around interpretWithLlm emits {phase "scan_artifacts", cause "dispatcher_error", fallback "total", error truncated} before returning the deterministic body; the post-parse blank-section check filters missedSections for CONVENTIONS_MD or ARCHITECTURE_YAML and emits {phase "scan_artifacts", cause "blank_section", fallback "total", missed_sections [...]} before the same deterministic return; both branches keep the prior contract — the artifact is always usable — and only add the observability hook'
-    text: While the dispatcher throws or the LLM reply leaves CONVENTIONS_MD or ARCHITECTURE_YAML blank, the system shall emit a sentinel_miss event with fallback "total" and collapse to deterministicInterpret.
-    test_refs: [tests/cli/scan-llm.test.ts]
+    statement: While the dispatcher throws or the LLM reply leaves CONVENTIONS_MD or
+      ARCHITECTURE_YAML blank, the system shall emit a sentinel_miss event with
+      fallback "total" and collapse to deterministicInterpret.
   - id: AC-004
-    ears: state
-    condition: while CONVENTIONS_MD and ARCHITECTURE_YAML parse but a non-critical sentinel (SCENARIO_FLOWS or CAPABILITIES_YAML) returns blank
-    action: emit a sentinel_miss event with fallback "per_artifact" and keep the LLM-refined critical sections
-    response: 'after the total-miss filter passes, interpretScanWithFallback checks whether interp.missedSections is still non-empty; when it is, emit {phase "scan_artifacts", cause "blank_section", fallback "per_artifact", missed_sections [...]} and return the LLM-refined InterpretedScan unchanged so conventionsMd and architectureYaml stay on the refined path while scenarios remains empty and capabilities was already substituted in interpretWithLlm via renderCapabilitiesYaml'
-    text: While CONVENTIONS_MD and ARCHITECTURE_YAML parse but a non-critical sentinel returns blank, the system shall emit a sentinel_miss event with fallback "per_artifact" and keep the LLM-refined critical sections.
-    test_refs: [tests/cli/scan-llm.test.ts]
+    statement: While CONVENTIONS_MD and ARCHITECTURE_YAML parse but a non-critical
+      sentinel returns blank, the system shall emit a sentinel_miss event with
+      fallback "per_artifact" and keep the LLM-refined critical sections.
   - id: AC-005
-    ears: ubiquitous
-    action: extend renderProjectContextMdWithLlm with the same telemetry hook so project-context misses are visible alongside scan-artifact misses
-    response: 'renderProjectContextMdWithLlm grows an optional cwd parameter; the catch block emits {phase "project_context", cause "dispatcher_error", fallback "total", error truncated} before returning the deterministic body; the post-parse path emits {phase "project_context", cause "blank_section", fallback "per_artifact", missed_sections [WHY|WHAT|PURPOSE]} when any of the three sections trim to empty; greenfield (ctx === null) and configured-no-LLM (dispatcher === null) paths skip the dispatcher and skip the emit because they are deliberate offline runs rather than misses'
-    text: The system shall extend renderProjectContextMdWithLlm with the same telemetry hook so project-context misses are visible alongside scan-artifact misses.
-    test_refs: [tests/cli/scan-llm.test.ts]
+    statement: The system shall extend renderProjectContextMdWithLlm with the same
+      telemetry hook so project-context misses are visible alongside
+      scan-artifact misses.
   - id: AC-006
-    ears: ubiquitous
-    action: thread the workspace cwd from runInit into both refinement helpers so production calls always reach the telemetry sink while unit tests stay silent when no cwd is supplied
-    response: 'src/cli/init.ts runInit passes the existing cwd variable into interpretScanWithFallback(scanResult, dispatcher, cwd) and renderProjectContextMdWithLlm(projectContext, projectName, dispatcher, cwd); the helpers swallow appendEvent failures via a try/catch so a read-only workspace never breaks the init flow; unit tests that omit cwd see no events written, preserving the existing scan-llm test surface as a no-telemetry baseline'
-    text: The system shall thread the workspace cwd from runInit into both refinement helpers so production calls always reach the telemetry sink while unit tests stay silent when no cwd is supplied.
-    evidence_refs: [src/cli/init.ts]
+    statement: The system shall thread the workspace cwd from runInit into both
+      refinement helpers so production calls always reach the telemetry sink
+      while unit tests stay silent when no cwd is supplied.
+    evidence_refs:
+      - src/cli/init.ts

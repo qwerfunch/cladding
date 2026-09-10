@@ -6,9 +6,10 @@
 import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {afterEach, beforeEach, describe, expect, test} from 'vitest';
+import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 import {buildBlindPayload, renderBlindBrief} from '../src/oracle/payload.js';
+import {runOracleCommand} from '../src/cli/clad.js';
 import type {Spec} from '../src/spec/types.js';
 
 let dir: string;
@@ -41,7 +42,35 @@ function writeModule(): void {
   );
 }
 
+function writeSpec(): void {
+  writeFileSync(
+    join(dir, 'spec.yaml'),
+    'schema: "0.1"\nproject: {name: oracle, language: typescript}\nfeatures:\n  - id: F-001\n    title: Widget\n    status: done\n    modules: [src/m.ts]\n    acceptance_criteria:\n      - id: AC-001\n        ears: event\n        text: "When X happens, the system shall do Y."\n',
+  );
+}
+
 describe('oracle/payload — clad oracle blind brief', () => {
+  test('[covers:F-c4c5ae/AC-006] clad oracle prints ACs and declaration-only signatures without implementation bodies', () => {
+    writeModule();
+    writeSpec();
+    let stdout = '';
+    const write = vi.spyOn(process.stdout, 'write').mockImplementation(((chunk: unknown) => {
+      stdout += String(chunk);
+      return true;
+    }) as never);
+    const exit = vi.spyOn(process, 'exit').mockImplementation((() => undefined as never) as never);
+    try {
+      runOracleCommand('F-001', {cwd: dir});
+      expect(stdout).toContain('When X happens, the system shall do Y.');
+      expect(stdout).toContain('export function foo(a: number): number');
+      expect(stdout).not.toContain('SECRET_BODY_LOGIC');
+      expect(exit).toHaveBeenCalledWith(0);
+    } finally {
+      write.mockRestore();
+      exit.mockRestore();
+    }
+  });
+
   test('builds the AC fields + module paths from the spec', () => {
     writeModule();
     const p = buildBlindPayload(SPEC, 'F-001', undefined, dir)!;
@@ -79,5 +108,28 @@ describe('oracle/payload — clad oracle blind brief', () => {
     const p = buildBlindPayload(SPEC, 'F-001', undefined, dir)!; // no module written
     expect(p.signatures).toHaveLength(0);
     expect(p.acs[0]?.text).toContain('When X happens');
+  });
+
+  test('[covers:F-c4c5ae/AC-006] a declared DIRECTORY module contributes no signatures instead of failing the brief', () => {
+    writeModule();
+    mkdirSync(join(dir, 'src/adapters'), {recursive: true});
+    writeFileSync(join(dir, 'src/adapters/inner.ts'), 'export function hidden(): void {\n  const SECRET_BODY_LOGIC = 1;\n}\n');
+    const spec = {
+      features: [{...(SPEC.features[0] as object), modules: ['src/m.ts', 'src/adapters', 'src/cli/']}],
+    } as unknown as Spec;
+
+    const p = buildBlindPayload(spec, 'F-001', undefined, dir)!;
+
+    // The file module still yields its declarations; neither directory spelling throws.
+    expect(p.signatures.some((s) => s.startsWith('src/m.ts: export function foo'))).toBe(true);
+    expect(p.signatures.filter((s) => s.startsWith('src/adapters') || s.startsWith('src/cli/'))).toEqual([]);
+    // A directory holds no declaration lines, so nothing inside it can reach the author.
+    expect(JSON.stringify(p)).not.toContain('SECRET_BODY_LOGIC');
+    expect(JSON.stringify(p)).not.toContain('hidden');
+    // The offer is still recorded: the author learns the path was on the table.
+    expect(p.readManifest).toEqual([
+      'signatures-of:src/m.ts', 'signatures-of:src/adapters', 'signatures-of:src/cli/', 'spec:acceptance_criteria',
+    ]);
+    expect(renderBlindBrief(p)).toContain('export function foo(a: number): number');
   });
 });

@@ -1,7 +1,5 @@
-# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: manual
 id: F-2f840a6c
-slug: spec-02-validation-findings-refinement
-title: "Spec 0.2 validation findings — evidence refresh and benchmark boundary"
+title: Spec 0.2 validation findings — evidence refresh and benchmark boundary
 status: done
 modules:
   - docs/design/spec-0.2.md
@@ -13,22 +11,31 @@ modules:
   - docs/design/spec-0.2/validation.md
   - scripts/spec-0.2-validate.ts
   - tests/design/spec-0.2/design-validation.test.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-9ea2eae1
-    ears: ubiquitous
-    text: "The accepted design shall distinguish the bounded AB01-AB12 MCP challenger experiment from an optional broader GraphIR generalization study without making either a 0.10.0 release prerequisite."
-    test_refs: ["tests/design/spec-0.2/design-validation.test.ts#keeps bounded MCP and broader GraphIR benchmark claims distinct"]
-    notes: "## Why\nThe validation added a 12-task MCP experiment while older owners still named a 40-task retrieval experiment, leaving their authority and scope ambiguous."
+    statement: The accepted design shall distinguish the bounded AB01-AB12 MCP
+      challenger experiment from an optional broader GraphIR generalization
+      study without making either a 0.10.0 release prerequisite.
+    notes: >-
+      ## Why
+
+      The validation added a 12-task MCP experiment while older owners still
+      named a 40-task retrieval experiment, leaving their authority and scope
+      ambiguous.
   - id: AC-21a9e51f
-    ears: ubiquitous
-    text: "The evidence snapshot shall preserve the earlier partial MCP census while separately recording the current full list-surface bytes, task-profile challenger bytes, graph projection comparison, cadence model, and refreshed routed-document census with explicit measurement scope."
-    test_refs: ["tests/design/spec-0.2/design-validation.test.ts#keeps validation evidence measurements scoped and reproducible"]
+    statement: The evidence snapshot shall preserve the earlier partial MCP census
+      while separately recording the current full list-surface bytes,
+      task-profile challenger bytes, graph projection comparison, cadence model,
+      and refreshed routed-document census with explicit measurement scope.
   - id: AC-3e816b4c
-    ears: ubiquitous
-    text: "The continuation router shall preserve D01-D24 anchors and task routes within a 7.5 KiB operational ratchet while the normative hard ceiling remains 8 KiB."
-    test_refs: ["tests/design/spec-0.2/design-validation.test.ts#keeps each routed design owner below the documented byte ceiling"]
+    statement: The continuation router shall preserve D01-D24 anchors and task
+      routes within a 7.5 KiB operational ratchet while the normative hard
+      ceiling remains 8 KiB.
 design_impact:
   classification: additive
-  rationale: "The refinement reconciles accepted owners and dated evidence without changing the shipped 0.1 runtime or the accepted Spec 0.2 architecture."
+  rationale: The refinement reconciles accepted owners and dated evidence without
+    changing the shipped 0.1 runtime or the accepted Spec 0.2 architecture.
   status: resolved
   artifacts: []

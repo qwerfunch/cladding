@@ -1,4 +1,4 @@
-// Cladding · scan · 14 deterministic convention detectors
+// Cladding · scan · deterministic convention extraction
 //
 // Each detector consumes the full SourceFile[] and emits one
 // {@link Conventions} field. Majority-rule heuristics, no AST, no
@@ -17,7 +17,7 @@ import {sep} from 'node:path';
 import {isJsLike} from './helpers.js';
 import type {Conventions, SourceFile} from './types.js';
 
-/** Aggregates 14 convention signals across the file set. */
+/** Aggregates observed convention fields across the file set. */
 export function extractConventions(files: readonly SourceFile[]): Conventions {
   return {
     indent: detectIndent(files),
@@ -266,7 +266,16 @@ function detectFileHeaderPattern(files: readonly SourceFile[]): string | null {
   if (samples.length === 0) return null;
   const prefixCount = new Map<string, number>();
   for (const s of samples) {
-    const p = s.slice(0, 24);
+    const prefix = s.slice(0, 24);
+    const next = s.at(24) ?? '';
+    const last = prefix.at(-1) ?? '';
+    // Preserve the compact header sample without cutting a lexical token.
+    let p = prefix.trimEnd();
+    if (!/\s/.test(last) && !/\s/.test(next)) {
+      const remainder = s.slice(24);
+      const boundary = remainder.search(/\s/);
+      p = boundary === -1 ? s : `${prefix}${remainder.slice(0, boundary)}`;
+    }
     prefixCount.set(p, (prefixCount.get(p) ?? 0) + 1);
   }
   let best: [string, number] | null = null;

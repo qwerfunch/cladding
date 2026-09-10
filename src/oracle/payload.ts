@@ -11,7 +11,7 @@
 // record of what was on offer. (cladding cannot prove the host's sub-agent saw
 // ONLY this; that is host discipline — see anti-self-cert.)
 
-import {existsSync, readFileSync} from 'node:fs';
+import {readFileSync, statSync} from 'node:fs';
 import {join} from 'node:path';
 
 import type {Spec} from '../spec/types.js';
@@ -36,10 +36,20 @@ export interface OraclePayload {
 
 /** Decl-only export lines for a module file — truncated at the body opener so no
  *  implementation logic can leak. Best-effort (line-based); the AC is the
- *  load-bearing blind input, signatures are an extra. */
+ *  load-bearing blind input, signatures are an extra.
+ *
+ *  A declared module may be a DIRECTORY (`src/cli`, `src/adapters/`), which has no
+ *  declaration lines of its own. It contributes none, and the author still learns it
+ *  was on offer from the `signatures-of:<path>` entry in `readManifest` — the same
+ *  record a file with no exports produces. Anything unreadable is treated the same
+ *  way, so a brief is never traded for a thrown read. */
 function exportDecls(cwd: string, modulePath: string): string[] {
   const abs = join(cwd, modulePath);
-  if (!existsSync(abs)) return [];
+  try {
+    if (!statSync(abs).isFile()) return [];
+  } catch {
+    return [];
+  }
   const out: string[] = [];
   for (const raw of readFileSync(abs, 'utf8').split(/\r?\n/)) {
     const t = raw.trim();

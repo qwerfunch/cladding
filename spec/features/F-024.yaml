@@ -6,12 +6,11 @@ modules:
 depends_on:
   - F-004
   - F-021
+capability_refs: []
 acceptance_criteria:
   - id: AC-036
-    ears: ubiquitous
-    action: delegate coverage measurement to the project's own toolchain
-    response: returns a stage_2.2 StageResult with exitCode mirroring the runner
-    text: The system shall delegate coverage measurement to the project's own
+    statement: The system shall delegate coverage measurement to the project's own
       toolchain (vitest --coverage / coverage.py / cargo llvm-cov / …) and
       return a stage_2.2 result with the runner's exit code.
-    evidence_refs: [self-dogfood:stage:cov]
+    evidence_refs:
+      - self-dogfood:stage:cov

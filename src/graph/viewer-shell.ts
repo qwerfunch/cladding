@@ -14,7 +14,7 @@ import {readFileSync} from 'node:fs';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
-import type {KnowledgeGraph} from './model.js';
+import type {KnowledgeGraph} from './presentation.js';
 import {CODE_COLOR, getTierLegend, TIER_META} from './render.js';
 
 const here = dirname(fileURLToPath(import.meta.url));

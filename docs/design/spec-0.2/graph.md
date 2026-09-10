@@ -6,6 +6,8 @@
 
 ## D17 — Knowledge Graph v2 as compiler IR
 
+> Implementation-cycle trace: `feature:F-208eaa79` is the F8 implementation shard for this accepted D17 contract; D17 remains the normative authority.
+
 ### Primary justification and guarantee boundary
 
 Knowledge Graph v2 is first an internal compiler representation, not an LLM feature. The Spec compiler builds one live graph that supplies:
@@ -67,9 +69,9 @@ Default traversal is relation-aware. Forward prerequisites and reverse dependent
 
 The artifact registry enumerates canonical documents and classifies design/operational contracts, general/legal material, generated output, mirrors, and fixtures. Every canonical document becomes an artifact even when it has no semantic edge. Tier A/B and design/operational-contract documents require an explicit semantic binding; general/legal/generated documents require link integrity only.
 
-When the F5 document/source adapters land, explicit `clad-doc-links` declarations compile to `explains`; organic ids compile to non-authoritative `mentions`; tracked repo-local links compile to `links_to`; and existing `@see spec/features/<shard>.yaml AC-…` comments compile to `traces_to`. Declared references are strict after that cutover even though adding a source reference remains optional. Until then, F1 does not ingest source comments or change Spec 0.1 blocking behavior; the measured broken `@see` set is retained as an F5 negative-control fixture.
+When the F5 document/source adapters land, explicit `clad-doc-links` declarations compile to `explains`; organic ids compile to non-authoritative `mentions`; tracked repo-local links compile to `links_to`; and existing `@see spec/features/<shard>.yaml AC-…` comments compile to `traces_to`. A source reference is optional for each eligible artifact, but every declared carrier is strict after that cutover. Eligibility is limited to a compiler source-role artifact with a non-excluded authority that is a safe regular, non-symlink UTF-8 file. Directory ownership artifacts are inapplicable: the scanner neither reads nor recurses into them, and they do not make the census unknown. Missing, unreadable, invalid-UTF-8, symlinked, and other non-regular non-directory artifacts remain unknown and fail closed. Until then, F1 does not ingest source comments or change Spec 0.1 blocking behavior; the measured broken `@see` set is retained as an F5 negative-control fixture.
 
-`spec/_doc-links.yaml` remains a generated, greppable projection at its current path in 0.10.0. If its format changes to typed addresses, the extractor, writer, `DOC_REFERENCE_INTEGRITY`, GraphIR reader, sync idempotence fixtures, and downgrade/regeneration fixture change in one feature cycle. The file is never a second graph authority.
+`spec/generated/_doc-links.yaml` is the final generated, greppable projection after F11 relocation. If its format changes to typed addresses, the extractor, writer, `DOC_REFERENCE_INTEGRITY`, GraphIR reader, sync idempotence fixtures, and downgrade/regeneration fixture change in one feature cycle. The file is never a second graph authority.
 
 ### Public wire boundary
 

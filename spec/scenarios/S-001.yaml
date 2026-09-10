@@ -1,10 +1,17 @@
 id: S-001
 title: User runs the L1 base-static suite on their project
-flow: Developer installs cladding · invokes the six stage runners
-  (type/lint/drift/commit/arch/secret) on their codebase · receives a one-line
-  JSON StageResult per gate. cladding auto-resolves the project's toolchain so
-  the same six commands work across 9 languages.
-features:
+actor: Developer
+goal: Run Cladding's L1 base-static checks on the project through its detected
+  toolchain.
+success: Type, Lint, Drift, Commit, Architecture, and Secret each return a
+  one-line JSON StageResult and the project receives all six results.
+steps:
+  - Install Cladding in the project.
+  - Invoke the Type, Lint, Drift, Commit, Architecture, and Secret stage runners.
+  - Allow Cladding to detect the project toolchain and delegate each supported
+    check.
+  - Review the one-line JSON StageResult returned by each stage.
+feature_refs:
   - F-001
   - F-002
   - F-003

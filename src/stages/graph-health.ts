@@ -21,8 +21,8 @@ import {statusDrift} from './detectors/status-drift.js';
 import {unmappedArtifact} from './detectors/unmapped-artifact.js';
 import {untestedAc} from './detectors/untested-ac.js';
 import type {DriftDetector, DriftFinding} from './types.js';
-import {nodeId} from '../graph/model.js';
-import type {KnowledgeGraph} from '../graph/model.js';
+import {nodeId} from '../graph/presentation.js';
+import type {KnowledgeGraph} from '../graph/presentation.js';
 import {featureIdRe} from '../spec/feature-id.js';
 import {loadSpec, primeSpecCache} from '../spec/load.js';
 

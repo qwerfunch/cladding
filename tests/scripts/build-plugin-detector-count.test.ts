@@ -19,14 +19,30 @@ import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
 const SCRIPT_PATH = join(process.cwd(), 'scripts', 'build-plugin.mjs');
+const MIRROR_PERSONAS = ['blind-author', 'developer', 'observability', 'orchestrator', 'planner', 'reviewer'];
+const MIRROR_SKILLS = ['changelog', 'check', 'checkpoint', 'clarify', 'doctor', 'init', 'oracle', 'rollback', 'route', 'serve', 'status', 'sync'];
 
 function seedTree(dir: string, detectorCount: number, declaredCurrent: string, declaredTarget: string): void {
-  // Minimum stubs for Phases A-C — empty directories so readdirSync
-  // returns [] and the build phases exit cleanly.
+  // The mirror policy fails closed on canonical inputs, so this fixture seeds
+  // its exact persona/skill manifest rather than relying on old permissive
+  // empty directories.
   mkdirSync(join(dir, 'src', 'agents'), {recursive: true});
   mkdirSync(join(dir, 'skills'), {recursive: true});
+  mkdirSync(join(dir, 'scripts'), {recursive: true});
   mkdirSync(join(dir, 'src', 'stages', 'detectors'), {recursive: true});
   mkdirSync(join(dir, 'plugins', 'claude-code', '.claude-plugin'), {recursive: true});
+  writeFileSync(join(dir, 'src', 'agents', 'README.md'), '# agents\n');
+  writeFileSync(join(dir, 'package.json'), '{"name":"build-plugin-fixture"}\n');
+  writeFileSync(join(dir, 'scripts', 'plugin-mirror-policy.mjs'), '// policy fixture\n');
+  writeFileSync(join(dir, 'scripts', 'build-plugin.mjs'), '// build fixture\n');
+  for (const persona of MIRROR_PERSONAS) {
+    writeFileSync(join(dir, 'src', 'agents', `${persona}.md`), `---\ndescription: ${persona}\n---\n${persona}\n`);
+  }
+  for (const skill of MIRROR_SKILLS) {
+    const skillDir = join(dir, 'skills', skill);
+    mkdirSync(skillDir, {recursive: true});
+    writeFileSync(join(skillDir, 'SKILL.md'), `---\ndescription: ${skill}\n---\n${skill}\n`);
+  }
 
   for (let i = 0; i < detectorCount; i++) {
     writeFileSync(join(dir, 'src', 'stages', 'detectors', `det-${i}.ts`), '// stub\n');
@@ -67,7 +83,7 @@ describe('scripts/build-plugin.mjs · Phase D detector count', () => {
     rmSync(tmp, {recursive: true, force: true});
   });
 
-  test('drift is recomputed to filesystem-truth count', () => {
+  test('[covers:F-098d3b/AC-001] drift is recomputed to filesystem-truth count', () => {
     seedTree(tmp, 7, '5/5', '5/5');
     const out = run(tmp);
     expect(out).toMatch(/detectors: recomputed → 7\/7/);
@@ -78,13 +94,13 @@ describe('scripts/build-plugin.mjs · Phase D detector count', () => {
     expect(manifest.ironclad.target.detectors).toBe('7/7');
   });
 
-  test('idempotent — already-synced manifest produces no rewrite log', () => {
+  test('[covers:F-098d3b/AC-002] idempotent — already-synced manifest produces no rewrite log', () => {
     seedTree(tmp, 4, '4/4', '4/4');
     const out = run(tmp);
     expect(out).toMatch(/detectors: 4\/4 \(already in sync\)/);
   });
 
-  test('does not touch detector keys under unrelated parents', () => {
+  test('[covers:F-098d3b/AC-003] does not touch detector keys under unrelated parents', () => {
     seedTree(tmp, 3, '2/2', '2/2');
     run(tmp);
     const manifest = JSON.parse(

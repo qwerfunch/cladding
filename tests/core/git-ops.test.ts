@@ -137,4 +137,33 @@ describe('core/git-ops — gitOperationInProgress(Name)', () => {
       }
     }
   });
+
+  test('[covers:F-10cc42d1/AC-249b0837] rev-parse protects non-git probes and resolves a linked worktree marker', () => {
+    // A failed rev-parse must degrade to a settled tree rather than make the
+    // guard throw or block normal work.
+    expect(gitOperationInProgress(dir)).toBe(false);
+    expect(gitOperationInProgressName(dir)).toBeNull();
+
+    initRepo(dir);
+    writeFileSync(join(dir, 'seed.txt'), 'x\n');
+    execFileSync('git', ['add', '.'], {cwd: dir});
+    execFileSync('git', ['commit', '-q', '-m', 'seed'], {cwd: dir});
+    const worktree = join(dir, '..', `${dir.split('/').pop()}-proof-worktree`);
+    try {
+      execFileSync('git', ['worktree', 'add', '-q', worktree, '-b', 'proof-worktree'], {cwd: dir});
+      const worktreeGitDir = resolvedGitDir(worktree);
+      // A linked checkout exposes .git as a gitlink file, so only rev-parse
+      // identifies the directory where operation markers actually live.
+      expect(worktreeGitDir).not.toBe(join(worktree, '.git'));
+      writeFileSync(join(worktreeGitDir, 'MERGE_HEAD'), 'abc\n');
+      expect(gitOperationInProgressName(worktree)).toBe('merge');
+      expect(gitOperationInProgress(worktree)).toBe(true);
+    } finally {
+      try {
+        execFileSync('git', ['worktree', 'remove', '--force', worktree], {cwd: dir});
+      } catch {
+        rmSync(worktree, {recursive: true, force: true});
+      }
+    }
+  });
 });

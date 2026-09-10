@@ -1,5 +1,4 @@
 id: F-31eeb8
-slug: scan-bfs-walk
 title: scan BFS walk + entrypoint priority + per-directory soft cap (v0.3.28)
 status: done
 modules:
@@ -7,34 +6,26 @@ modules:
   - src/cli/scan/thresholds.ts
 depends_on:
   - F-aee1da
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: walk directories in breadth-first order so a single large subtree cannot exhaust the maxFiles budget before sibling directories are visited
-    response: 'src/cli/scan.ts replaces the depth-first `function rec(dir)` recursion with a queue-based BFS — directories enter the queue, files in the current directory are admitted before sub-directories are pushed, and siblings at the same depth are visited before descent; the audit (I14) caught react with 1858 files in compiler/ starving packages/ entirely, and the regression test seeds the same shape (60 compiler files + small packages/) to assert both sides surface as layers'
-    text: The system shall walk directories in breadth-first order so a single large subtree cannot exhaust the maxFiles budget before sibling directories are visited.
-    test_refs: [tests/cli/scan.test.ts]
+    statement: The system shall walk directories in breadth-first order so a single
+      large subtree cannot exhaust the maxFiles budget before sibling
+      directories are visited.
   - id: AC-002
-    ears: ubiquitous
-    action: sort each directory file list by entrypoint priority before admitting them under the per-directory soft cap
-    response: 'src/cli/scan.ts walk sorts fileEntries with isEntrypointFile predicate first (index, main, app, server, client, __init__, __main__, lib, mod, doc, Program, Main, App — case-insensitive); ties fall back to localeCompare; ENTRYPOINT_NAMES set covers JS/TS/Python/Rust/Go/Java/Kotlin/C#; the test admits maxFiles=2 from a directory holding aardvark.ts/index.ts/zebra.ts and asserts index.ts made it'
-    text: The system shall sort each directory file list by entrypoint priority before admitting them under the per-directory soft cap so layer identity survives even when the cap truncates the tail.
-    test_refs: [tests/cli/scan.test.ts]
+    statement: The system shall sort each directory file list by entrypoint priority
+      before admitting them under the per-directory soft cap so layer identity
+      survives even when the cap truncates the tail.
   - id: AC-003
-    ears: ubiquitous
-    action: stop admitting files from a single directory once PER_DIR_SOFT_CAP is reached so the budget redistributes
-    response: 'src/cli/scan.ts walk tracks perDirCount inside the directory loop and breaks out when it hits PER_DIR_SOFT_CAP (50); the overall maxFiles ceiling stays the absolute hard cap; the test seeds 75 files in one directory and asserts the resulting layer carries no more than 50 modules'
-    text: The system shall stop admitting files from a single directory once PER_DIR_SOFT_CAP is reached so the budget redistributes across the rest of the project.
-    test_refs: [tests/cli/scan.test.ts]
+    statement: The system shall stop admitting files from a single directory once
+      PER_DIR_SOFT_CAP is reached so the budget redistributes across the rest of
+      the project.
   - id: AC-004
-    ears: ubiquitous
-    action: keep Python __init__.py recognised as an entrypoint
-    response: 'src/cli/scan.ts ENTRYPOINT_NAMES set includes __init__ and __main__ so isEntrypointFile(__init__.py) returns true and the file sorts ahead of siblings; the test seeds aaa.py/__init__.py/zzz.py with maxFiles=2 and asserts dominantLanguage stays python after the admit'
-    text: The system shall keep Python __init__.py recognised as an entrypoint so Python packages do not lose their conventional entry document when the soft cap activates.
-    test_refs: [tests/cli/scan.test.ts]
+    statement: The system shall keep Python __init__.py recognised as an entrypoint
+      so Python packages do not lose their conventional entry document when the
+      soft cap activates.
   - id: AC-005
-    ears: ubiquitous
-    action: keep flat src/ project regression byte-identical
-    response: 'cladding itself has fewer than PER_DIR_SOFT_CAP files per directory and the new BFS walk visits directories in the same order DFS used for small trees (shallow first, alphabetical within depth); the existing flat-src/ regression test and the cladding self-scan smoke produce byte-identical conventions and layer set'
-    text: The system shall keep flat src/ project regression byte-identical so the v0.3.27 dogfood smoke output stays stable when v0.3.28 lands.
-    evidence_refs: [tests/cli/scan.test.ts]
+    statement: The system shall keep flat src/ project regression byte-identical so
+      the v0.3.27 dogfood smoke output stays stable when v0.3.28 lands.
+    evidence_refs:
+      - tests/cli/scan.test.ts

@@ -33,6 +33,9 @@ export interface Identity {
  */
 export type EvidenceKind = 'pass' | 'fail' | 'note' | 'attachment' | 'oracle';
 
+/** Persisted assurance can only be asserted in F5's local signoff path. */
+export type EvidenceAssurance = 'asserted' | 'verified';
+
 /** One audit-log entry. */
 export interface Evidence {
   /** Stable id, ulid- or uuid-shaped. */
@@ -45,6 +48,12 @@ export interface Evidence {
   readonly stage: string;
   readonly identity: Identity;
   readonly kind: EvidenceKind;
+  /**
+   * F5 records local signoffs as asserted. Older JSONL entries deliberately
+   * omit this field; schema 0.2 readers treat that absence as asserted rather
+   * than rewriting historical audit bytes.
+   */
+  readonly assurance?: EvidenceAssurance;
   /** One-line human-readable summary. */
   readonly content: string;
   /** Optional artifact path / hash (e.g. test report). */
@@ -63,6 +72,11 @@ export interface Evidence {
    * host-protocol claim the gate can audit but not prove.
    */
   readonly blind?: boolean;
+}
+
+/** Returns the conservative assurance value for both current and legacy logs. */
+export function evidenceAssurance(evidence: Evidence): EvidenceAssurance {
+  return evidence.assurance ?? 'asserted';
 }
 
 /** Constructor that fills timestamp + a short random id. */

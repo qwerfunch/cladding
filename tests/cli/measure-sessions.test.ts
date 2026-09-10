@@ -46,7 +46,7 @@ afterEach(() => {
 });
 
 describe('clad measure --sessions', () => {
-  test('zero value-delivery events → honest cannot-distinguish message, exit 0 (AC-2dff87ef)', () => {
+  test('[covers:F-6ba22c5c/AC-2dff87ef] zero value-delivery events → honest cannot-distinguish message, exit 0 (AC-2dff87ef)', () => {
     // Only a non-value-delivery event in the ledger → summary.total === 0.
     appendEvent('.', newEvent('gate_run', {tier: 'all'}));
     runMeasureCommand({sessions: true});
@@ -65,7 +65,7 @@ describe('clad measure --sessions', () => {
     expect(exitCalls).toEqual([0]);
   });
 
-  test('a ledger with events → fire rate over eligible + skip histogram + serves + delivery header (AC-c070212c)', () => {
+  test('[covers:F-6ba22c5c/AC-c070212c] a ledger with events → fire rate over eligible + skip histogram + serves + delivery header (AC-c070212c)', () => {
     // 2 fired, skips: 1 owner_miss + 1 trivial_edit (eligible) and an aggregate
     // {not_write_tool:5, unwatched_path:3} (excluded from eligible).
     appendEvent('.', newEvent('impact_card_fired', {file: 'src/a.ts', feature: 'F-1', impacted: 0, tests: 0}));

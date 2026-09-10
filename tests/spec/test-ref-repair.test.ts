@@ -1,11 +1,12 @@
 // Cladding · F-c037ae — test_ref auto-repair + derived: suggestions
 
-import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
 import {repairTestRefs} from '../../src/spec/test-ref-repair.js';
+import {commitSchema01CompatibilityMutation} from '../../src/spec/edit.js';
 
 describe('repairTestRefs (F-c037ae)', () => {
   let dir: string;
@@ -13,13 +14,14 @@ describe('repairTestRefs (F-c037ae)', () => {
     dir = mkdtempSync(join(tmpdir(), 'clad-refrepair-'));
     mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
     mkdirSync(join(dir, 'tests', 'cli'), {recursive: true});
+    writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\n');
   });
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
   const shard = (refsLine: string): string =>
     `id: F-aaaa11\nslug: login-flow\ntitle: t\nstatus: done\nmodules:\n  - src/login.ts\nacceptance_criteria:\n  - id: AC-001\n    ears: ubiquitous\n    text: t\n${refsLine}`;
 
-  test('REPAIR: a moved ref with a unique basename match is rewritten in place, anchor preserved', () => {
+  test('[covers:F-c037ae/AC-07fa86] REPAIR: a moved ref with a unique basename match is rewritten in place, anchor preserved', () => {
     writeFileSync(join(dir, 'tests', 'cli', 'login.test.ts'), 'export {};\n');
     writeFileSync(
       join(dir, 'spec', 'features', 'login-flow-aaaa11.yaml'),
@@ -36,7 +38,7 @@ describe('repairTestRefs (F-c037ae)', () => {
     expect(body).not.toContain('tests/old/');
   });
 
-  test('REPAIR never guesses: two same-basename candidates leave the shard byte-identical', () => {
+  test('[covers:F-c037ae/AC-3e4d09] REPAIR never guesses: two same-basename candidates leave the shard byte-identical', () => {
     mkdirSync(join(dir, 'tests', 'unit'), {recursive: true});
     writeFileSync(join(dir, 'tests', 'cli', 'login.test.ts'), 'export {};\n');
     writeFileSync(join(dir, 'tests', 'unit', 'login.test.ts'), 'export {};\n');
@@ -49,7 +51,7 @@ describe('repairTestRefs (F-c037ae)', () => {
     expect(readFileSync(join(dir, 'spec', 'features', 'login-flow-aaaa11.yaml'), 'utf8')).toBe(original);
   });
 
-  test('SUGGEST: a done AC with no refs gains a derived: candidate matched by slug', () => {
+  test('[covers:F-c037ae/AC-c78837] SUGGEST: a done AC with no refs gains a derived: candidate matched by slug', () => {
     writeFileSync(join(dir, 'tests', 'cli', 'login-flow.test.ts'), 'export {};\n');
     writeFileSync(join(dir, 'spec', 'features', 'login-flow-aaaa11.yaml'), shard(''));
 
@@ -62,7 +64,7 @@ describe('repairTestRefs (F-c037ae)', () => {
     expect(body).toContain('- "derived:tests/cli/login-flow.test.ts"');
   });
 
-  test('resolved refs and non-done features are left byte-identical', () => {
+  test('[covers:F-c037ae/AC-3e4d09] resolved refs and non-done features are left byte-identical', () => {
     writeFileSync(join(dir, 'tests', 'cli', 'login.test.ts'), 'export {};\n');
     const resolved = shard('    test_refs:\n      - "tests/cli/login.test.ts"\n');
     writeFileSync(join(dir, 'spec', 'features', 'login-flow-aaaa11.yaml'), resolved);
@@ -76,6 +78,23 @@ describe('repairTestRefs (F-c037ae)', () => {
     expect(readFileSync(join(dir, 'spec', 'features', 'login-flow-aaaa11.yaml'), 'utf8')).toBe(resolved);
     expect(readFileSync(join(dir, 'spec', 'features', 'other-flow-bbbb22.yaml'), 'utf8')).toBe(planned);
   });
+
+  test('rejects a cooperative same-shard edit that lands after prepare and before commit', () => {
+    writeFileSync(join(dir, 'tests', 'cli', 'login.test.ts'), 'export {};\n');
+    const path = join(dir, 'spec', 'features', 'login-flow-aaaa11.yaml');
+    const original = shard('    test_refs:\n      - "tests/old/login.test.ts"\n');
+    const successor = `${original}owner_note: successor wins\n`;
+    writeFileSync(path, original);
+
+    expect(() => repairTestRefs(dir, {
+      testBeforeCommit: () => commitSchema01CompatibilityMutation(dir, [{
+        path: 'spec/features/login-flow-aaaa11.yaml', before: original, after: successor,
+      }]),
+    })).toThrow(expect.objectContaining({code: 'STALE_INPUT'}));
+    expect(readFileSync(path, 'utf8')).toBe(successor);
+    expect(existsSync(join(dir, '.cladding', 'spec-transaction.json'))).toBe(false);
+    expect(existsSync(join(dir, '.cladding', 'spec-transaction.lock'))).toBe(false);
+  });
 });
 
 // ─── 0.6.0 real-user battery regression (C4.2/C4.3) — the relative-cwd corruption ───
@@ -87,6 +106,7 @@ describe('relative-cwd invocation (battery C4 regression)', () => {
     try {
       mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
       mkdirSync(join(dir, 'tests', 'cli'), {recursive: true});
+      writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\n');
       writeFileSync(join(dir, 'tests', 'cli', 'login.test.ts'), 'export {};\n');
       writeFileSync(
         join(dir, 'spec', 'features', 'login-flow-aaaa11.yaml'),
@@ -117,6 +137,7 @@ describe('relative-cwd invocation (battery C4 regression)', () => {
     try {
       mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
       mkdirSync(join(dir, 'tests', 'cli'), {recursive: true});
+      writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\n');
       writeFileSync(join(dir, 'tests', 'cli', 'pay-flow.test.ts'), 'export {};\n');
       writeFileSync(
         join(dir, 'spec', 'features', 'pay-flow-bbbb22.yaml'),

@@ -11,14 +11,11 @@ depends_on:
   - F-028
   - F-029
   - F-033
+capability_refs: []
 acceptance_criteria:
   - id: AC-069
-    ears: ubiquitous
-    action: extend the conformance runner with 14 additional fixtures covering L2,
-      L3, and L4 stages
-    response: every fixture's signal matches its expected outcome; report.iron_law
-      === 'L4' on full match
-    text: The system shall extend the conformance runner with 14 additional fixtures
-      (L2 ×4, L3 ×6, L4 ×4) and declare iron_law='L4' only when all 26 fixtures
-      match their expected signal.
-    evidence_refs: [self-dogfood:conformance]
+    statement: The system shall extend the conformance runner with 14 additional
+      fixtures (L2 ×4, L3 ×6, L4 ×4) and declare iron_law='L4' only when all 26
+      fixtures match their expected signal.
+    evidence_refs:
+      - self-dogfood:conformance

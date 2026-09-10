@@ -12,7 +12,7 @@
 // Sample fixture is `tests/scenarios/_fixtures/sample-existing-ts/` —
 // 8-source-file TypeScript service shared with the lifecycle suite.
 
-import {afterEach, beforeEach, describe, test, vi} from 'vitest';
+import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 import {fileURLToPath} from 'node:url';
 import {dirname, join} from 'node:path';
 import {mkdirSync, readFileSync, writeFileSync} from 'node:fs';
@@ -54,7 +54,7 @@ const {
   makeStaleReferenceDrift,
   makeArchitectureViolationDrift,
   makeHardcodedSecretDrift,
-  makeUntestedAcDrift,
+  makeUnverifiedCriterionDrift,
 } = await import('./_drift-injection.js');
 const {answerAllQueries} = await import('./_query-bench.js');
 
@@ -83,10 +83,25 @@ describe('A/B · existing-adoption — cladding vs vanilla on a populated TS pro
     stdoutSpy.mockRestore();
   });
 
-  test('M1+M2: both groups deliver — committed report stays deterministic', async () => {
+  test('[covers:F-ae61c1/AC-002][covers:F-ba2e05/AC-002] default refund queries remain backwards-compatible and expose five deterministic benchmark questions', () => {
+    writeUnderCwd(
+      aCwd.path,
+      'spec/features/refund-flow.yaml',
+      'id: F-refund\ntitle: Refund\nstatus: done\nacceptance_criteria:\n  - id: AC-001\n    text: refund\n',
+    );
+    const first = answerAllQueries(aCwd.path);
+    const second = answerAllQueries(aCwd.path);
+    expect(first).toEqual(second);
+    expect(first.map((answer) => answer.questionId)).toEqual(['Q1', 'Q2', 'Q3', 'Q4', 'Q5']);
+    expect(first[0]?.question).toContain('refund flow');
+    expect(first[1]?.question).toContain('refund flow');
+    expect(first.slice(0, 2).every((answer) => answer.answered)).toBe(true);
+  });
+
+  test('[covers:F-ba2e05/AC-004] [covers:F-4db939/AC-005] existing-adoption measures its applicable A/B M1 and M2 outcome matrix', async () => {
     // Heavier than greenfield: copies the 8-source-file fixture into TWO
     // tmpdirs, runs A's init (LLM mock + observed-path onboarding), runs
-    // B's vanilla session, then takes 4 snapshots that each loop the 25
+    // B's vanilla session, then takes four snapshots that each loop the
     // detectors over the tree. ~6s in the full suite; bump beyond default.
     // Both groups start from the same fixture.
     copyFixture('sample-existing-ts', aCwd.path);
@@ -95,7 +110,11 @@ describe('A/B · existing-adoption — cladding vs vanilla on a populated TS pro
     // ── M1 ──────────────────────────────────────────────────────
     // A: cladding init with adoption intent — observed-path onboarding.
     dispatchMock.mockResolvedValueOnce(EXISTING_S2_RESPONSE);
-    await runInit({cwd: aCwd.path, intent: VANILLA_EXISTING_ADOPTION_SESSION.intent});
+    // The M2 steps below hand-author schema 0.1 feature shards and canonicalize
+    // a schema 0.1 architecture, so the case initializes the legacy workspace
+    // explicitly rather than the 0.2 default: a 0.2 root fed 0.1-shaped hand
+    // edits measures the mismatch, not the workflow this case records.
+    await runInit({cwd: aCwd.path, intent: VANILLA_EXISTING_ADOPTION_SESSION.intent, schema: '0.1'});
 
     // B: vanilla developer's first move on an unfamiliar codebase —
     // improve the README. (Files in m1Files overwrite the fixture
@@ -242,7 +261,7 @@ describe('A/B · existing-adoption — cladding vs vanilla on a populated TS pro
       captureDriftCatch(
         aCwd.path,
         'A',
-        makeUntestedAcDrift('spec/features/refund-flow-4db939.yaml', 'AC-003', 'Refunds shall support partial refund amounts.'),
+        makeUnverifiedCriterionDrift('spec/features/refund-flow-4db939.yaml', 'AC-003', 'Refunds shall support partial refund amounts.'),
       ),
     ];
 
@@ -254,6 +273,7 @@ describe('A/B · existing-adoption — cladding vs vanilla on a populated TS pro
 
     const report = renderCaseReport({
       caseTitle: 'existing-adoption',
+      fixture: 'sample-existing-ts',
       intent: VANILLA_EXISTING_ADOPTION_SESSION.intent,
       description: [
         'Existing-adoption case: a populated 8-source-file TypeScript service',

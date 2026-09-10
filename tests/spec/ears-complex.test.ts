@@ -28,6 +28,12 @@ describe('EARS complex pattern (F-9d168287)', () => {
       expect((msg as string).toLowerCase()).toContain('when');
     });
 
+    it('[covers:F-9d168287/AC-39ede515][covers:F-9d168287/AC-7c4353a2] complex requires both while and when clauses with named shape issues', () => {
+      expect(checkEarsShape('complex', 'While precondition holds, when trigger arrives')).toBeNull();
+      expect(checkEarsShape('complex', 'When trigger arrives')?.toLowerCase()).toContain('while');
+      expect(checkEarsShape('complex', 'While precondition holds')?.toLowerCase()).toContain('when');
+    });
+
     it('flags an empty-string condition as invalid', () => {
       const msg = checkEarsShape('complex', '');
       expect(msg).not.toBeNull();
@@ -69,6 +75,14 @@ describe('EARS complex pattern (F-9d168287)', () => {
       expect(checkEarsShape('unwanted', 'if x')).toBeNull();
     });
 
+    it('[covers:F-9d168287/AC-d50b6082] the original five EARS patterns retain their accepted condition forms', () => {
+      expect(checkEarsShape('ubiquitous', '')).toBeNull();
+      expect(checkEarsShape('event', 'when x')).toBeNull();
+      expect(checkEarsShape('state', 'while x')).toBeNull();
+      expect(checkEarsShape('optional', 'where x')).toBeNull();
+      expect(checkEarsShape('unwanted', 'if x')).toBeNull();
+    });
+
     it('undefined pattern: empty valid, non-empty condition invalid', () => {
       expect(checkEarsShape(undefined, '')).toBeNull();
       expect(checkEarsShape(undefined, 'some condition')).not.toBeNull();
@@ -94,7 +108,7 @@ describe('EARS complex pattern (F-9d168287)', () => {
   });
 
   describe('schema-mirror smoke test', () => {
-    it('complex reached the JSON schema enums (at least 2 occurrences)', () => {
+    it('[covers:F-9d168287/AC-76572b2d] complex reached the JSON schema enums (at least 2 occurrences)', () => {
       const raw = readFileSync(new URL('../../src/spec/schema.json', import.meta.url), 'utf8');
       const occurrences = raw.split('"complex"').length - 1;
       expect(occurrences).toBeGreaterThanOrEqual(2);

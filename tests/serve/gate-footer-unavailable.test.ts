@@ -40,7 +40,7 @@ describe('gateFooter — engine fault fails closed, never a fabricated GREEN', (
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('a throwing drift engine yields gate {pass:false, unavailable:true} on a mutating tool result', async () => {
+  test('[covers:F-c6a32fff/AC-c57ea33e] a throwing drift engine yields gate {pass:false, unavailable:true} on a mutating tool result', async () => {
     const server = buildServer({cwd: dir, name: 'cladding-test', version: '0.0.0-test'});
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     const client = new Client({name: 'cladding-test-client', version: '0.0.0-test'});

@@ -1,27 +1,61 @@
 id: F-77a90ac6
-slug: scan-layer-glob-source-root
-title: "clad init --scan writes architecture layer globs that carry the source-root prefix"
+title: clad init --scan writes architecture layer globs that carry the
+  source-root prefix
 status: done
 modules:
   - src/cli/scan/architecture.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-619a6a7b
-    ears: event
-    condition: "when the deterministic scan builds an architecture layer for source files under a source-root subdirectory (e.g. src/api/** under root src)"
-    text: "When extractArchitecture builds a layer for a subdirectory under a source root, the layer's dir — and thus the emitted modules: [\"<dir>/**\"] glob in spec/architecture.yaml — shall be the full cwd-relative path (<root.relPath>/<segment>, e.g. src/api), so the glob matches the layer's real files."
-    test_refs: ["tests/scan/scan-layer-glob-source-root.test.ts"]
-    notes: "## Why\nThe scan derived the layer NAME by dropping the source-root prefix (layerOf returns 'api' for src/api/foo.ts) and then reused that short name as the glob directory (dir: name -> modules: [\"api/**\"]). Real files live under src/api/**, so the emitted glob matched zero files. Confirmed on npm cladding@0.8.1 and current HEAD; verified externally (minimatch(\"src/api/handler.ts\",\"api/**\")=false vs \"src/api/**\"=true). The layer name stays short because the architecture-from-spec detector resolves layers as <mainRoot>/<name>; only the cwd-relative glob needs the prefix. Full repro: scratchpad/uxlang/initbug-repro.md + the shape matrix under /private/tmp/clad-initbug-repro."
+    statement: "When extractArchitecture builds a layer for a subdirectory under a
+      source root, the layer's dir — and thus the emitted modules:
+      [\"<dir>/**\"] glob in spec/architecture.yaml — shall be the full
+      cwd-relative path (<root.relPath>/<segment>, e.g. src/api), so the glob
+      matches the layer's real files."
+    notes: >-
+      ## Why
+
+      The scan derived the layer NAME by dropping the source-root prefix
+      (layerOf returns 'api' for src/api/foo.ts) and then reused that short name
+      as the glob directory (dir: name -> modules: ["api/**"]). Real files live
+      under src/api/**, so the emitted glob matched zero files. Confirmed on npm
+      cladding@0.8.1 and current HEAD; verified externally
+      (minimatch("src/api/handler.ts","api/**")=false vs "src/api/**"=true). The
+      layer name stays short because the architecture-from-spec detector
+      resolves layers as <mainRoot>/<name>; only the cwd-relative glob needs the
+      prefix. Full repro: scratchpad/uxlang/initbug-repro.md + the shape matrix
+      under /private/tmp/clad-initbug-repro.
   - id: AC-974ef7b2
-    ears: unwanted
-    condition: "if a flat project's source files sit directly in the source root (or cwd) with no layer subdirectory, and the _root bucket reaches the promotion threshold"
-    action: "emit no architecture layer for that flat root"
-    response: "spec/architecture.yaml renders layers: [] rather than a bogus layer named after the project directory"
-    text: "If a flat project's files sit directly in the source root with no subdirectory, then extractArchitecture shall emit no architecture layer for them — dropping the _root->basename(cwd) promotion that produced a layer named after the project directory with a <basename>/** glob matching nothing."
-    test_refs: ["tests/scan/scan-layer-glob-source-root.test.ts", "tests/cli/scan.test.ts"]
-    notes: "## Why\ngroupByLayer promotes a flat _root bucket to a layer named basename(resolve(cwd)). The object-form architecture the detector consumes resolves each layer as <mainRoot>/<name>, and no name resolves back to the root itself, so a flat project has no expressible sub-layer. The promoted layer leaked the project directory name into the spec (e.g. name: my-project, modules: [\"my-project/**\"]) and matched nothing. A flat project honestly has zero layers; combined with F-284be4f6 this renders as a schema-valid layers: []. The promoted bucket is identified by re-deriving its files' pre-promotion layer (flat-root files resolve to _root; workspace roots resolve to their workspaceName, so monorepo layers are untouched)."
+    statement: If a flat project has direct source-root files and no subdirectory,
+      then the extractArchitecture function shall emit no architecture layer for
+      them, omit the _root-to-basename(cwd) promotion, and not create a basename
+      glob that matches nothing.
+    kind: behavior
+    notes: >-
+      ## Why
+
+      groupByLayer promotes a flat _root bucket to a layer named
+      basename(resolve(cwd)). The object-form architecture the detector consumes
+      resolves each layer as <mainRoot>/<name>, and no name resolves back to the
+      root itself, so a flat project has no expressible sub-layer. The promoted
+      layer leaked the project directory name into the spec (e.g. name:
+      my-project, modules: ["my-project/**"]) and matched nothing. A flat
+      project honestly has zero layers; combined with F-284be4f6 this renders as
+      a schema-valid layers: []. The promoted bucket is identified by
+      re-deriving its files' pre-promotion layer (flat-root files resolve to
+      _root; workspace roots resolve to their workspaceName, so monorepo layers
+      are untouched).
   - id: AC-5b0d19e1
-    ears: state
-    condition: "while scanning a monorepo whose layers carry workspace-prefixed names"
-    text: "While scanning a workspace/monorepo, the layer name set shall stay unchanged (react, a, a:core) while each layer's glob gains its correct full source-root path (packages/a/src/**, packages/a/src/core/**) — the fix corrects globs without altering which layers are declared."
-    test_refs: ["tests/scan/scan-layer-glob-source-root.test.ts", "tests/cli/scan.test.ts"]
-    notes: "## Why\nRegression guard: the name-based assertions in tests/cli/scan.test.ts (workspace-direct react/scheduler, mixed a/a:core) must keep passing. layerOf is unchanged, so names are identical; only resolveLayerDir supplies the full glob path. Confirms the fix is glob-only for workspace layers and does not drop or rename them."
+    statement: While scanning a workspace/monorepo, the layer name set shall stay
+      unchanged (react, a, a:core) while each layer's glob gains its correct
+      full source-root path (packages/a/src/**, packages/a/src/core/**) — the
+      fix corrects globs without altering which layers are declared.
+    notes: >-
+      ## Why
+
+      Regression guard: the name-based assertions in tests/cli/scan.test.ts
+      (workspace-direct react/scheduler, mixed a/a:core) must keep passing.
+      layerOf is unchanged, so names are identical; only resolveLayerDir
+      supplies the full glob path. Confirms the fix is glob-only for workspace
+      layers and does not drop or rename them.

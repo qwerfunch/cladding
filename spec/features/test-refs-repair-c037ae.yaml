@@ -1,40 +1,48 @@
 id: F-c037ae
-slug: test-refs-repair
-title: "sync auto-repairs stale test_ref paths and suggests derived: candidates — annotation drift stops rejecting correct features"
+title: "sync auto-repairs stale test_ref paths and suggests derived: candidates
+  — annotation drift stops rejecting correct features"
 status: done
 modules:
   - src/spec/test-ref-repair.ts
   - src/stages/detectors/untested-ac.ts
   - src/stages/detectors/missing-tests.ts
   - src/cli/clad.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-07fa86
-    ears: event
-    condition: "when clad sync finds a done AC test_ref whose path no longer resolves but exactly ONE test file with the same basename exists under tests/"
-    action: "rewrite the ref's path part in the shard (anchor preserved) to the unique match"
-    response: "refs that went stale through file moves/renames resolve again and the gate goes legitimately GREEN — the annotation-drift class that falsely rejected 9 correct features disappears"
-    text: "When sync finds a done AC test_ref whose path no longer resolves but exactly one same-basename test file exists under tests/, it shall rewrite the ref's path part (anchor preserved), so move/rename annotation drift self-heals."
-    notes: "## Why\nThe Scale A/B's single biggest cost: the gate refused 9 CORRECT features because ref strings lagged file moves. A WARN downgrade could not fix this — clad done gates on --strict where warn fails (review blocker T2); deterministic auto-repair resolves the ref instead.\n## Decision\nUnique-match only: two candidates with the same basename = ambiguous, no rewrite (repair must never guess)."
-    test_refs:
-      - "tests/spec/test-ref-repair.test.ts#REPAIR: a moved ref with a unique basename match is rewritten in place, anchor preserved"
-  - id: AC-c78837
-    ears: unwanted
-    condition: "if sync discovers a co-located candidate test for a done AC that declares NO test_refs"
-    action: "append it as a 'derived:'-prefixed suggestion that NEVER satisfies MISSING_TESTS and is skipped by UNTESTED_AC resolution; only removing the prefix (author confirmation) makes it count"
-    response: "machine suggestions accelerate annotation without manufacturing evidence — the vacuous-green vector the design review flagged as a blocker stays closed"
-    text: "If sync discovers a candidate test for a done AC with no test_refs, it shall append it as a derived:-prefixed suggestion that never satisfies MISSING_TESTS and is skipped by UNTESTED_AC; only prefix removal makes it count."
-    notes: "## Why\nAuto-linking an existing-but-wrong test would convert 'verification absent' (RED) into fabricated GREEN — exactly the hole UNTESTED_AC guards (review blocker T1). The derived: prefix extends the established self-dogfood:/fixture: provenance convention."
-    test_refs:
-      - "tests/spec/test-ref-repair.test.ts#SUGGEST: a done AC with no refs gains a derived: candidate matched by slug"
-      - "tests/stages/missing-tests.test.ts#an AC whose only test_ref is derived: stays UNVERIFIED, and the message points at confirmation"
-      - "tests/stages/detectors/untested-ac.test.ts#UNTESTED_AC skips derived: refs from resolution (no finding for an unresolvable suggestion)"
-  - id: AC-3e4d09
-    ears: state
-    condition: "while a ref resolves, is ambiguous (multiple same-basename matches), or belongs to a non-done feature"
-    action: "leave the shard byte-for-byte untouched"
-    response: "repair never guesses and never churns shards it has no demand on"
-    text: "While a ref resolves, is ambiguous, or belongs to a non-done feature, sync shall leave the shard untouched, so repair never guesses."
+    statement: When sync finds a done AC test_ref whose path no longer resolves but
+      exactly one same-basename test file exists under tests/, the system shall
+      rewrite the ref's path part (anchor preserved), so move/rename annotation
+      drift self-heals.
+    kind: behavior
+    notes: >-
+      ## Why
 
-    test_refs:
-      - "tests/spec/test-ref-repair.test.ts#REPAIR never guesses: two same-basename candidates leave the shard byte-identical"
-      - "tests/spec/test-ref-repair.test.ts#resolved refs and non-done features are left byte-identical"
+      The Scale A/B's single biggest cost: the gate refused 9 CORRECT features
+      because ref strings lagged file moves. A WARN downgrade could not fix this
+      — clad done gates on --strict where warn fails (review blocker T2);
+      deterministic auto-repair resolves the ref instead.
+
+      ## Decision
+
+      Unique-match only: two candidates with the same basename = ambiguous, no
+      rewrite (repair must never guess).
+  - id: AC-c78837
+    statement: If sync discovers a candidate test for a done AC with no test_refs,
+      then the system shall append it as a derived-prefixed suggestion that does
+      not satisfy MISSING_TESTS or UNTESTED_AC until its prefix is removed.
+    kind: constraint
+    rationale: Prevents derived suggestions from being mistaken for verified tests.
+    notes: >-
+      ## Why
+
+      Auto-linking an existing-but-wrong test would convert 'verification
+      absent' (RED) into fabricated GREEN — exactly the hole UNTESTED_AC guards
+      (review blocker T1). The derived: prefix extends the established
+      self-dogfood:/fixture: provenance convention.
+  - id: AC-3e4d09
+    statement: While a ref is resolved or ambiguous or belongs to a non-done
+      feature, the sync command shall leave the shard untouched so repair never
+      guesses.
+    kind: behavior

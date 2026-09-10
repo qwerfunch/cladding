@@ -1,22 +1,59 @@
 // Cladding · watched-path filter derives from the language SSoT (F-63b989e5)
 //
 // The impact card must fire for EVERY language cladding claims — .tsx included —
-// not just the legacy 5-extension set. `isWatchedSourcePath` is private, so the
-// honest way to test the predicate is to drive `runHookEvent('PostToolUse', …)`
-// and observe the ONE oracle it cannot fake: runDrift is called if and only if
-// the edit passes the watched gate (write tool ∧ isWatchedSourcePath ∧ under
-// cladding ∧ not debounced). We fix the first, third, and fourth conjuncts, so
-// `driftStub` called ⟺ isWatchedSourcePath(path) === true.
+// not just the legacy 5-extension set. The direct predicate proof below keeps
+// this hot-path decision separate from the hook's filesystem-backed card flow;
+// the end-to-end cases still cover that composition.
 //
 // The extension SSoT itself — WATCHED_EXTENSIONS — is imported directly for the
-// membership + import-path pins (AC-2) and the O(1) perf pin (AC-4).
+// membership + import-path pins (AC-2).
 
 import {mkdtempSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {extname, join} from 'node:path';
+import {join} from 'node:path';
 import {performance} from 'node:perf_hooks';
 
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
+
+const fsAccess = vi.hoisted(() => ({
+  existsSync: vi.fn(),
+  mkdirSync: vi.fn(),
+  readFileSync: vi.fn(),
+  rmSync: vi.fn(),
+  statSync: vi.fn(),
+  writeFileSync: vi.fn(),
+}));
+
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+  return {
+    ...actual,
+    existsSync: (...args: Parameters<typeof actual.existsSync>) => {
+      fsAccess.existsSync(...args);
+      return actual.existsSync(...args);
+    },
+    mkdirSync: (...args: Parameters<typeof actual.mkdirSync>) => {
+      fsAccess.mkdirSync(...args);
+      return actual.mkdirSync(...args);
+    },
+    readFileSync: (...args: Parameters<typeof actual.readFileSync>) => {
+      fsAccess.readFileSync(...args);
+      return actual.readFileSync(...args);
+    },
+    rmSync: (...args: Parameters<typeof actual.rmSync>) => {
+      fsAccess.rmSync(...args);
+      return actual.rmSync(...args);
+    },
+    statSync: (...args: Parameters<typeof actual.statSync>) => {
+      fsAccess.statSync(...args);
+      return actual.statSync(...args);
+    },
+    writeFileSync: (...args: Parameters<typeof actual.writeFileSync>) => {
+      fsAccess.writeFileSync(...args);
+      return actual.writeFileSync(...args);
+    },
+  };
+});
 
 import {WATCHED_EXTENSIONS} from '../../src/stages/toolchain/language-config.js';
 
@@ -33,7 +70,7 @@ vi.mock('../../src/stages/drift.js', () => ({runDrift: (...a: unknown[]) => drif
 vi.mock('../../src/stages/arch.js', () => ({runArch: (): StageResult => STAGE_PASS}));
 vi.mock('../../src/stages/secret.js', () => ({runSecret: (): StageResult => STAGE_PASS}));
 
-const {runHookEvent} = await import('../../src/cli/hook.js');
+const {isWatchedSourcePath, runHookEvent} = await import('../../src/cli/hook.js');
 
 let cwd: string;
 
@@ -144,6 +181,10 @@ describe('AC-1 · extension recall (outside src/, so only the extension arm can 
     expect(watched(`pkg/module${ext}`)).toBe(true);
   });
 
+  test('[covers:F-63b989e5/AC-faae7baf] every registered watched extension is accepted outside the src path rule', () => {
+    for (const ext of IN_SET_EXTENSIONS) expect(watched(`pkg/module${ext}`)).toBe(true);
+  });
+
   test('extension match is case-insensitive (extname is lowercased)', () => {
     expect(watched('pkg/App.TSX')).toBe(true);
     expect(watched('pkg/Program.CS')).toBe(true);
@@ -174,6 +215,10 @@ describe('AC-3 · non-source artifacts are NOT watched (outside src/)', () => {
     expect(watched(`config/thing${ext}`)).toBe(false);
   });
 
+  test('[covers:F-63b989e5/AC-25c3a256] configuration and documentation extensions remain outside the watched source set', () => {
+    for (const ext of OUT_OF_SET_EXTENSIONS) expect(watched(`config/thing${ext}`)).toBe(false);
+  });
+
   test('extension-less build/meta files are skipped', () => {
     expect(watched('Dockerfile')).toBe(false);
     expect(watched('.gitignore')).toBe(false);
@@ -190,7 +235,7 @@ describe('AC-3 · non-source artifacts are NOT watched (outside src/)', () => {
 // --- AC-2 (AC-0a3cc0bb) — src/-segment rule preserved + SSoT lives in toolchain ---
 
 describe('AC-2 · the src/-segment rule admits ARBITRARY extensions (pinned current behavior)', () => {
-  test('any path with a src/ segment is watched regardless of extension', () => {
+  test('[covers:F-63b989e5/AC-0a3cc0bb] any path with a src/ segment is watched regardless of extension', () => {
     expect(watched('src/config.json')).toBe(true); // config extension, but under src/
     expect(watched('src/data.yaml')).toBe(true);
     expect(watched('src/notes.md')).toBe(true);
@@ -234,36 +279,46 @@ describe('AC-2 · WATCHED_EXTENSIONS is the single-source table exported from to
 
 // --- AC-4 (AC-7e325488) — synchronous, deterministic, fs-free, O(1) ---
 
-describe('AC-4 · the check is deterministic and O(1) (pure string/set membership)', () => {
-  test('repeated verdicts for the same path are stable (no hidden state)', () => {
-    for (let i = 0; i < 3; i++) {
-      expect(watched('app/page.tsx')).toBe(true);
-      expect(watched('README.md')).toBe(false);
-    }
-  });
+describe('AC-4 · direct watched-path predicate proof', () => {
+  test('[covers:F-63b989e5/AC-7e325488] actual predicate is deterministic, synchronous, fs-free, and constant-time for source and artifact paths', () => {
+    // Clear setup/card-flow writes so every observed access below would originate
+    // in the predicate itself.
+    fsAccess.existsSync.mockClear();
+    fsAccess.mkdirSync.mockClear();
+    fsAccess.readFileSync.mockClear();
+    fsAccess.rmSync.mockClear();
+    fsAccess.statSync.mockClear();
+    fsAccess.writeFileSync.mockClear();
 
-  test('10k SSoT membership checks run well under 50ms (no fs, no per-call rebuild)', () => {
-    // isWatchedSourcePath is private, so this pins the O(1)-ness of the exact
-    // surface it is composed of: the frozen src/ regex + the exported set. The
-    // ACTUAL function's determinism is pinned above via the hook drive.
-    const srcRule = /(^|[\\/])src[\\/]/;
-    const check = (p: string): boolean =>
-      p.length > 0 && (srcRule.test(p) || WATCHED_EXTENSIONS.has(extname(p).toLowerCase()));
-    const paths = [
-      'app/page.tsx',
-      'core/src/main/kotlin/App.kt',
-      'README.md',
-      'pkg/user.rb',
-      'build.gradle',
-      'MyApp/Program.cs',
+    const cases: ReadonlyArray<readonly [string, boolean]> = [
+      ['app/page.tsx', true],
+      ['core/src/main/kotlin/App.kt', true],
+      ['src/config.json', true],
+      ['README.md', false],
+      ['build.gradle', false],
+      ['', false],
     ];
-    for (let i = 0; i < 1000; i++) check(paths[i % paths.length]); // warm the JIT
-    let hits = 0;
+    for (const [filePath, expected] of cases) {
+      expect(isWatchedSourcePath(filePath)).toBe(expected);
+      expect(isWatchedSourcePath(filePath)).toBe(expected);
+    }
+
+    const paths = cases.map(([filePath]) => filePath);
+    for (let i = 0; i < 1000; i++) isWatchedSourcePath(paths[i % paths.length]);
+    let watchedCount = 0;
     const start = performance.now();
-    for (let i = 0; i < 10_000; i++) if (check(paths[i % paths.length])) hits++;
-    const elapsed = performance.now() - start;
-    expect(hits).toBeGreaterThan(0); // guard against dead-code elimination
-    expect(elapsed).toBeLessThan(50);
+    for (let i = 0; i < 10_000; i++) {
+      if (isWatchedSourcePath(paths[i % paths.length])) watchedCount++;
+    }
+    expect(watchedCount).toBeGreaterThan(0);
+    expect(performance.now() - start).toBeLessThan(50);
+
+    expect(fsAccess.existsSync).not.toHaveBeenCalled();
+    expect(fsAccess.mkdirSync).not.toHaveBeenCalled();
+    expect(fsAccess.readFileSync).not.toHaveBeenCalled();
+    expect(fsAccess.rmSync).not.toHaveBeenCalled();
+    expect(fsAccess.statSync).not.toHaveBeenCalled();
+    expect(fsAccess.writeFileSync).not.toHaveBeenCalled();
   });
 });
 

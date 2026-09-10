@@ -21,9 +21,6 @@ export interface SkipViolation {
 }
 
 /** Stages this policy can demand, in pipeline order. */
-// stage_2.4 retired here (F-c') — the smoke demand moved to the pure
-// SMOKE_PROBE_DEMAND detector (stage_1.3), the SOLE owner, so it fires on every
-// drift tier rather than only under --strict skip-policy.
 const DEMANDABLE = ['stage_1.1', 'stage_2.1', 'stage_2.3'] as const;
 type Demandable = (typeof DEMANDABLE)[number];
 

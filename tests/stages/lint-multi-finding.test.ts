@@ -20,7 +20,7 @@ const execaMod = await import('execa');
 const execaSyncMock = execaMod.execaSync as unknown as ReturnType<typeof vi.fn>;
 
 describe('F-4643d99d — check-only formatter lint findings', () => {
-  test('AC-7b620bf4 — dart `Changed <path>` lines → one finding per file, each with a path', () => {
+  test('[covers:F-4643d99d/AC-7b620bf4] AC-7b620bf4 — dart `Changed <path>` lines → one finding per file, each with a path', () => {
     const out = [
       'Changed lib/a.dart',
       'Changed lib/nested/b.dart',
@@ -33,7 +33,7 @@ describe('F-4643d99d — check-only formatter lint findings', () => {
     expect(findings.every((f) => f.detector === 'LINT' && f.severity === 'error')).toBe(true);
   });
 
-  test('AC-83a47b38 — an unstructured formatter failure keeps ONE raw-tail synthetic finding', () => {
+  test('[covers:F-4643d99d/AC-83a47b38] AC-83a47b38 — an unstructured formatter failure keeps ONE raw-tail synthetic finding', () => {
     const findings = parseToolFindings('lint', 'panic: could not run formatter\n  at main', '', 1);
     expect(findings).toHaveLength(1);
     expect(findings[0].detector).toBe('LINT');
@@ -54,7 +54,7 @@ describe('F-4643d99d — check-only formatter lint findings', () => {
     });
     afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
-    test('dart format failure → hint `dart format .` and every dirty file listed', () => {
+    test('[covers:F-4643d99d/AC-6c16b63e] dart format failure → hint `dart format .` and every dirty file listed', () => {
       execaSyncMock.mockReturnValue({
         exitCode: 1,
         stdout: 'Changed lib/a.dart\nChanged lib/b.dart\nFormatted 5 files (2 changed).',

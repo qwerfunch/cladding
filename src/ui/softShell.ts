@@ -1,33 +1,16 @@
 // Cladding · UI · Soft Shell formatter
 //
 // Per `ironclad-design/03-ux-routing.md` §1.2-1.3 (Iron Core vs Soft
-// Shell boundary), internal identifiers (`F-NNN`, `AC-NNN`, stage IDs,
-// halt-class enum values) must not leak into user-facing output by
-// default. The audit log retains them verbatim for replay and forensic
-// use; the user surface sees business language.
+// Shell boundary), internal identifiers (`F-NNN`, `AC-NNN`, stage IDs)
+// must not leak into user-facing output by default. The audit log
+// retains them verbatim for replay and forensic use; the user surface
+// sees business language.
 //
 // This module is the single conversion layer. Anywhere the CLI prints
 // to a user, route the value through one of these functions first.
 // Anywhere the audit log records evidence, keep the internal id raw.
 
-import type {HaltReason} from '../drive/halt.js';
 import type {Spec} from '../spec/types.js';
-
-const HALT_MESSAGES: Readonly<Record<HaltReason['class'], string>> = {
-  ALL_FEATURES_DONE: 'All work complete.',
-  MAX_ITERATIONS: 'Stopped — reached the iteration limit.',
-  WALL_CLOCK: 'Stopped — exceeded the time budget.',
-  BUDGET_EXCEEDED: 'Stopped — budget exhausted.',
-  BLOCKED_FEATURE: 'Stopped — a feature is blocked by dependencies.',
-  RETRY_THRESHOLD: 'Stopped — a feature failed too many times.',
-  GATE_NO_PROGRESS: 'Stopped — gates are not making progress.',
-  HUMAN_REQUIRED: 'Paused — needs human sign-off.',
-  TRANSPORT_AUTH_FAILED: 'Stopped — agent rejected the credentials. Check your API key.',
-  TRANSPORT_RATE_LIMITED: 'Stopped — agent is rate-limited. Try again after the cooldown.',
-  TRANSPORT_NETWORK: 'Stopped — could not reach the agent over the network.',
-  LLM_UNAVAILABLE: 'Stopped — could not reach the agent.',
-  UNCAUGHT_ERROR: 'Stopped — unexpected error.',
-};
 
 const GATE_LABELS: Readonly<Record<string, string>> = {
   'stage_1.1': 'Type',
@@ -66,25 +49,6 @@ export function featureLabel(featureId: string, spec: Spec): string {
 }
 
 /**
- * Converts a `HaltReason` into a plain user-facing sentence.
- *
- * The internal enum (`HUMAN_REQUIRED`, `LLM_UNAVAILABLE`, …) stays in
- * the audit log; the user sees a sentence. When the halt detail field
- * starts with a known feature id, the id is rewritten to the feature's
- * business title for the user-facing string.
- *
- * @param halt - The internal halt reason.
- * @param spec - The loaded spec, used for id-to-title translation.
- * @returns A user-readable sentence.
- * @see drive/halt.ts — the closed halt-class enum this maps from.
- */
-export function haltMessage(halt: HaltReason, spec: Spec): string {
-  const base = HALT_MESSAGES[halt.class] ?? 'Stopped.';
-  const detail = translateFeatureIdsInDetail(halt.detail, spec);
-  return detail ? `${base} ${detail}` : base;
-}
-
-/**
  * Returns the user-facing label for an Iron Law stage id.
  *
  * @param stageId - Internal stage id, e.g. `stage_1.3`.
@@ -95,21 +59,18 @@ export function gateLabel(stageId: string): string {
 }
 
 /**
- * Rewrites any `F-NNN` token in a detail string to its feature title.
+ * Returns the canonical human-facing handoff after onboarding has completed.
  *
- * Halt detail strings are produced by the drive loop in internal form
- * (e.g. `F-042 retried 3 times`). We translate the id portion so the
- * user-facing line reads `"Login flow" retried 3 times` instead. The
- * rest of the string passes through unchanged.
+ * @returns Plain completion guidance shared by CLI and MCP onboarding surfaces.
+ * @see spec/features/natural-language-init-0f4dd6.yaml AC-015 / AC-36fea3e9
  */
-function translateFeatureIdsInDetail(detail: string, spec: Spec): string {
-  if (!detail) return '';
-  // Match legacy sequential ids (F-NNN) AND the v0.3.9+ hash model (F-<6-8 hex>),
-  // so a hash-id feature title translates in halt detail strings too.
-  return detail.replace(/\bF-(?:[0-9a-f]{6,8}|\d{3,})\b/g, (id) => {
-    const title = featureLabel(id, spec);
-    return title === id ? id : `"${title}"`;
-  });
+export function onboardingCompletionMessage(): string {
+  return [
+    'Onboarding complete. Ordinary natural-language development may continue.',
+    "Next: author your first feature's spec — its acceptance criteria (the testable promises) and the files it will cover — before writing code.",
+    'Run `clad check` on demand when you want to verify work.',
+    'Git hooks and CI enforcement are opt-in and not enabled automatically.',
+  ].join('\n');
 }
 
 // ─── Plain-first finding render (F-dd8dc994, F-9af291fa) ───────────────
@@ -153,7 +114,7 @@ export const DETECTOR_PLAIN: Readonly<Record<string, PlainEntry>> = {
   HARNESS_INTEGRITY: {lead: 'The cladding setup is inconsistent — a version or count does not match across its files'},
   META_INTEGRITY: {lead: 'The spec schema files are missing or malformed', action: 'restore spec/schema.json (reinstall cladding if needed)'},
   AC_DRIFT: {lead: 'An acceptance criterion is incomplete or out of sync with the spec', action: 'write the criterion text or its when/shall/so-that fields'},
-  MISSING_TESTS: {lead: 'A finished feature has an acceptance criterion with nothing proving it works', action: 'add a test file or evidence reference to the criterion'},
+  MISSING_TESTS: {lead: 'A finished feature has an acceptance criterion with nothing proving it works', action: 'start the verifying test title with `[covers:<feature id>/<criterion id>]` on schema 0.2, or add a test file or evidence reference on schema 0.1'},
   STALE_TESTS: {lead: 'The tests are much older than the code they cover, so they may no longer match', action: 'review and refresh the outdated tests'},
   COVERAGE_DROP: {lead: 'Test coverage fell below the project minimum', action: 'add tests until coverage clears the floor'},
   PERFORMANCE_DRIFT: {lead: 'A measured performance number is noticeably worse than the saved baseline', action: 'investigate the slowdown or update the baseline'},
@@ -205,6 +166,26 @@ export function plainLead(detector: string, fallback = ''): string {
 }
 
 /**
+ * Normalizes a machine path for a finding tail without touching the filesystem
+ * or interpreting a user locale. It removes presentation-only segments while
+ * retaining an unresolved leading traversal for the caller to diagnose.
+ *
+ * @param path - Optional raw machine path from a finding projection.
+ * @returns A normalized presentation path, or `undefined` when no segment remains.
+ * @see spec/features/plain-first-finding-render-dd8dc994.yaml AC-263adf79
+ */
+export function normalizedFindingPath(path: string | undefined): string | undefined {
+  if (!path) return undefined;
+  const parts: string[] = [];
+  for (const part of path.replaceAll('\\', '/').split('/')) {
+    if (!part || part === '.') continue;
+    if (part === '..' && parts.length > 0 && parts[parts.length - 1] !== '..') parts.pop();
+    else parts.push(part);
+  }
+  return parts.join('/') || undefined;
+}
+
+/**
  * Renders one finding plain-first as `<lead> (<detector> · <path>)`: the plain
  * sentence leads, and the machine detail (detector id + path) is demoted to the
  * parenthetical tail (AC-263adf79). The parameter is structural so it accepts a
@@ -214,7 +195,8 @@ export function plainLead(detector: string, fallback = ''): string {
  */
 export function plainFinding(f: {readonly detector: string; readonly path?: string; readonly message: string}): string {
   const lead = plainLead(f.detector, f.message);
-  const where = f.path ? ` · ${f.path}` : '';
+  const path = normalizedFindingPath(f.path);
+  const where = path ? ` · ${path}` : '';
   return `${lead} (${f.detector}${where})`;
 }
 
@@ -254,4 +236,32 @@ export function doneRefusalLead(): string {
  */
 export function doneSelfCertRefusalLead(): string {
   return 'the checks passed, but this feature has no independent or human review yet — this project asks for one before completion';
+}
+
+/**
+ * The plain sentences a schema 0.2 gate prints for every criterion that no test
+ * claims. A criterion is bound to its proof only by a covers token at the very
+ * start of a test title, so an `unbound` row has exactly one cure and the gate
+ * says it in place — with the real address inside the token, ready to paste.
+ * Rows for any other state or reason produce nothing.
+ */
+export function unboundCriterionGuidance(
+  rows: readonly {
+    readonly subject: string;
+    readonly state: string;
+    readonly reason?: string;
+  }[],
+): readonly string[] {
+  const seen = new Set<string>();
+  const lines: string[] = [];
+  for (const row of rows) {
+    if (row.state !== 'unobserved' || row.reason !== 'unbound') continue;
+    const address = row.subject.startsWith('criterion:')
+      ? row.subject.slice('criterion:'.length)
+      : row.subject;
+    if (seen.has(address)) continue;
+    seen.add(address);
+    lines.push(`no test claims this criterion — start a test title with \`[covers:${address}]\``);
+  }
+  return lines;
 }

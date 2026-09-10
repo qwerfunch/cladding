@@ -13,6 +13,7 @@
 
 import {build} from 'esbuild';
 import {chmodSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
 
 const banner = `#!/usr/bin/env node
 import {createRequire as __claddingCreateRequire} from 'node:module';
@@ -52,7 +53,7 @@ copyFileSync('src/spec/schema.json', 'dist/schema.json');
 // Copy the persona prompts next to the bundle so the agent loader
 // (loadPersona → resolveAgentPath) finds them on a real npm install — the
 // bundle's `__dirname` is `dist/`, so personas must live at `dist/agents/<id>.md`.
-// Without this, `clad run` and the MCP persona prompts crashed (the build only
+// Without this, the MCP persona prompts crashed (the build only
 // shipped personas under plugins/, never next to the bundle).
 mkdirSync('dist/agents', {recursive: true});
 // Sweep stale personas from earlier builds first (e.g. the pre-0.6.0
@@ -95,6 +96,9 @@ copyFileSync('src/graph/viewer/styles.css', 'dist/viewer/styles.css');
 const viewerCount = 2;
 
 chmodSync('dist/clad.js', 0o755);
+// The parser adapter must remain bundled without a runtime devDependency.
+// Exercise the generated entrypoint before a plugin mirror can copy it.
+execFileSync(process.execPath, ['dist/clad.js', '--help'], {stdio: 'ignore'});
 console.log(
   `cladding: built dist/clad.js + dist/schema.json + ${personaCount} personas → dist/agents/ + ${viewerCount} viewer asset(s) → dist/viewer/`,
 );

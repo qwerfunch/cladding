@@ -1,38 +1,43 @@
 id: F-39609db4
-slug: measure-ledger
-title: "clad measure results persist to a deduped ledger with trend deltas"
+title: clad measure results persist to a deduped ledger with trend deltas
 status: done
 modules:
   - src/optimizer/measure-ledger.ts
   - src/cli/clad.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-259fba59
-    ears: event
-    condition: "when clad measure completes a successful efficiency report"
-    text: "When clad measure completes, the system shall append one summary snapshot line (timestamp, git head, spec digest, featureCount, context, search, stability aggregates — never per-feature rows) to .cladding/measure.jsonl via appendMeasureSnapshot in src/optimizer/measure-ledger.ts."
-    notes: "WHY: measure numbers currently evaporate on stdout — the README 4× claim went stale precisely because no re-derivable record existed."
-    test_refs: [tests/optimizer/measure-ledger.test.ts]
+    statement: When clad measure completes, the system shall append one summary
+      snapshot line (timestamp, git head, spec digest, featureCount, context,
+      search, stability aggregates — never per-feature rows) to
+      .cladding/measure.jsonl via appendMeasureSnapshot in
+      src/optimizer/measure-ledger.ts.
+    notes: "WHY: measure numbers currently evaporate on stdout — the README 4× claim
+      went stale precisely because no re-derivable record existed."
   - id: AC-cf43f71c
-    ears: unwanted
-    condition: "if the latest snapshot in the ledger carries an identical git head and spec digest pair"
-    text: "If the newest snapshot matches the current (head, spec_digest), then the system shall skip the append so repeated runs on an unchanged tree add zero lines."
-    notes: "WHY: gate_run dedupe precedent — a ledger of duplicates is noise, not evidence."
-    test_refs: [tests/optimizer/measure-ledger.test.ts]
+    statement: If the newest snapshot matches the current (head, spec_digest), then
+      the system shall skip the append so repeated runs on an unchanged tree add
+      zero lines.
+    notes: "WHY: gate_run dedupe precedent — a ledger of duplicates is noise, not
+      evidence."
   - id: AC-2c4f07d8
-    ears: unwanted
-    condition: "if the snapshot append fails because the directory is unwritable or the ledger is malformed"
-    text: "If persistence fails, then clad measure shall still print its report and exit 0 — the ledger observes the command and never breaks it."
+    statement: If persistence fails, then the clad measure command shall print its
+      report, exit 0, and leave the ledger as an observer rather than a command
+      failure source.
+    kind: behavior
     notes: "WHY: recordEvent best-effort contract."
-    test_refs: [tests/optimizer/measure-ledger.test.ts]
   - id: AC-cbd294d4
-    ears: event
-    condition: "when clad measure --trend runs with at least 2 snapshots present"
-    text: "When --trend runs with ≥2 snapshots, the system shall render the last N (default 5) snapshots with signed deltas for median slice tokens, median structural ratio, median coverage, p95 depth, and truncated count, showing featureCount per row, and shall carry the deterministic-upper-bound disclaimer verbatim."
-    notes: "WHY: trend without the disclaimer becomes the stale-claim factory this feature exists to prevent; featureCount contextualizes confounded deltas."
-    test_refs: [tests/optimizer/measure-ledger.test.ts, tests/cli/measure-trend.test.ts]
+    statement: When --trend runs with at least 2 snapshots, the measure command
+      shall render the last N snapshots with default 5 and signed deltas for
+      median slice tokens, median structural ratio, median coverage, p95 depth,
+      and truncated count, show featureCount per row, and carry the
+      deterministic-upper-bound disclaimer verbatim.
+    kind: behavior
+    notes: "WHY: trend without the disclaimer becomes the stale-claim factory this
+      feature exists to prevent; featureCount contextualizes confounded deltas."
   - id: AC-220944e2
-    ears: unwanted
-    condition: "if .cladding/measure.jsonl is absent or holds fewer than 2 snapshots"
-    text: "If there is no trend to render, then clad measure --trend shall state how many snapshots exist and exit 0, never fabricating a delta."
+    statement: If there is no trend to render, then the clad measure --trend command
+      shall state how many snapshots exist, exit 0, and not fabricate a delta.
+    kind: behavior
     notes: "WHY: absence must render as absence."
-    test_refs: [tests/cli/measure-trend.test.ts]

@@ -6,22 +6,23 @@ modules:
   - src/stages/uat.ts
 depends_on:
   - F-032
+capability_refs: []
 acceptance_criteria:
   - id: AC-051
-    ears: ubiquitous
-    action: invoke the anti-self-cert guard over every AC mentioned in the audit log
-    response: returns a stage_4.1 StageResult; missing audit log → exitCode 2 (skipped)
-    text: The system shall invoke the anti-self-cert guard over every AC mentioned
-      in the audit log and return a stage_4.1 result. When no audit log is
-      present the stage is treated as skipped.
-    evidence_refs: [fixture:F-033_AC-051]
+    statement: When Audit applies to a criterion, the assurance kernel shall clear
+      it only with a current verified human Audit receipt for that exact
+      criterion and its required checks.
+    kind: behavior
+    notes: >
+      ## Historical schema-0.1 note
 
+      The missing-audit-log skipped stage result is historical, not current
+      proof.
   - id: AC-052
-    ears: ubiquitous
-    action: verify every status=done feature carries at least one human-authored
-      kind=pass evidence
-    response: returns a stage_4.2 StageResult listing features that fail UAT
-    text: The system shall verify that every feature with status='done' carries at
-      least one human-authored kind='pass' evidence entry, returning a stage_4.2
-      result listing features that fail UAT.
-    evidence_refs: [fixture:F-033_AC-052]
+    statement: When UAT applies to a feature, the assurance kernel shall require a
+      current verified human feature receipt whose signed criterion matrix
+      enumerates every current composite criterion address.
+    kind: behavior
+    notes: |
+      ## Historical schema-0.1 note
+      A generic human-authored pass entry is historical, not a verified receipt.

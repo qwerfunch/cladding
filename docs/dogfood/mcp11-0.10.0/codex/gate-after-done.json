@@ -1,0 +1,476 @@
+{
+  "tier": "pre-push",
+  "profile": "push",
+  "requested_assurance_level": "L4",
+  "configured_assurance_level": "L4",
+  "achieved_assurance_level": "L4",
+  "scope_sha256": "66f7f6301ab195d5cedf5c27b000c3b05a521bb494e9862612ece2c837aefc53",
+  "input_sha256": "7b228c7c3eb604de04338dc84d67bdc64fc705e82a102f38374b2def51ac0263",
+  "profile_complete": true,
+  "obligations": [
+    {
+      "obligation": "stage_1.1",
+      "subject": "feature:F-032b6453",
+      "state": "pass",
+      "source_strictness": "hard",
+      "blocking": "hard",
+      "observation_identities": [
+        "360dc8475fd73ca108234082d4305cd87b087f87d717cbdc47a8ad2b3bfb5c32"
+      ]
+    },
+    {
+      "obligation": "stage_1.2",
+      "subject": "feature:F-032b6453",
+      "state": "pass",
+      "source_strictness": "hard",
+      "blocking": "hard",
+      "observation_identities": [
+        "e9c3ae842eca1f194514d581cb29c4411b9bf77171abecdee0d0e9a75b4f833a"
+      ]
+    },
+    {
+      "obligation": "stage_1.3",
+      "subject": "feature:F-032b6453",
+      "state": "pass",
+      "source_strictness": "hard",
+      "blocking": "hard",
+      "observation_identities": [
+        "93d3624ddc17ddd32606678d18a70b28bea7994d04151183093d092bff95359e"
+      ]
+    },
+    {
+      "obligation": "stage_1.5",
+      "subject": "feature:F-032b6453",
+      "state": "pass",
+      "source_strictness": "hard",
+      "blocking": "hard",
+      "observation_identities": [
+        "c764f377abb9781c13a4b0487542758ec1f78186fa17e49f63ad4ad985322a8d"
+      ]
+    },
+    {
+      "obligation": "stage_1.6",
+      "subject": "feature:F-032b6453",
+      "state": "pass",
+      "source_strictness": "hard",
+      "blocking": "hard",
+      "observation_identities": [
+        "9dcb8a6b0d7978fd2934738b58699456a99e09bdcf25e27c73c00ac70f59ef41"
+      ]
+    },
+    {
+      "obligation": "stage_2.1",
+      "subject": "criterion:F-032b6453/AC-e435a582",
+      "state": "pass",
+      "source_strictness": "hard",
+      "blocking": "hard",
+      "observation_identities": [
+        "f0a201def13f24ad09746d98aaeb1b6e3dbfa3a100f1957a4514b87a20b8a860"
+      ]
+    },
+    {
+      "obligation": "stage_2.1",
+      "subject": "scope:66f7f6301ab195d5cedf5c27b000c3b05a521bb494e9862612ece2c837aefc53",
+      "state": "pass",
+      "source_strictness": "hard",
+      "blocking": "hard",
+      "observation_identities": [
+        "7aa7f5695d512af328f84893f42c4ef46b933ec7eeb7bef441788cff17d4d634"
+      ]
+    },
+    {
+      "obligation": "stage_2.2",
+      "subject": "criterion:F-032b6453/AC-e435a582",
+      "state": "pass",
+      "source_strictness": "report",
+      "blocking": "hard",
+      "observation_identities": [
+        "850c0a90f18e31f89a9627af1c8805b3ddf6d4599b93573ba882f69305526f8b"
+      ]
+    },
+    {
+      "obligation": "stage_2.2",
+      "subject": "scope:66f7f6301ab195d5cedf5c27b000c3b05a521bb494e9862612ece2c837aefc53",
+      "state": "pass",
+      "source_strictness": "report",
+      "blocking": "hard",
+      "observation_identities": [
+        "b5551bcd631922d73f5f206cfb8a79821e846633dc78cab7fce004a443969c3d"
+      ]
+    },
+    {
+      "obligation": "stage_2.3",
+      "subject": "scope:66f7f6301ab195d5cedf5c27b000c3b05a521bb494e9862612ece2c837aefc53",
+      "state": "na",
+      "source_strictness": "hard",
+      "blocking": "hard",
+      "observation_identities": []
+    },
+    {
+      "obligation": "stage_2.4",
+      "subject": "feature:F-032b6453",
+      "state": "na",
+      "source_strictness": "hard",
+      "blocking": "hard",
+      "observation_identities": []
+    },
+    {
+      "obligation": "stage_3.1",
+      "subject": "feature:F-032b6453",
+      "state": "pass",
+      "source_strictness": "hard",
+      "blocking": "hard",
+      "observation_identities": [
+        "90ab9e5d7abab049f21152e87dd9c1630ccd805a08ccf3929be50d240b41bac1"
+      ]
+    },
+    {
+      "obligation": "stage_3.2",
+      "subject": "feature:F-032b6453",
+      "state": "pass",
+      "source_strictness": "report",
+      "blocking": "hard",
+      "observation_identities": [
+        "381ba8d992988381c8dad05c666b85ef8a742d214a99bbcea4705d66002bb576"
+      ]
+    },
+    {
+      "obligation": "stage_3.3",
+      "subject": "feature:F-032b6453",
+      "state": "pass",
+      "source_strictness": "hard",
+      "blocking": "hard",
+      "observation_identities": [
+        "e8096384ff49e2722d487875dffeb7bf24e4f9e3a850bec9fb8ea834d9f8c513"
+      ]
+    },
+    {
+      "obligation": "stage_4.1",
+      "subject": "criterion:F-032b6453/AC-e435a582",
+      "state": "pass",
+      "source_strictness": "hard",
+      "blocking": "hard",
+      "observation_identities": [
+        "3739dbbca519907c0a5b967250adbc3f6001a087a4c8f882ed4ba344942e37e3"
+      ]
+    },
+    {
+      "obligation": "stage_4.2",
+      "subject": "criterion:F-032b6453/AC-e435a582",
+      "state": "pass",
+      "source_strictness": "hard",
+      "blocking": "hard",
+      "observation_identities": [
+        "930fe3d340e6d2078406d5a403e811e9c6cff8772c0197f8436d01aef2a88537"
+      ]
+    }
+  ],
+  "incomplete_addresses": [],
+  "independence": "self-certified",
+  "attestation_freshness": [
+    {
+      "feature": "F-032b6453",
+      "state": "stale",
+      "field": "profile"
+    }
+  ],
+  "assurance": {
+    "profile": "push",
+    "assurance_level": "L4",
+    "configured_assurance_level": "L4",
+    "achieved_assurance_level": "L4",
+    "scope_sha256": "66f7f6301ab195d5cedf5c27b000c3b05a521bb494e9862612ece2c837aefc53",
+    "input_sha256": "7b228c7c3eb604de04338dc84d67bdc64fc705e82a102f38374b2def51ac0263",
+    "state": "green",
+    "profile_complete": true,
+    "results": [
+      {
+        "obligation": "stage_1.1",
+        "subject": "feature:F-032b6453",
+        "state": "pass",
+        "source_strictness": "hard",
+        "blocking": "hard",
+        "observation_identities": [
+          "360dc8475fd73ca108234082d4305cd87b087f87d717cbdc47a8ad2b3bfb5c32"
+        ]
+      },
+      {
+        "obligation": "stage_1.2",
+        "subject": "feature:F-032b6453",
+        "state": "pass",
+        "source_strictness": "hard",
+        "blocking": "hard",
+        "observation_identities": [
+          "e9c3ae842eca1f194514d581cb29c4411b9bf77171abecdee0d0e9a75b4f833a"
+        ]
+      },
+      {
+        "obligation": "stage_1.3",
+        "subject": "feature:F-032b6453",
+        "state": "pass",
+        "source_strictness": "hard",
+        "blocking": "hard",
+        "observation_identities": [
+          "93d3624ddc17ddd32606678d18a70b28bea7994d04151183093d092bff95359e"
+        ]
+      },
+      {
+        "obligation": "stage_1.5",
+        "subject": "feature:F-032b6453",
+        "state": "pass",
+        "source_strictness": "hard",
+        "blocking": "hard",
+        "observation_identities": [
+          "c764f377abb9781c13a4b0487542758ec1f78186fa17e49f63ad4ad985322a8d"
+        ]
+      },
+      {
+        "obligation": "stage_1.6",
+        "subject": "feature:F-032b6453",
+        "state": "pass",
+        "source_strictness": "hard",
+        "blocking": "hard",
+        "observation_identities": [
+          "9dcb8a6b0d7978fd2934738b58699456a99e09bdcf25e27c73c00ac70f59ef41"
+        ]
+      },
+      {
+        "obligation": "stage_2.1",
+        "subject": "criterion:F-032b6453/AC-e435a582",
+        "state": "pass",
+        "source_strictness": "hard",
+        "blocking": "hard",
+        "observation_identities": [
+          "f0a201def13f24ad09746d98aaeb1b6e3dbfa3a100f1957a4514b87a20b8a860"
+        ]
+      },
+      {
+        "obligation": "stage_2.1",
+        "subject": "scope:66f7f6301ab195d5cedf5c27b000c3b05a521bb494e9862612ece2c837aefc53",
+        "state": "pass",
+        "source_strictness": "hard",
+        "blocking": "hard",
+        "observation_identities": [
+          "7aa7f5695d512af328f84893f42c4ef46b933ec7eeb7bef441788cff17d4d634"
+        ]
+      },
+      {
+        "obligation": "stage_2.2",
+        "subject": "criterion:F-032b6453/AC-e435a582",
+        "state": "pass",
+        "source_strictness": "report",
+        "blocking": "hard",
+        "observation_identities": [
+          "850c0a90f18e31f89a9627af1c8805b3ddf6d4599b93573ba882f69305526f8b"
+        ]
+      },
+      {
+        "obligation": "stage_2.2",
+        "subject": "scope:66f7f6301ab195d5cedf5c27b000c3b05a521bb494e9862612ece2c837aefc53",
+        "state": "pass",
+        "source_strictness": "report",
+        "blocking": "hard",
+        "observation_identities": [
+          "b5551bcd631922d73f5f206cfb8a79821e846633dc78cab7fce004a443969c3d"
+        ]
+      },
+      {
+        "obligation": "stage_2.3",
+        "subject": "scope:66f7f6301ab195d5cedf5c27b000c3b05a521bb494e9862612ece2c837aefc53",
+        "state": "na",
+        "source_strictness": "hard",
+        "blocking": "hard",
+        "observation_identities": []
+      },
+      {
+        "obligation": "stage_2.4",
+        "subject": "feature:F-032b6453",
+        "state": "na",
+        "source_strictness": "hard",
+        "blocking": "hard",
+        "observation_identities": []
+      },
+      {
+        "obligation": "stage_3.1",
+        "subject": "feature:F-032b6453",
+        "state": "pass",
+        "source_strictness": "hard",
+        "blocking": "hard",
+        "observation_identities": [
+          "90ab9e5d7abab049f21152e87dd9c1630ccd805a08ccf3929be50d240b41bac1"
+        ]
+      },
+      {
+        "obligation": "stage_3.2",
+        "subject": "feature:F-032b6453",
+        "state": "pass",
+        "source_strictness": "report",
+        "blocking": "hard",
+        "observation_identities": [
+          "381ba8d992988381c8dad05c666b85ef8a742d214a99bbcea4705d66002bb576"
+        ]
+      },
+      {
+        "obligation": "stage_3.3",
+        "subject": "feature:F-032b6453",
+        "state": "pass",
+        "source_strictness": "hard",
+        "blocking": "hard",
+        "observation_identities": [
+          "e8096384ff49e2722d487875dffeb7bf24e4f9e3a850bec9fb8ea834d9f8c513"
+        ]
+      },
+      {
+        "obligation": "stage_4.1",
+        "subject": "criterion:F-032b6453/AC-e435a582",
+        "state": "pass",
+        "source_strictness": "hard",
+        "blocking": "hard",
+        "observation_identities": [
+          "3739dbbca519907c0a5b967250adbc3f6001a087a4c8f882ed4ba344942e37e3"
+        ]
+      },
+      {
+        "obligation": "stage_4.2",
+        "subject": "criterion:F-032b6453/AC-e435a582",
+        "state": "pass",
+        "source_strictness": "hard",
+        "blocking": "hard",
+        "observation_identities": [
+          "930fe3d340e6d2078406d5a403e811e9c6cff8772c0197f8436d01aef2a88537"
+        ]
+      }
+    ],
+    "independence": "self-certified",
+    "obligation_sha256": "7191cce4bdf2f0264e05cd0e6efe6707b70024418bf303083e7947e9ecd01c29"
+  },
+  "worst": 0,
+  "anyFailed": false,
+  "stages": [
+    {
+      "stage": "stage_1.1",
+      "label": "Type",
+      "status": "pass",
+      "exitCode": 0
+    },
+    {
+      "stage": "stage_1.2",
+      "label": "Lint",
+      "status": "pass",
+      "exitCode": 0
+    },
+    {
+      "stage": "stage_1.3",
+      "label": "Drift",
+      "status": "pass",
+      "exitCode": 0,
+      "findings": [
+        {
+          "detector": "HARDCODED_SECRET",
+          "severity": "info",
+          "message": "npx could not scan (config/setup gap, not a secret): npm error npx canceled due to missing packages and no YES option: [\"secretlint@13.0.4\"]\nnpm error A complete log of this run can be found in: /Users/qwerfunch/.npm/_logs/2026-09-07T13_14_41_091Z-debug-0.log"
+        },
+        {
+          "detector": "HARNESS_INTEGRITY",
+          "severity": "info",
+          "message": "plugin.json not loaded: ENOENT: no such file or directory, open 'plugins/claude-code/.claude-plugin/plugin.json'"
+        },
+        {
+          "detector": "COVERAGE_DROP",
+          "severity": "info",
+          "message": "coverage/coverage-summary.json not present — run stage_2.2 first"
+        },
+        {
+          "detector": "PERFORMANCE_DRIFT",
+          "severity": "info",
+          "message": "perf baseline or current missing — run stage_3.2 with --record first"
+        },
+        {
+          "detector": "ABSENCE_OF_GOVERNANCE",
+          "severity": "info",
+          "path": "spec/scenarios",
+          "message": "spec/scenarios is absent — cladding scaffold incomplete (user-journey scenarios (recommended)). Run `clad init --intent \"<your goal>\"` to populate it."
+        },
+        {
+          "detector": "SCENARIO_COVERAGE",
+          "severity": "info",
+          "path": "spec/scenarios/",
+          "message": "scenario coverage is absent under the current scenario policy — add a complete user journey with actor, goal, success, steps, and feature references."
+        },
+        {
+          "detector": "DELIVERABLE_INTEGRITY",
+          "severity": "info",
+          "message": "1 done feature(s) ship modules but project.deliverable is not declared — the gate cannot smoke-test the shipped entry, so a broken entry point could ship green. Declare project.deliverable {path, is_safe_to_smoke: true} to enable DELIVERABLE_SMOKE (stage_2.4)."
+        }
+      ]
+    },
+    {
+      "stage": "stage_1.5",
+      "label": "Architecture",
+      "status": "pass",
+      "exitCode": 0
+    },
+    {
+      "stage": "stage_1.6",
+      "label": "Secret",
+      "status": "pass",
+      "exitCode": 0
+    },
+    {
+      "stage": "stage_2.1",
+      "label": "Unit tests",
+      "status": "pass",
+      "exitCode": 0
+    },
+    {
+      "stage": "stage_2.2",
+      "label": "Coverage",
+      "status": "pass",
+      "exitCode": 0
+    },
+    {
+      "stage": "stage_2.3",
+      "label": "Spec conformance",
+      "status": "skip",
+      "exitCode": 2,
+      "stderr": "no spec-conformance oracles under tests/oracle/ — skipped"
+    },
+    {
+      "stage": "stage_2.4",
+      "label": "Deliverable smoke",
+      "status": "skip",
+      "exitCode": 2,
+      "stderr": "no project.deliverable declared — skipped"
+    },
+    {
+      "stage": "stage_3.1",
+      "label": "Smoke",
+      "status": "pass",
+      "exitCode": 0
+    },
+    {
+      "stage": "stage_3.2",
+      "label": "Performance",
+      "status": "pass",
+      "exitCode": 0
+    },
+    {
+      "stage": "stage_3.3",
+      "label": "Visual",
+      "status": "pass",
+      "exitCode": 0
+    },
+    {
+      "stage": "stage_4.1",
+      "label": "Audit",
+      "status": "pass",
+      "exitCode": 0
+    },
+    {
+      "stage": "stage_4.2",
+      "label": "UAT",
+      "status": "pass",
+      "exitCode": 0
+    }
+  ]
+}

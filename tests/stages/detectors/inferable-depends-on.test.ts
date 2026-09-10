@@ -49,7 +49,7 @@ features:
     writeFile(tmp, 'pkg/b.py', 'x = 1\n');
   }
 
-  test('emits one info finding when undeclared inferable edges exist', () => {
+  test('[covers:F-15999130/AC-40564f] emits one info finding when undeclared inferable edges exist', () => {
     buildEdgeBearingProject(false);
 
     const findings = inferableDependsOn.run({cwd: tmp});
@@ -62,7 +62,7 @@ features:
     expect(finding.message).toContain('clad infer-deps');
   });
 
-  test('emits nothing when the dependency graph is fully declared', () => {
+  test('[covers:F-15999130/AC-40564f] emits nothing when the dependency graph is fully declared', () => {
     buildEdgeBearingProject(true);
 
     const findings = inferableDependsOn.run({cwd: tmp});
@@ -70,7 +70,7 @@ features:
     expect(findings).toEqual([]);
   });
 
-  test('safe-degrades to no findings on an import-less or empty spec', () => {
+  test('[covers:F-15999130/AC-e80942] safe-degrades to no findings on an import-less or empty spec', () => {
     // Sub-case (1): features whose modules have NO cross-feature imports.
     const importLessSpec = `schema: "0.1"
 project: {name: t, language: python}

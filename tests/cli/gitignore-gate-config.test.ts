@@ -31,11 +31,11 @@ const blockLines = (): string[] =>
     .map((line) => line.trim());
 
 describe('F-b0c2e724 · CLADDING_IGNORE_BLOCK shape', () => {
-  it('contains a `.cladding/*` line', () => {
+  it('[covers:F-b0c2e724/AC-f30a7c62] contains a `.cladding/*` line', () => {
     expect(blockLines()).toContain('.cladding/*');
   });
 
-  it('contains `!.cladding/config.yaml` AFTER the `.cladding/*` line', () => {
+  it('[covers:F-b0c2e724/AC-f30a7c62] contains `!.cladding/config.yaml` AFTER the `.cladding/*` line', () => {
     const lines = blockLines();
     const star = lines.indexOf('.cladding/*');
     const reinclude = lines.indexOf('!.cladding/config.yaml');
@@ -51,7 +51,7 @@ describe('F-b0c2e724 · CLADDING_IGNORE_BLOCK shape', () => {
 });
 
 describe('F-b0c2e724 · gateConfigIgnoreStatus', () => {
-  it('reports "absent" for null', () => {
+  it('[covers:F-b0c2e724/AC-f30a7c62] reports "absent" for null', () => {
     expect(statusOf(null)).toBe('absent');
   });
 
@@ -59,7 +59,7 @@ describe('F-b0c2e724 · gateConfigIgnoreStatus', () => {
     expect(statusOf(undefined)).toBe('absent');
   });
 
-  it('reports "commitable" when no cladding-related line is present', () => {
+  it('[covers:F-b0c2e724/AC-f30a7c62] reports "commitable" when no cladding-related line is present', () => {
     const text = ['node_modules/', 'dist/', '*.log', '.DS_Store', ''].join('\n');
     expect(statusOf(text)).toBe('commitable');
   });
@@ -69,7 +69,7 @@ describe('F-b0c2e724 · gateConfigIgnoreStatus', () => {
     expect(statusOf(text)).toBe('commitable');
   });
 
-  it('reports "blocked" for `.cladding/` alone', () => {
+  it('[covers:F-b0c2e724/AC-f30a7c62] reports "blocked" for `.cladding/` alone', () => {
     const text = ['node_modules/', '.cladding/', ''].join('\n');
     expect(statusOf(text)).toBe('blocked');
   });

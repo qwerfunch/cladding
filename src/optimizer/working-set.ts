@@ -13,7 +13,7 @@ import {buildContextSlice, type ContextLookupMiss} from './context-slice.js';
 import {buildIterativeImpactSlice} from './iterative-slice.js';
 import {buildPriorAttempts, type PriorAttempts} from './prior-attempts.js';
 import {buildImpactSlice} from './reverse-slice.js';
-import {reverseIndexOf} from '../spec/reverse-index.js';
+import {viewFor, type GraphConsumerView} from '../graph/consumers.js';
 import type {Feature, Spec} from '../spec/types.js';
 
 type Summary = {readonly id: string; readonly title: string; readonly status?: string};
@@ -70,6 +70,9 @@ export interface WorkingSet {
   readonly prior_attempts?: PriorAttempts;
   /** Token accounting + what was dropped to fit (must_edit is always retained). */
   readonly budget: {readonly max_tokens: number; readonly used_tokens: number; readonly truncated: readonly string[]};
+  /** Which graph authority answered the needs/breaks questions — `graph-ir` is canonical,
+   *  `spec-structural` is the parity-checked projection the latency-bounded hook lane reads. */
+  readonly authority?: GraphConsumerView['authority'];
 }
 
 export interface WorkingSetOptions {
@@ -80,6 +83,10 @@ export interface WorkingSetOptions {
   /** When false, skip the code-excerpt fill entirely (the hook push lane — the agent just
    *  edited the file, so its content is already in context). Default true (F-35954d19). */
   readonly includeCode?: boolean;
+  /** An already-built graph view; omitted reads the structural projection. `cwd` never
+   *  selects the lane — it is the code-excerpt root, and the hook lane passes one while
+   *  needing the sub-millisecond projection. */
+  readonly graph?: GraphConsumerView;
 }
 
 const DEFAULT_MAX_TOKENS = 3000;
@@ -102,13 +109,13 @@ export function buildWorkingSet(spec: Spec, query: string, opts: WorkingSetOptio
   // Resolve focus DETERMINISTICALLY: for a module path with owners, the alphabetically-first
   // owner id is the focus (independent of feature-array order — buildContextSlice would pick
   // array-first); all co-owners are surfaced so the LLM sees the shared-module fan-out.
+  const view = viewFor(spec, {graph: opts.graph});
   let resolvedQuery = query;
   let coOwners: readonly string[] | undefined;
-  const owners = reverseIndexOf(spec).moduleOwners.get(query);
-  if (owners && owners.size > 0) {
-    const sorted = [...owners].sort();
-    resolvedQuery = sorted[0];
-    if (sorted.length > 1) coOwners = sorted;
+  const owners = view.owners(query);
+  if (owners.length > 0) {
+    resolvedQuery = owners[0];
+    if (owners.length > 1) coOwners = owners;
   }
 
   const ctx = buildContextSlice(spec, resolvedQuery);
@@ -128,8 +135,8 @@ export function buildWorkingSet(spec: Spec, query: string, opts: WorkingSetOptio
   // seeding only the alphabetically-first owner under-reported shared files (src/cli/clad.ts:
   // impacted 0 vs 83 measured on cladding-self). Co-owners sit in the seed set, so they appear
   // in co_owners, not impacted; their dependents and tests are what the fan-out adds.
-  const backQuery = owners && owners.size > 0 ? query : focus.id;
-  const iter = buildIterativeImpactSlice(spec, backQuery);
+  const backQuery = owners.length > 0 ? query : focus.id;
+  const iter = buildIterativeImpactSlice(spec, backQuery, {graph: view});
   const impact = 'not_found' in iter ? null : iter.slice;
   const impacted: readonly Summary[] = impact ? impact.impacted : [];
   const regression: readonly string[] = impact ? impact.test_refs : [];
@@ -230,7 +237,7 @@ export function buildWorkingSet(spec: Spec, query: string, opts: WorkingSetOptio
   let impKeep: readonly Summary[] = impacted;
   let regKeep: readonly string[] = regression;
   if (overWith(impKeep, regKeep, 0, 0)) {
-    const direct = buildImpactSlice(spec, backQuery, {depth: 1});
+    const direct = buildImpactSlice(spec, backQuery, {depth: 1, graph: view});
     const directIds = new Set('not_found' in direct ? [] : direct.impacted.map((f) => f.id));
     const floorTests = new Set('not_found' in direct ? [] : direct.test_refs);
     // Retention order: direct dependents first, deeper ones behind them (drop from the end).
@@ -279,6 +286,10 @@ export function buildWorkingSet(spec: Spec, query: string, opts: WorkingSetOptio
     else truncated.push('prior_attempts: omitted (budget)');
   }
 
+  // `authority` is attached AFTER the budget is measured and every clip decided. It is a
+  // provenance label, not payload the caller asked for, and letting its two spellings differ
+  // in length would make the same query clip differently on the two lanes — the one thing the
+  // parity contract cannot allow.
   const used = estTokens(JSON.stringify(payload));
-  return {...payload, budget: {max_tokens: maxTokens, used_tokens: used, truncated}};
+  return {...payload, budget: {max_tokens: maxTokens, used_tokens: used, truncated}, authority: view.authority};
 }

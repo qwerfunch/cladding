@@ -54,7 +54,7 @@ const {
   makeStaleReferenceDrift,
   makeArchitectureViolationDrift,
   makeHardcodedSecretDrift,
-  makeUntestedAcDrift,
+  makeUnverifiedCriterionDrift,
 } = await import('./_drift-injection.js');
 const {answerAllQueries} = await import('./_query-bench.js');
 
@@ -83,11 +83,15 @@ describe('A/B · payment-saas — cladding vs vanilla on greenfield intent', () 
     stdoutSpy.mockRestore();
   });
 
-  test('M1+M2: both groups deliver — committed report stays deterministic', async () => {
+  test('[covers:F-ba2e05/AC-88fcaf05] payment-SaaS measures its applicable A/B M1 and M2 outcome matrix', async () => {
     // ── M1 ──────────────────────────────────────────────────────
     // A: cladding init with intent — produces 4-tier seed.
     dispatchMock.mockResolvedValueOnce(GREENFIELD_S1_RESPONSE);
-    await runInit({cwd: aCwd.path, intent: VANILLA_PAYMENT_SAAS_SESSION.intent});
+    // The M2 steps below hand-author schema 0.1 feature shards and canonicalize
+    // a schema 0.1 architecture, so the case initializes the legacy workspace
+    // explicitly rather than the 0.2 default: a 0.2 root fed 0.1-shaped hand
+    // edits measures the mismatch, not the workflow this case records.
+    await runInit({cwd: aCwd.path, intent: VANILLA_PAYMENT_SAAS_SESSION.intent, schema: '0.1'});
 
     // B: vanilla developer writes the initial skeleton.
     applyFileSet(bCwd.path, VANILLA_PAYMENT_SAAS_SESSION.m1Files);
@@ -218,7 +222,7 @@ describe('A/B · payment-saas — cladding vs vanilla on greenfield intent', () 
       captureDriftCatch(
         aCwd.path,
         'A',
-        makeUntestedAcDrift('spec/features/refund-flow-4db939.yaml', 'AC-003', 'Refunds shall support partial refund amounts.'),
+        makeUnverifiedCriterionDrift('spec/features/refund-flow-4db939.yaml', 'AC-003', 'Refunds shall support partial refund amounts.'),
       ),
     ];
 
@@ -231,6 +235,7 @@ describe('A/B · payment-saas — cladding vs vanilla on greenfield intent', () 
     // ── Render report ───────────────────────────────────────────
     const report = renderCaseReport({
       caseTitle: 'payment-saas',
+      fixture: 'empty tmpdir',
       intent: VANILLA_PAYMENT_SAAS_SESSION.intent,
       description: [
         'Greenfield case: an empty tmpdir + a one-line intent.',
@@ -257,5 +262,6 @@ describe('A/B · payment-saas — cladding vs vanilla on greenfield intent', () 
       outcome: {driftResults, queryResults},
     });
     writeOrAssertReport(REPORT_PATH, report);
-  }, 30_000);
+  // Multiple real detector passes can contend with the full-suite workers.
+  }, 60_000);
 });

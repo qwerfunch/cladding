@@ -118,7 +118,7 @@ describe('clad report — integration (F-f6cc5e5a)', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('AC-cbf1c202 · renders all six sections in order and exits 0', () => {
+  test('[covers:F-f6cc5e5a/AC-cbf1c202] AC-cbf1c202 · renders all six sections in order and exits 0', () => {
     const run = runClad(dir, ['report', '--since', 'v0']);
     expect(run.status, run.stderr).toBe(0);
     const positions = SECTIONS.map((h) => run.stdout.indexOf(h));
@@ -134,7 +134,7 @@ describe('clad report — integration (F-f6cc5e5a)', () => {
     expect(run.stdout).toContain('tests/owned.test.ts#owns it');
   }, 30_000);
 
-  test('AC-cbf1c202 · two runs on the same repo state are byte-identical', () => {
+  test('[covers:F-f6cc5e5a/AC-cbf1c202] AC-cbf1c202 · two runs on the same repo state are byte-identical', () => {
     const first = runClad(dir, ['report', '--since', 'v0']);
     const second = runClad(dir, ['report', '--since', 'v0']);
     expect(first.status).toBe(0);
@@ -142,7 +142,7 @@ describe('clad report — integration (F-f6cc5e5a)', () => {
     expect(second.stdout).toBe(first.stdout);
   }, 30_000);
 
-  test('AC-7672ce5d · the unowned file surfaces; the owned file never appears as unowned', () => {
+  test('[covers:F-f6cc5e5a/AC-7672ce5d] AC-7672ce5d · the unowned file surfaces; the owned file never appears as unowned', () => {
     const run = runClad(dir, ['report', '--since', 'v0']);
     expect(run.status, run.stderr).toBe(0);
     expect(run.stdout).toContain('### Unowned changes');
@@ -151,13 +151,13 @@ describe('clad report — integration (F-f6cc5e5a)', () => {
     expect(unownedBlock).not.toContain('src/owned.ts');
   }, 30_000);
 
-  test('AC-67fa1d25 · an unresolvable --since exits 2 with an error naming the ref', () => {
+  test('[covers:F-c58263b8/AC-65b3d185][covers:F-f6cc5e5a/AC-67fa1d25] AC-67fa1d25 · an unresolvable --since exits 2 with an error naming the ref', () => {
     const run = runClad(dir, ['report', '--since', 'definitely-not-a-ref']);
     expect(run.status).toBe(2);
     expect(`${run.stdout}${run.stderr}`).toContain('definitely-not-a-ref');
   }, 30_000);
 
-  test('AC-67fa1d25 · a valid --since ref exits 0', () => {
+  test('[covers:F-c58263b8/AC-65b3d185][covers:F-f6cc5e5a/AC-67fa1d25] AC-67fa1d25 · a valid --since ref exits 0', () => {
     const run = runClad(dir, ['report', '--since', 'v0']);
     expect(run.status, run.stderr).toBe(0);
   }, 30_000);
@@ -209,6 +209,7 @@ describe('AC-1a6cb22f / AC-4b6fe145 / AC-8e748acb · anchoring the range on the 
     git(dir, ['config', 'init.defaultBranch', 'main']);
     git(dir, ['checkout', '-q', '-b', 'main']);
     mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
+    mkdirSync(join(dir, 'src'), {recursive: true});
 
     writeFileSync(join(dir, 'spec.yaml'), SPEC_YAML);
     writeFileSync(
@@ -219,6 +220,8 @@ describe('AC-1a6cb22f / AC-4b6fe145 / AC-8e748acb · anchoring the range on the 
       join(dir, 'spec', 'features', 'theirs-bbbb2222.yaml'),
       mkShard('F-bbbb2222', 'theirs', 'planned', 'The system shall do their thing.'),
     );
+    writeFileSync(join(dir, 'src', 'mine.ts'), 'export const mine = "base";\n');
+    writeFileSync(join(dir, 'src', 'theirs.ts'), 'export const theirs = "base";\n');
     git(dir, ['add', '-A']);
     git(dir, ['commit', '-q', '-m', 'baseline']);
     git(dir, ['tag', 'v0']);
@@ -229,6 +232,7 @@ describe('AC-1a6cb22f / AC-4b6fe145 / AC-8e748acb · anchoring the range on the 
       join(dir, 'spec', 'features', 'theirs-bbbb2222.yaml'),
       mkShard('F-bbbb2222', 'theirs', 'done', 'The system shall do their thing DIFFERENTLY.'),
     );
+    writeFileSync(join(dir, 'src', 'theirs.ts'), 'export const theirs = "main-only";\n');
     git(dir, ['add', '-A']);
     git(dir, ['commit', '-q', '-m', 'their work on main']);
 
@@ -238,6 +242,7 @@ describe('AC-1a6cb22f / AC-4b6fe145 / AC-8e748acb · anchoring the range on the 
       join(dir, 'spec', 'features', 'mine-aaaa1111.yaml'),
       mkShard('F-aaaa1111', 'mine', 'done', 'The system shall do my thing REVISED.'),
     );
+    writeFileSync(join(dir, 'src', 'mine.ts'), 'export const mine = "feature-only";\n');
     git(dir, ['add', '-A']);
     git(dir, ['commit', '-q', '-m', 'my work']);
   });
@@ -267,7 +272,20 @@ describe('AC-1a6cb22f / AC-4b6fe145 / AC-8e748acb · anchoring the range on the 
     expect(model.specEntryDeltas.find((d) => d.id === 'F-aaaa1111')?.counts.rewritten).toBe(1);
   });
 
-  test('AC-4b6fe145 · a shallow clone with no merge base still renders a packet', () => {
+  test('[covers:F-5dfbac9c/AC-1a6cb22f] the resolved merge base controls both spec deltas and changed source paths', () => {
+    const ran = runClad(dir, ['report', '--since', 'main', '--format', 'json']);
+    expect(ran.status, ran.stderr).toBe(0);
+    const model = JSON.parse(ran.stdout) as {
+      specEntryDeltas: {id: string}[];
+      unowned: string[];
+    };
+    expect(model.specEntryDeltas.map((delta) => delta.id)).toContain('F-aaaa1111');
+    expect(model.specEntryDeltas.map((delta) => delta.id)).not.toContain('F-bbbb2222');
+    expect(model.unowned).toContain('src/mine.ts');
+    expect(model.unowned).not.toContain('src/theirs.ts');
+  });
+
+  test('[covers:F-5dfbac9c/AC-4b6fe145] AC-4b6fe145 · a shallow clone with no merge base still renders a packet', () => {
     const shallow = mkdtempSync(join(tmpdir(), 'clad-report-shallow-'));
     try {
       execFileSync('git', ['clone', '-q', '--depth', '1', `file://${dir}`, shallow, '--branch', 'feature/mine'], {
@@ -284,7 +302,7 @@ describe('AC-1a6cb22f / AC-4b6fe145 / AC-8e748acb · anchoring the range on the 
     }
   });
 
-  test('AC-8e748acb · a rewritten criterion does not change the exit code', () => {
+  test('[covers:F-5dfbac9c/AC-8e748acb] AC-8e748acb · a rewritten criterion does not change the exit code', () => {
     const withRewrite = runClad(dir, ['report', '--since', 'v0']);
     expect(withRewrite.status).toBe(0);
     expect(withRewrite.stdout).toContain('REWRITTEN AC-000001');

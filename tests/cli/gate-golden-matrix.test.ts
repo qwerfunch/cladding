@@ -15,7 +15,8 @@
 //               stage_1.1 — project.language declared AND ≥1 done feature
 //               stage_2.1 — ≥1 done feature declaring test_refs
 //               stage_2.3 — ≥1 done AC declaring oracle_refs
-//               stage_2.4 — deliverable is_safe_to_smoke:true AND ≥1 done feature
+//               stage_2.4 — SMOKE_PROBE_DEMAND owns any applicable demand;
+//                           skip policy must not append a duplicate failure
 //             No demand ⇒ skip stays non-blocking (the false-RED defense).
 //   unknown : unknown tier → {worst: 2, anyFailed: true}
 //
@@ -88,6 +89,24 @@ vi.mock('../../src/events/log.js', () => ({recordEvent: (...a: unknown[]) => rec
 const loadSpecMock = vi.fn((): unknown => ({features: []}));
 vi.mock('../../src/spec/load.js', () => ({loadSpec: (...a: unknown[]) => loadSpecMock(...(a as []))}));
 
+// This characterization suite owns only stage-exit behavior.  Keep its F6
+// boundary deliberately schema-0.1/lightweight so each all-stubbed matrix run
+// neither compiles the repository nor walks proof closures; dedicated F6 tests
+// cover those real compiler/workspace paths.
+const compileSpecWorkspaceMock = vi.fn(() => ({schemaVersion: '0.1', nodes: [], edges: [], diagnostics: []}));
+vi.mock('../../src/spec/compiler/compile.js', () => ({
+  compileSpecWorkspace: (...a: unknown[]) => compileSpecWorkspaceMock(...(a as [])),
+}));
+vi.mock('../../src/assurance/workspace.js', () => ({
+  workspaceClosureSeals: () => ({inputSha256: 'a'.repeat(64), closures: {schemaVersion: '0.1', features: []}}),
+  currentProofBindingsFromWorkspace: () => [],
+  currentExecutableProofFeatureIdsFromWorkspace: () => [],
+  hasApplicableSchema02TestCriteria: () => false,
+  currentProofViewsFromWorkspace: () => [],
+  workspaceProfileSnapshot: () => ({inputSha256: 'a'.repeat(64), complete: true, closureInput: {schemaVersion: '0.1', features: []}, incompleteAddresses: []}),
+  createWorkspaceAttestations: () => [],
+}));
+
 const clad = await import('../../src/cli/clad.js');
 
 const TESTED_DONE_SPEC = {
@@ -135,7 +154,7 @@ afterEach(() => vi.clearAllMocks());
 describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () => {
   const TIERS = Object.entries(clad.TIER_STAGES) as [string, readonly StageName[]][];
 
-  test('baseline: all stages pass → worst 0, nothing failed, every tier runs exactly its TIER_STAGES', () => {
+  test('[covers:F-d49585/AC-526e25] baseline: all stages pass → worst 0, nothing failed, every tier runs exactly its TIER_STAGES', () => {
     for (const [tier, expectedStages] of TIERS) {
       for (const strict of [false, true]) {
         const doc = runMatrixCase(tier, strict);
@@ -147,7 +166,7 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     }
   });
 
-  test('single-stage FAIL: exactly that stage reports fail; worst 1; gate blocks — every stage × every tier × strict on/off', () => {
+  test('[covers:F-d49585/AC-526e25] single-stage FAIL: exactly that stage reports fail; worst 1; gate blocks — every stage × every tier × strict on/off', () => {
     for (const [tier, stages] of TIERS) {
       for (const failing of stages) {
         for (const strict of [false, true]) {
@@ -163,7 +182,7 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     }
   });
 
-  test('single-stage SKIP is non-blocking: worst stays 0 — every stage × tier × strict EXCEPT the pinned unit-guard promotion', () => {
+  test('[covers:F-d49585/AC-526e25] single-stage SKIP is non-blocking: worst stays 0 — every stage × tier × strict EXCEPT the pinned unit-guard promotion', () => {
     for (const [tier, stages] of TIERS) {
       for (const skipping of stages) {
         for (const strict of [false, true]) {
@@ -195,11 +214,9 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
       stage: 'stage_2.3',
       spec: {features: [{id: 'F-a', status: 'done', acceptance_criteria: [{id: 'AC-1', oracle_refs: ['tests/oracle/x.test.ts']}]}]},
     },
-    // stage_2.4 retired from skip-policy (F-c') — the smoke demand is now the
-    // SMOKE_PROBE_DEMAND drift detector (stage_1.3), covered in its own unit test.
   };
 
-  test('PINNED DEMAND TABLE (F-67d2e9): each demanded stage REDs on skip under strict, with an appended Verification fail entry', () => {
+  test('[covers:F-d49585/AC-40db4c][covers:F-67d2e9/AC-b265bf][covers:F-67d2e9/AC-11101f][covers:F-67d2e9/AC-6c0c35] strict demand table promotes skips only for declared stage 1.1/2.1/2.3 demands, does not duplicate stage_2.4 smoke demand, and keeps non-strict or undemanded skips non-blocking', () => {
     for (const [name, {spec, stage}] of Object.entries(DEMAND_SPECS)) {
       loadSpecMock.mockImplementation(() => spec);
       setAll(PASS);
@@ -210,9 +227,7 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
       const entries = doc.stages.filter((s2) => s2.stage === stage);
       expect(entries.map((s2) => s2.status), name).toEqual(['skip', 'fail']); // original skip + appended demand entry
     }
-  });
 
-  test('demands do NOT fire: non-strict, or no demand in the spec, or the stage outside the tier', () => {
     // non-strict with every demand present
     loadSpecMock.mockImplementation(() => DEMAND_SPECS['stage_2.1 — done feature declaring test_refs'].spec);
     setAll(PASS);
@@ -229,6 +244,17 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     setAll(PASS);
     stubs['stage_2.1'].mockImplementation(() => SKIP);
     expect(runMatrixCase('pre-commit', true).worst).toBe(0);
+
+    // SMOKE_PROBE_DEMAND, not skip policy, owns a safe deliverable demand.
+    loadSpecMock.mockImplementation(() => ({
+      project: {name: 'x', deliverable: {path: 'bin/app.js', is_safe_to_smoke: true}},
+      features: [{id: 'F-a', status: 'done', acceptance_criteria: []}],
+    }));
+    setAll(PASS);
+    stubs['stage_2.4'].mockImplementation(() => SKIP);
+    const smoke = runMatrixCase('pre-push', true);
+    expect(smoke.worst).toBe(0);
+    expect(smoke.stages.filter((s) => s.stage === 'stage_2.4').map((s) => s.status)).toEqual(['skip']);
   });
 
   test('fail outranks skip when both occur: worst is the failure, skip stays visible in stage statuses', () => {
@@ -242,7 +268,18 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     expect(doc.stages.find((s) => s.stage === 'stage_1.3')?.status).toBe('fail');
   });
 
-  test('unknown tier → worst 2, anyFailed true, no stages run', () => {
+  test('[covers:F-e0f6c7/AC-e1effa] pending_env and advisory dispositions block with exit 1 instead of entering the exit-2 skip lane', () => {
+    for (const disposition of ['pending_env', 'advisory'] as const) {
+      setAll(PASS);
+      stubs['stage_1.5'].mockImplementation(() => ({pass: false, exitCode: 2, disposition}) as StageResult);
+      const doc = runMatrixCase('pre-push', false);
+      expect(doc.worst, disposition).toBe(1);
+      expect(doc.anyFailed, disposition).toBe(true);
+      expect(doc.stages.find((stage) => stage.stage === 'stage_1.5')?.status, disposition).toBe(disposition);
+    }
+  });
+
+  test('[covers:F-d49585/AC-3f7ea4] unknown tier → worst 2, anyFailed true, no stages run', () => {
     const doc = runMatrixCase('nightly', false);
     expect(doc.worst).toBe(2);
     expect(doc.anyFailed).toBe(true);
@@ -250,7 +287,7 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     for (const fn of Object.values(stubs)) expect(fn).not.toHaveBeenCalled();
   });
 
-  test('records compact blocker telemetry without changing the gate matrix', () => {
+  test('[covers:F-1aab1bba/AC-3cb0ca39][covers:F-b84c38/AC-49da41] records compact blocker telemetry without changing the gate matrix', () => {
     setAll(PASS);
     recordEventMock.mockClear();
     runMatrixCase('pre-push', true);
@@ -284,7 +321,7 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     expect((gateRuns[0][2] as {stopFingerprint: string}).stopFingerprint).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  test('PINNED (F-a5228c): solely-stale drift under strict pre-push is exempted, run counts GREEN, attestation stamps', () => {
+  test('[covers:F-a5228c/AC-e93858] PINNED (F-a5228c): solely-stale drift under strict pre-push is exempted, run counts GREEN, attestation stamps', () => {
     setAll(PASS);
     writeAttestationMock.mockClear();
     stubs['stage_1.3'].mockImplementation(() => ({
@@ -299,7 +336,7 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     expect(writeAttestationMock).toHaveBeenCalledTimes(1);
   });
 
-  test('no exemption when drift carries any OTHER failing finding, or in the pre-commit tier', () => {
+  test('[covers:F-a5228c/AC-e93858] no exemption when drift carries any OTHER failing finding, or in the pre-commit tier', () => {
     // mixed findings → stays RED
     setAll(PASS);
     stubs['stage_1.3'].mockImplementation(() => ({
@@ -322,7 +359,7 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     expect(runMatrixCase('pre-commit', true).worst).toBe(1);
   });
 
-  test('a plain GREEN strict pre-push run stamps policy identity; non-strict does not', () => {
+  test('[covers:F-a5228c/AC-e93858][covers:F-caff8598/AC-a4d41de9] a plain GREEN strict pre-push run stamps policy identity; non-strict does not', () => {
     setAll(PASS);
     writeAttestationMock.mockClear();
     runMatrixCase('pre-push', true);
@@ -335,5 +372,17 @@ describe('gate golden matrix — runCheckStages exit contract (F-d49585)', () =>
     writeAttestationMock.mockClear();
     runMatrixCase('pre-push', false);
     expect(writeAttestationMock).not.toHaveBeenCalled();
+  });
+
+  test('[covers:F-e0f6c7/AC-f7dd12] a blocking strict pre-push or all gate never writes an attestation stamp', () => {
+    for (const tier of ['pre-push', 'all']) {
+      setAll(PASS);
+      writeAttestationMock.mockClear();
+      stubs['stage_1.3'].mockImplementation(() => FAIL);
+      const doc = runMatrixCase(tier, true);
+      expect(doc.anyFailed, tier).toBe(true);
+      expect(doc.worst, tier).toBe(1);
+      expect(writeAttestationMock, tier).not.toHaveBeenCalled();
+    }
   });
 });

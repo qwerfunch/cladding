@@ -43,7 +43,7 @@ describe('claude-code plugin hooks.json — five events wired to the bundled eng
     expect(Object.keys(doc.hooks).sort()).toEqual([...HOOK_EVENTS].sort());
   });
 
-  test('every entry is a command hook invoking ${CLAUDE_PLUGIN_ROOT}/dist/clad.js hook <its own event>', () => {
+  test('[covers:F-1d23a6/AC-03da31] every entry is a command hook invoking ${CLAUDE_PLUGIN_ROOT}/dist/clad.js hook <its own event>', () => {
     for (const event of HOOK_EVENTS) {
       const entries = doc.hooks[event];
       expect(entries.length, `${event} has at least one entry`).toBeGreaterThanOrEqual(1);

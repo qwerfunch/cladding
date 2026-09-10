@@ -27,10 +27,11 @@
 //   - Spec absence → single `info` finding, not a throw — projects mid-
 //     migration that never wrote a spec keep their pipeline green.
 
-import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
+import {parse as parseYaml} from 'yaml';
 
 import {scanPatterns, unmappedArtifact} from '../../src/stages/detectors/unmapped-artifact.js';
 
@@ -67,7 +68,7 @@ describe('UNMAPPED_ARTIFACT detector', () => {
     expect(unmappedArtifact.run({cwd: dir})).toEqual([]);
   });
 
-  test('emits error for each unclaimed source file in scope', () => {
+  test('[covers:F-055/AC-125][covers:F-065/AC-176] emits error for each unclaimed source file in scope', () => {
     writeFileSync(join(dir, 'src', 'stages', 'orphan-1.ts'), 'export const a = 1;\n');
     writeFileSync(join(dir, 'src', 'stages', 'orphan-2.ts'), 'export const b = 2;\n');
     writeFileSync(
@@ -128,6 +129,22 @@ describe('UNMAPPED_ARTIFACT detector', () => {
     );
     expect(unmappedArtifact.run({cwd: dir})).toEqual([]);
   });
+
+  test('F7 module ownership removes findings for the compiler authoring, consumer, and contract views', () => {
+    const f7 = parseYaml(readFileSync(join(process.cwd(), 'spec/features/spec-02-scenario-policy-self-migration-0b8f23c5.yaml'), 'utf8')) as {modules?: unknown};
+    const newlyOwned = [
+      'src/spec/compiler/authoring-view.ts',
+      'src/spec/compiler/consumer-view.ts',
+      'src/spec/compiler/contract-assertion.ts',
+    ];
+    expect(f7.modules).toEqual(expect.arrayContaining(newlyOwned));
+    for (const path of newlyOwned) write(dir, path, 'export {};\n');
+    writeFileSync(
+      join(dir, 'spec', 'features', 'F-0b8f23c5.yaml'),
+      `id: F-0b8f23c5\ntitle: F7\nstatus: in_progress\nmodules:\n${(f7.modules as string[]).map((path) => `  - ${path}`).join('\n')}\n`,
+    );
+    expect(unmappedArtifact.run({cwd: dir})).toEqual([]);
+  });
 });
 
 // ─── scan universe: declared layers (F-aee61f) × evidence (F-87bb7ed3) ───
@@ -154,7 +171,7 @@ describe('scanPatterns', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('scale gate: under 8 features the legacy narrow patterns apply even with layers declared', () => {
+  test('[covers:F-87bb7ed3/AC-c5e83b19][covers:F-aee61f/AC-c0e388] scale gate: under 8 features the legacy narrow patterns apply even with layers declared', () => {
     write(dir, 'src/cli/a.ts');
     const spec = {
       project: {name: 'x', language: 'typescript'},
@@ -164,12 +181,12 @@ describe('scanPatterns', () => {
     expect(scanPatterns(spec, dir)).toEqual(['src/stages/**/*.ts', 'src/spec/**/*.ts']);
   });
 
-  test('falls back to the legacy narrow patterns when no architecture is declared', () => {
+  test('[covers:F-aee61f/AC-c0e388] falls back to the legacy narrow patterns when no architecture is declared', () => {
     const spec = {project: {name: 'x', language: 'typescript'}, features: []} as never;
     expect(scanPatterns(spec, dir)).toEqual(['src/stages/**/*.ts', 'src/spec/**/*.ts']);
   });
 
-  test('derives one pattern per declared layer (canonical string-tier form) from the observed extension', () => {
+  test('[covers:F-aee61f/AC-cd6984] derives one pattern per declared layer (canonical string-tier form) from the observed extension', () => {
     write(dir, 'src/cli/a.ts');
     const spec = {
       project: {name: 'x', language: 'typescript'},
@@ -183,7 +200,7 @@ describe('scanPatterns', () => {
     ]);
   });
 
-  test('accepts the {name} object layer form', () => {
+  test('[covers:F-aee61f/AC-cd6984] accepts the {name} object layer form', () => {
     write(dir, 'src/api/handler.py');
     const spec = {
       project: {name: 'x', language: 'python'},
@@ -193,7 +210,7 @@ describe('scanPatterns', () => {
     expect(scanPatterns(spec, dir)).toEqual(['src/api/**/*.py', 'src/domain/**/*.py']);
   });
 
-  test('AC-4d21c8a7 — every observed extension enters the universe, not just one per language', () => {
+  test('[covers:F-87bb7ed3/AC-4d21c8a7] AC-4d21c8a7 — every observed extension enters the universe, not just one per language', () => {
     // The measured defect: `cpp` had no table entry, so the universe was
     // `*.ts` and matched nothing. Both C++ extensions must now be scanned.
     write(dir, 'src/engine/vm.cpp');
@@ -321,7 +338,7 @@ describe('scanPatterns', () => {
     expect(universe(undefined)).toEqual(expected); // nor a missing one
   });
 
-  test('AC-96ff696f — a declared layer glob replaces name inference for that layer', () => {
+  test('[covers:F-87bb7ed3/AC-96ff696f] AC-96ff696f — a declared layer glob replaces name inference for that layer', () => {
     write(dir, 'core/src/main/cpp/rasp.cpp');
     const spec = {
       project: {name: 'x', language: 'cpp'},
@@ -442,7 +459,7 @@ describe('UNMAPPED_ARTIFACT — declared layers reach real files', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('a file in a declared layer that no feature claims is FOUND (was blind pre-0.6)', () => {
+  test('[covers:F-aee61f/AC-cd6984] a file in a declared layer that no feature claims is FOUND (was blind pre-0.6)', () => {
     write(dir, 'src/router/orphan.ts', 'export const x = 1;\n');
     writeFileSync(join(dir, 'spec.yaml'), inlineSpec('typescript', ['router']));
     const findings = unmappedArtifact.run({cwd: dir});
@@ -462,7 +479,7 @@ describe('UNMAPPED_ARTIFACT — declared layers reach real files', () => {
     expect(findings[0].message).toContain('not claimed by any feature');
   });
 
-  test('AC-9a6f02d3 — a nested source root inferred from a claim reaches its unclaimed neighbour', () => {
+  test('[covers:F-87bb7ed3/AC-9a6f02d3] AC-9a6f02d3 — a nested source root inferred from a claim reaches its unclaimed neighbour', () => {
     write(dir, 'src/main/kotlin/core/Claimed.kt', 'fun claimed() {}\n');
     write(dir, 'src/main/kotlin/core/Orphan.kt', 'fun orphan() {}\n');
     writeFileSync(
@@ -532,7 +549,7 @@ describe('UNMAPPED_ARTIFACT — declared layers reach real files', () => {
     for (const f of findings) expect(f.severity).toBe('error');
   });
 
-  test('AC-e20dbafe — the same tree WITHOUT the glob reports an empty universe instead of silence', () => {
+  test('[covers:F-87bb7ed3/AC-e20dbafe] AC-e20dbafe — the same tree WITHOUT the glob reports an empty universe instead of silence', () => {
     // Name-only `native`: nothing on disk is called that, so the universe
     // resolves to `src/native/**` and scans zero files. Pre-fix that was a
     // clean bill of health; now it says where it looked.

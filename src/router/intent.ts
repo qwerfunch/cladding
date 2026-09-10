@@ -16,6 +16,14 @@
 // execute-the-plan slot. The match patterns of both old rules are
 // kept; only the returned verb changed.
 //
+// 0.10.0: `run` is a FROZEN classification id for feature-execution
+// prompts — it is telemetry vocabulary (`prompt_suggestion_served.kind`
+// in src/cli/hook.ts must stay byte-identical to the rendered class),
+// not a command. The CLI verb of the same name retired in 0.10.0, so
+// never write the two-word invocation (the verb-residue guard scans
+// this file); the user-facing label is rendered by hook.ts as
+// "feature work".
+//
 // Adding a new language: add a key to `Rule.patterns` and supply
 // regex patterns alongside a fixture test file
 // (`tests/router/intent.<lang>.test.ts`). The matcher iterates every
@@ -26,7 +34,12 @@
 // @see docs/ux-routing-coverage.md — applied-status of all 12
 //      prescriptions from 03-ux-routing.md.
 
-/** The Iron Core verbs cladding's router resolves, plus `unknown`. */
+/**
+ * The classification ids cladding's router resolves, plus `unknown`.
+ * `run` is frozen telemetry vocabulary for feature-execution prompts;
+ * its same-named CLI verb retired in 0.10.0 and hook.ts renders the
+ * user-facing label as "feature work".
+ */
 export type Intent = 'init' | 'run' | 'sync' | 'check' | 'unknown';
 
 /** Pattern languages currently supported. Add a key to extend. */
@@ -93,6 +106,8 @@ const RULES: readonly Rule[] = [
  * Order of rule evaluation is fixed: init → run (execute) → sync →
  * check → run (build, the former `work` rule). The build rule is
  * broadest and lands last so it doesn't shadow more-specific verbs.
+ * `run` is a frozen classification id, not a shipped command: the
+ * verb retired in 0.10.0 and hook.ts labels it "feature work".
  *
  * Ambiguous prompts (planning intents, vague phrases like
  * `"어떻게든 마무리"`, anything that does not cleanly map) return

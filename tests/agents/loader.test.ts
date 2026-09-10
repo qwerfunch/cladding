@@ -33,7 +33,7 @@ describe('loadPersona', () => {
     clearPersonaCache();
   });
 
-  test('parses frontmatter + body into PersonaSpec', () => {
+  test('[covers:F-063/AC-159] parses frontmatter + body into PersonaSpec', () => {
     writeFileSync(
       join(agentsDir, 'reviewer.md'),
       '---\nname: reviewer-v1\ndescription: reviews code\ncapabilities:\n  - read\n  - exec\n---\nBody prose here.\n',
@@ -161,7 +161,7 @@ describe('loadPersona', () => {
 // ─── F-d8223c — the blind-author definition is structurally blinded ───
 
 describe('blind-author (F-d8223c)', () => {
-  test('the canonical definition grants NO read-capable tool and no read capability', () => {
+  test('[covers:F-d8223c/AC-862413] the canonical definition grants NO read-capable tool and no read capability', () => {
     const raw = readFileSync(join(process.cwd(), 'src', 'agents', 'blind-author.md'), 'utf8');
     const toolsLine = /^tools:\s*(.+)$/m.exec(raw)![1];
     expect(toolsLine).toContain('Write');

@@ -23,7 +23,7 @@ describe('CI version health', () => {
     writeFileSync(path, body, 'utf8');
   }
 
-  test('finds unpinned and floating Cladding npx calls in yml and yaml workflows', () => {
+  test('[covers:F-abd10f3c/AC-b0ade1e9] finds unpinned and floating Cladding npx calls in yml and yaml workflows', () => {
     write('.github/workflows/z-unpinned.yml', 'steps:\n  - run: npx --yes cladding check --strict\n');
     write('.github/workflows/nested/a-floating.yaml', 'steps:\n  - run: npx cladding@latest doctor\n');
     write('.github/workflows/pinned.yml', 'steps:\n  - run: npx --yes cladding@0.9 check --strict\n');
@@ -36,7 +36,7 @@ describe('CI version health', () => {
     });
   });
 
-  test('accepts numeric selectors and ignores comments or unrelated commands', () => {
+  test('[covers:F-abd10f3c/AC-9501f50d] accepts numeric selectors and ignores comments or unrelated commands', () => {
     write(
       '.github/workflows/safe.yml',
       [

@@ -84,7 +84,7 @@ describe('CAPABILITIES_FEATURE_MAPPING detector', () => {
     expect(findings).toEqual([]);
   });
 
-  test('dangling feature id → error finding', () => {
+  test('[covers:F-d12edf/AC-003] a capability artifact is actively consumed and rejects a feature id absent from the feature spec', () => {
     writeSpec(dir, ['F-001']);
     writeCapabilities(
       dir,
@@ -105,7 +105,7 @@ describe('CAPABILITIES_FEATURE_MAPPING detector', () => {
     expect(errors[0].message).toContain('does not exist');
   });
 
-  test('orphan capability below the maturity threshold → informational future intent', () => {
+  test('[covers:F-0f4dd6/AC-023] orphan capability below the maturity threshold → informational future intent', () => {
     writeSpec(dir, ['F-001'], true);
     writeCapabilities(
       dir,

@@ -78,7 +78,7 @@ describe('vacuous-tests (F-b81d203e)', () => {
   // AC-5d9c66b8 (AC2) — parseExecutedPassCounts: per-file executed-pass count
   // ---------------------------------------------------------------------
   describe('parseExecutedPassCounts', () => {
-    it('AC2-counts: maps each file name to its number of passed assertions', () => {
+    it('[covers:F-b81d203e/AC-5d9c66b8] AC2-counts: maps each file name to its number of passed assertions', () => {
       const json = vitestJson([
         {name: resolve(CWD, 'tests/vacuous.test.ts'), statuses: ['skipped', 'skipped']},
         {name: resolve(CWD, 'tests/real.test.ts'), statuses: ['passed', 'skipped']},
@@ -136,7 +136,7 @@ describe('vacuous-tests (F-b81d203e)', () => {
   // ---------------------------------------------------------------------
   describe('findVacuousDoneFeatures', () => {
     // AC-41e112d3 (AC1) — fires.
-    it('AC1-fires: a done feature whose sole test_ref executed 0 passing assertions is flagged', () => {
+    it('[covers:F-b81d203e/AC-41e112d3] AC1-fires: a done feature whose sole test_ref executed 0 passing assertions is flagged', () => {
       const spec = specOf([
         feature({
           id: 'F-vacuous01',
@@ -156,7 +156,7 @@ describe('vacuous-tests (F-b81d203e)', () => {
     });
 
     // AC-d7a9568e (AC4) — no false positive.
-    it('AC4-real-test-no-finding: a done feature with >=1 passing assertion is not flagged', () => {
+    it('[covers:F-b81d203e/AC-d7a9568e] AC4-real-test-no-finding: a done feature with >=1 passing assertion is not flagged', () => {
       const spec = specOf([
         feature({
           id: 'F-real0001',

@@ -1,5 +1,6 @@
 import {describe, test, expect} from 'vitest';
 import {buildImpactSlice, collectDependents} from '../../src/optimizer/reverse-slice.js';
+import {structuralView} from '../../src/graph/consumers.js';
 import type {Spec} from '../../src/spec/types.js';
 
 type Feature = {
@@ -27,7 +28,7 @@ function mkSpec(features: Feature[], scenarios: Scenario[] = []): Spec {
 }
 
 describe('reverse-slice / impact (F-7794a6bc)', () => {
-  test('feature query returns focus, transitive dependents, scenarios, test_refs union, impacted modules', () => {
+  test('[covers:F-7794a6bc/AC-9980c9b0] feature query returns focus, transitive dependents, scenarios, test_refs union, impacted modules', () => {
     const spec = mkSpec(
       [
         {
@@ -81,7 +82,7 @@ describe('reverse-slice / impact (F-7794a6bc)', () => {
     ]);
   });
 
-  test('module path query resolves all owners (many-to-many) and computes blast radius', () => {
+  test('[covers:F-7794a6bc/AC-3f4f7202] module path query resolves all owners (many-to-many) and computes blast radius', () => {
     const spec = mkSpec([
       {id: 'F1', title: 'F1', status: 'done', modules: ['src/shared.ts']},
       {id: 'F2', title: 'F2', status: 'done', modules: ['src/shared.ts']},
@@ -97,7 +98,7 @@ describe('reverse-slice / impact (F-7794a6bc)', () => {
     expect(r.impacted.map((i) => i.id)).toEqual(['G']);
   });
 
-  test('a miss returns not_found naming the accepted forms', () => {
+  test('[covers:F-7794a6bc/AC-6a73f6b1] a miss returns not_found naming feature id, slug, and module path lookup forms', () => {
     const r = buildImpactSlice(mkSpec([{id: 'A', title: 'A', status: 'done'}]), 'nope');
     expect('not_found' in r).toBe(true);
     const miss = r as {not_found: string; accepted_forms: readonly string[]};
@@ -106,21 +107,25 @@ describe('reverse-slice / impact (F-7794a6bc)', () => {
     expect(Array.isArray(forms)).toBe(true);
     expect(forms.length).toBeGreaterThan(0);
     const joined = forms.join(' ');
+    expect(joined).toContain('feature id');
     expect(joined).toContain('slug');
-    expect(joined).toContain('module');
+    expect(joined).toContain('module path');
   });
 
-  test('depth bounds the dependent walk and output is deterministic', () => {
-    const deps = new Map<string, Set<string>>([
-      ['A', new Set(['B'])],
-      ['B', new Set(['C'])],
-      ['C', new Set(['D'])],
-    ]);
+  test('[covers:F-7794a6bc/AC-7596b1b6] depth bounds the dependent walk and output is deterministic', () => {
+    // The dependent walk now reads the one graph contract, so the chain is declared as
+    // spec depends_on edges (B depends on A, C on B, D on C) instead of a private map.
+    const chain = structuralView(mkSpec([
+      {id: 'A', title: 'A', status: 'done'},
+      {id: 'B', title: 'B', status: 'done', depends_on: ['A']},
+      {id: 'C', title: 'C', status: 'done', depends_on: ['B']},
+      {id: 'D', title: 'D', status: 'done', depends_on: ['C']},
+    ]));
 
-    expect([...collectDependents(['A'], deps, 1)].sort()).toEqual(['B']);
-    expect([...collectDependents(['A'], deps, 2)].sort()).toEqual(['B', 'C']);
-    expect([...collectDependents(['A'], deps)].sort()).toEqual(['B', 'C', 'D']);
-    expect(collectDependents(['A'], deps).has('A')).toBe(false);
+    expect([...collectDependents(['A'], chain, 1)].sort()).toEqual(['B']);
+    expect([...collectDependents(['A'], chain, 2)].sort()).toEqual(['B', 'C']);
+    expect([...collectDependents(['A'], chain)].sort()).toEqual(['B', 'C', 'D']);
+    expect(collectDependents(['A'], chain).has('A')).toBe(false);
 
     const spec = mkSpec(
       [
@@ -170,7 +175,7 @@ describe('reverse-slice / impact (F-7794a6bc)', () => {
     expect(bounded.impacted.map((i) => i.id)).toEqual(['B']);
   });
 
-  test('BLANK ledger: impacted:[] carries zero-counts + fallback hints — unknown, not safe (F-c6a32fff)', () => {
+  test('[covers:F-c6a32fff/AC-30e00a5c] BLANK ledger: impacted:[] carries zero-counts + fallback hints — unknown, not safe (F-c6a32fff)', () => {
     // The state of every freshly adopted project: features exist, no edges declared.
     const spec = mkSpec([
       {id: 'F-aaa111', title: 'A', status: 'done', modules: ['src/a.ts']},
@@ -185,7 +190,7 @@ describe('reverse-slice / impact (F-7794a6bc)', () => {
     expect(slice.ledger?.regression_hint).toContain('run the full suite');
   });
 
-  test('DENSE ledger: a verified leaf shows real edge counts and NO hints — distinguishable from blank', () => {
+  test('[covers:F-c6a32fff/AC-30e00a5c] DENSE ledger: a verified leaf shows real edge counts and NO hints — distinguishable from blank', () => {
     const spec = mkSpec([
       {
         id: 'F-aaa111',

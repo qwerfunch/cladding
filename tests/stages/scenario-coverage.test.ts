@@ -77,7 +77,7 @@ describe('SCENARIO_COVERAGE detector', () => {
     expect(DEFAULT_MIN_FEATURES_FOR_SCENARIOS).toBe(8);
   });
 
-  test('at threshold: 8 features + 0 scenarios → exactly 1 warn naming the count', () => {
+  test('[covers:F-315fd7/AC-001] at threshold: 8 features + 0 scenarios → exactly 1 warn naming the count', () => {
     writeSpec(dir, 8);
     // deliberately write NO scenario shards
     const findings = scenarioCoverage.run({cwd: dir});
@@ -118,6 +118,20 @@ describe('SCENARIO_COVERAGE detector', () => {
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe('warn');
     expect(findings[0].message).not.toContain('future onboarding intent');
+  });
+
+  test('[covers:F-315fd7/AC-002] hollow scenarios are warn by default but onboarding seeds below the threshold are informational', () => {
+    writeSpec(dir, 2);
+    writeScenario(dir, 1, []);
+    expect(scenarioCoverage.run({cwd: dir})[0]?.severity).toBe('warn');
+
+    writeSpec(dir, 2, true);
+    writeScenario(dir, 1, []);
+    expect(scenarioCoverage.run({cwd: dir})[0]?.severity).toBe('info');
+
+    writeSpec(dir, DEFAULT_MIN_FEATURES_FOR_SCENARIOS, true);
+    writeScenario(dir, 1, []);
+    expect(scenarioCoverage.run({cwd: dir})[0]?.severity).toBe('warn');
   });
 
   test('two hollow scenarios at threshold: 8 features + 2 hollow scenarios → exactly 2 warns (no "no scenarios" finding)', () => {
@@ -172,6 +186,21 @@ describe('SCENARIO_COVERAGE strict promotion (integration)', () => {
     expect(report.pass).toBe(true);
     expect(report.findings.some((f) => f.detector === 'SCENARIO_COVERAGE')).toBe(true);
   });
+
+  test('[covers:F-315fd7/AC-003] strict blocks grown gaps while seeded early gaps stay info and unmarked hollow scenarios stay advisory', () => {
+    const strict = runDrift({cwd: dir, strict: true});
+    expect(strict.pass).toBe(false);
+    expect(strict.exitCode).toBe(1);
+
+    clearDetectors();
+    writeSpec(dir, 2, true);
+    writeScenario(dir, 1, []);
+    expect(scenarioCoverage.run({cwd: dir})[0]?.severity).toBe('info');
+
+    writeSpec(dir, 2, false);
+    writeScenario(dir, 1, []);
+    expect(scenarioCoverage.run({cwd: dir})[0]?.severity).toBe('warn');
+  });
 });
 
 // Check 3 — UNDER-BOUND: a scenario whose `flow` names a feature by its slug (the
@@ -202,7 +231,7 @@ describe('SCENARIO_COVERAGE under-bound flow (check 3)', () => {
     );
   }
 
-  test('flow references a feature slug not in features[] → one under-bound warn naming it', () => {
+  test('[covers:F-315fd7/AC-004] flow references a feature slug not in features[] → one under-bound warn naming it', () => {
     writeFlowScenario('user registers (auth-register), logs in (auth-login), plans a (sprints)', ['F-001', 'F-002']);
     const findings = scenarioCoverage.run({cwd: dir});
     expect(findings).toHaveLength(1);

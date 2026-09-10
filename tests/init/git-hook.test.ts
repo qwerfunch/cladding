@@ -6,7 +6,7 @@ import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
 import {installPreCommitHook, renderPreCommitHook, installGitHook} from '../../src/init/git-hook.js';
-import {scaffoldCiWorkflow} from '../../src/cli/init.js';
+import {runInit, scaffoldCiWorkflow} from '../../src/cli/init.js';
 
 describe('installPreCommitHook', () => {
   let dir: string;
@@ -66,10 +66,37 @@ describe('installPreCommitHook', () => {
   });
 });
 
+describe('clad init --with-hook', () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'clad-init-hook-'));
+    mkdirSync(join(dir, '.git'), {recursive: true});
+  });
+  afterEach(() => {
+    rmSync(dir, {recursive: true, force: true});
+  });
+
+  test('[covers:F-af96b1/AC-003] opt-in init installs idempotent cladding hooks without overwriting a foreign hook', async () => {
+    await runInit({cwd: dir, noLlm: true, withHook: true});
+    const preCommit = join(dir, '.git', 'hooks', 'pre-commit');
+    const prePush = join(dir, '.git', 'hooks', 'pre-push');
+    expect(readFileSync(preCommit, 'utf8')).toContain('clad check --tier=pre-commit');
+    expect(readFileSync(prePush, 'utf8')).toContain('clad check --tier=pre-push --strict');
+
+    const initial = readFileSync(preCommit, 'utf8');
+    await runInit({cwd: dir, noLlm: true, withHook: true});
+    expect(readFileSync(preCommit, 'utf8')).toBe(initial);
+
+    writeFileSync(prePush, '#!/bin/sh\n# user-owned\nexit 0\n');
+    await runInit({cwd: dir, noLlm: true, withHook: true});
+    expect(readFileSync(prePush, 'utf8')).toContain('user-owned');
+  });
+});
+
 // ─── F-16746b — pre-push hook + kind-generalized installer ───
 
 describe('installGitHook pre-push (F-16746b)', () => {
-  test('renders a strict pre-push hook and installs it alongside pre-commit', () => {
+  test('[covers:F-16746b/AC-b0e73e] renders a strict pre-push hook and installs it alongside pre-commit', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-prepush-'));
     try {
       mkdirSync(join(dir, '.git'), {recursive: true});
@@ -85,7 +112,7 @@ describe('installGitHook pre-push (F-16746b)', () => {
     }
   });
 
-  test('a foreign pre-push hook is never overwritten without force', () => {
+  test('[covers:F-16746b/AC-bf640e] a foreign pre-push hook is never overwritten without force', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-prepush-foreign-'));
     try {
       mkdirSync(join(dir, '.git', 'hooks'), {recursive: true});
@@ -100,7 +127,7 @@ describe('installGitHook pre-push (F-16746b)', () => {
 });
 
 describe('scaffoldCiWorkflow (F-16746b)', () => {
-  test('creates a major.minor-pinned authoritative-gate workflow once and never overwrites it', () => {
+  test('[covers:F-16746b/AC-a3152c][covers:F-abd10f3c/AC-84011597][covers:F-16746b/AC-bf640e] CI stays authoritative when a generated hook documents its one-time local bypass', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-ci-'));
     try {
       expect(scaffoldCiWorkflow(dir, '0.9.3')).toBe('created');
@@ -109,6 +136,11 @@ describe('scaffoldCiWorkflow (F-16746b)', () => {
       expect(body).toContain('npx --yes cladding@0.9 check');
       expect(body).toContain('check --tier=pre-push --strict --json');
       expect(body).toContain('fetch-depth: 0');
+      mkdirSync(join(dir, '.git'), {recursive: true});
+      expect(installGitHook('pre-push', dir, {version: '0.9.3'}).result).toBe('created');
+      const hook = readFileSync(join(dir, '.git', 'hooks', 'pre-push'), 'utf8');
+      expect(hook).toContain('git push --no-verify');
+      expect(hook).toContain('authoritative CI gate still runs');
       writeFileSync(p, '# user-owned\n');
       expect(scaffoldCiWorkflow(dir, null)).toBe('exists');
       expect(readFileSync(p, 'utf8')).toBe('# user-owned\n');
@@ -117,7 +149,7 @@ describe('scaffoldCiWorkflow (F-16746b)', () => {
     }
   });
 
-  test('does not scaffold an unpinned workflow when the runtime version is unavailable', () => {
+  test('[covers:F-abd10f3c/AC-8604b579] does not scaffold an unpinned workflow when the runtime version is unavailable', () => {
     const dir = mkdtempSync(join(tmpdir(), 'clad-ci-no-version-'));
     try {
       expect(scaffoldCiWorkflow(dir, null)).toBe('version-unavailable');

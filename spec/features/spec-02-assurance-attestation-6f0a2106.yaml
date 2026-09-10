@@ -1,0 +1,118 @@
+id: F-6f0a2106
+title: Spec 0.2 assurance profiles and attestation v3
+status: done
+modules:
+  - src/assurance/registry.ts
+  - src/assurance/run-authority.ts
+  - src/assurance/closures.ts
+  - src/assurance/kernel.ts
+  - src/assurance/adapters.ts
+  - src/assurance/attestation.ts
+  - src/assurance/receipt-adapter.ts
+  - src/assurance/workspace.ts
+  - src/spec/attestation.ts
+  - src/spec/edit.ts
+  - src/spec/prospective.ts
+  - src/stages/detectors/stale-attestation.ts
+  - src/stages/detectors/stale-specification.ts
+  - src/stages/test-run-cache.ts
+  - src/stages/unit.ts
+  - src/cli/clad.ts
+  - src/cli/done.ts
+  - src/serve/server.ts
+  - tests/assurance/registry.test.ts
+  - tests/assurance/kernel.test.ts
+  - tests/assurance/closures.test.ts
+  - tests/assurance/attestation.test.ts
+  - tests/assurance/workspace.test.ts
+  - tests/assurance/effective-scope.test.ts
+  - tests/spec/attestation-v3.test.ts
+  - tests/spec/attestation-policy.test.ts
+  - tests/cli/assurance-profile.test.ts
+  - tests/cli/done-schema02-crash-safe.test.ts
+  - tests/serve/assurance-gate.test.ts
+  - tests/stages/test-run-dedup.test.ts
+  - tests/stages/stale-attestation.test.ts
+  - tests/stages/stale-specification.test.ts
+  - tests/assurance/adapters.test.ts
+  - tests/scripts/compact-attestation-v3.test.ts
+  - tests/design/spec-0.2/requirements.yaml
+  - scripts/spec-0.2-validate.ts
+  - scripts/compact-attestation-v3.mjs
+  - scripts/compact-attestation-v3.d.mts
+depends_on: []
+capability_refs: []
+acceptance_criteria:
+  - id: AC-6f0a2101
+    statement: The assurance authority shall derive official and extension stage
+      identities from one descriptor registry.
+  - id: AC-6f0a2102
+    statement: The assurance authority shall reduce applicable observations with
+      failure dominance and explicit unobserved reasons.
+  - id: AC-6f0a2103
+    statement: The assurance authority shall require a compiler applicability proof
+      before marking an obligation not applicable.
+  - id: AC-6f0a2104
+    statement: The assurance authority shall seal contract, subject, verification,
+      and runtime-dependency closures deterministically.
+  - id: AC-6f0a2105
+    statement: The assurance authority shall keep an unrelated sibling criterion
+      outside a criterion subject closure.
+  - id: AC-6f0a2111
+    statement: The assurance authority shall require only profile-applicable
+      closures before an authoritative verdict or stamp.
+  - id: AC-6f0a2106
+    statement: The assurance authority shall project legacy stage results through
+      one profile reducer without executing a stage twice.
+  - id: AC-6f0a2107
+    statement: The assurance authority shall reject a downgraded requested assurance
+      level and a stronger unbounded override.
+  - id: AC-6f0a2108
+    statement: The assurance authority shall write attestation v3 only from a
+      profile-complete GREEN completion, push, or release verdict and only for a
+      feature in that compiler-effective scope at its exact input digest.
+  - id: AC-6f0a2109
+    statement: The assurance authority shall read v1 and v2 attestations while
+      applying v3 closure freshness when present.
+  - id: AC-6f0a2110
+    statement: When a schema 0.2 feature is completed, the completion profile shall
+      preserve the flip, gate, compensation, and transaction invariants.
+  - id: AC-6f0a2112
+    kind: behavior
+    statement: The assurance authority shall derive scope and closure completeness
+      from structural relations and enumerable inputs only, so an unresolved or
+      unbuilt proof-channel reference remains a visible negative fact for its
+      own criterion without making the repository profile unresolved.
+  - id: AC-6f0a2113
+    kind: behavior
+    statement: When a schema 0.2 gate runs an authoritative profile (completion,
+      push, or release), the assurance authority shall block on warn-class drift
+      findings without a transport strict flag, while the advisory profiles
+      (feedback and checkpoint) block on error-class findings only.
+  - id: AC-6f0a2114
+    kind: behavior
+    statement: While the superseding feature of an archived feature is not yet done,
+      the drift authority shall report the surviving modules of that archived
+      feature as informational, restoring the warning once the successor is
+      done.
+  - id: AC-6f0a2115
+    kind: behavior
+    statement: The assurance authority shall label an unresolved-applicability row
+      unresolved and an unbound criterion row unbound, and expose the incomplete
+      closure addresses in its machine verdict.
+  - id: AC-6f0a2116
+    kind: behavior
+    statement: The assurance authority shall persist each attestation v3 row with
+      the observation set digest, the authorization set digest, and the
+      observation count instead of inline identity lists so that the attestation
+      size stays bounded by the feature count.
+design_impact:
+  classification: structural
+  rationale: F6 centralizes assurance identity, closure freshness, profile
+    reduction, stage compatibility, and v3 sealing without adding an issuer or
+    scheduler.
+  status: resolved
+  artifacts:
+    - docs/design/spec-0.2/assurance.md
+    - docs/design/spec-0.2/proof-and-editing.md
+    - docs/design/spec-0.2/delivery.md

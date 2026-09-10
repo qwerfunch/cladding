@@ -4,36 +4,33 @@ status: done
 modules:
   - src/serve/server.ts
   - src/cli/clad.ts
-depends_on: [F-049, F-068, F-069, F-070, F-071, F-072]
+depends_on:
+  - F-049
+  - F-068
+  - F-069
+  - F-070
+  - F-071
+  - F-072
+capability_refs: []
 acceptance_criteria:
   - id: AC-206
-    ears: ubiquitous
-    action: expose cladding as an MCP server over stdio via the new `clad serve` verb
-    response: src/cli/clad.ts adds a `serve` subcommand that lazy-imports `@modelcontextprotocol/sdk` and `src/serve/server.ts`, builds an McpServer, attaches a StdioServerTransport, and runs until the client closes stdio
-    text: The system shall expose cladding as an MCP server reachable over stdio through a new `clad serve` verb so any MCP-aware host (Claude Code, Cursor, Continue, Cline) can consume cladding's tools, resources, and persona prompts.
-    test_refs: [tests/cli/clad.test.ts, tests/serve/server.test.ts]
+    statement: The system shall expose cladding as an MCP server reachable over
+      stdio through a new `clad serve` verb so any MCP-aware host (Claude Code,
+      Cursor, Continue, Cline) can consume cladding's tools, resources, and
+      persona prompts.
   - id: AC-207
-    ears: ubiquitous
-    action: register four read-only tools on the MCP server
-    response: buildServer registers `clad_list_features`, `clad_get_feature`, `clad_run_check`, and `clad_get_events`; each tool delegates to the matching cladding module (spec/load · stages/drift · .cladding/events.log reader)
-    text: The system shall register `clad_list_features`, `clad_get_feature`, `clad_run_check`, and `clad_get_events` as MCP tools so an MCP client can query cladding's state without touching the filesystem directly.
-    test_refs: [tests/serve/server.test.ts]
+    statement: The system shall register `clad_list_features`, `clad_get_feature`,
+      `clad_run_check`, and `clad_get_events` as MCP tools so an MCP client can
+      query cladding's state without touching the filesystem directly.
   - id: AC-208
-    ears: ubiquitous
-    action: register three resources on the MCP server
-    response: buildServer registers `cladding://spec`, `cladding://events`, and `cladding://audit` as MCP resources, each returning the up-to-date file content (or empty when the file is absent)
-    text: The system shall register `cladding://spec`, `cladding://events`, and `cladding://audit` as MCP resources so an MCP client can subscribe to or read cladding's canonical streams.
-    test_refs: [tests/serve/server.test.ts]
+    statement: The system shall register `cladding://spec`, `cladding://events`, and
+      `cladding://audit` as MCP resources so an MCP client can subscribe to or
+      read cladding's canonical streams.
   - id: AC-209
-    ears: ubiquitous
-    action: register the five persona bodies as MCP prompts
-    response: buildServer registers one prompt per persona id (orchestrator, planner, reviewer, observability, developer); each prompt accepts an optional featureId argument that gets interpolated into the prompt body
-    text: The system shall register the five cladding personas (orchestrator, planner, reviewer, observability, developer) as MCP prompts so an MCP client can request the persona body without re-parsing src/agents/.
-    test_refs: [tests/serve/server.test.ts]
+    statement: The system shall register the five cladding personas (orchestrator,
+      planner, reviewer, observability, developer) as MCP prompts so an MCP
+      client can request the persona body without re-parsing src/agents/.
   - id: AC-210
-    ears: state
-    condition: while the MCP client invokes clad_get_feature with an unknown id
-    action: surface the failure as a tool error rather than a thrown exception
-    response: the tool returns a CallToolResult with isError=true and a content message naming the missing id
-    text: While the MCP client invokes clad_get_feature with an id absent from the spec, the system shall surface a CallToolResult with isError=true so the client sees a tool-level failure instead of a transport exception.
-    test_refs: [tests/serve/server.test.ts]
+    statement: While the MCP client invokes clad_get_feature with an id absent from
+      the spec, the system shall surface a CallToolResult with isError=true so
+      the client sees a tool-level failure instead of a transport exception.

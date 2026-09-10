@@ -7,9 +7,10 @@
 // CLI behavior.
 
 import process from 'node:process';
+import {createHash} from 'node:crypto';
 import {readFileSync, writeFileSync} from 'node:fs';
 
-import {Command} from 'commander';
+import {Command, Option} from 'commander';
 
 import {classifyIntent} from '../router/intent.js';
 import {runChangelogCommand} from './changelog.js';
@@ -19,18 +20,20 @@ import {buildBundleHtml, type BundleChanges} from '../report/bundle.js';
 import {runReportCommand} from './report.js';
 import {runDoctorCommand} from './doctor.js';
 import {runDoctorHosts} from './doctor-hosts.js';
-import {runDone} from './done.js';
+import {runDone, type DoneIndependenceLabel, type DoneIndependenceSource, type DoneResult} from './done.js';
 import {featureCycleAdvisory} from './enforcement-advisory.js';
 import {runHookCommand} from './hook.js';
 import {runVerdictCommand} from './verdict.js';
 import {runUpdate} from './update.js';
-import {runInit} from './init.js';
+import {runInit, type InitResult, type InitSchemaVersion} from './init.js';
 import {refineOnboarding, resolveOnboardingReview, runClarifyCommand} from './clarify.js';
+import {onboardingCompletionMessage} from '../ui/softShell.js';
 import {prepareHostClarify, prepareHostInit, renderHostDraft} from './host-onboarding.js';
 import {getCurrentCladdingVersion, runHostSetup} from '../init/host-setup.js';
 import {recordEvent} from '../events/log.js';
 import {blockingDetectorNames, gateStopFingerprint} from '../events/stop-telemetry.js';
 import {buildContextSlice} from '../optimizer/context-slice.js';
+import {graphIrView} from '../graph/query.js';
 import {buildImpactSlice} from '../optimizer/reverse-slice.js';
 import {inferDependsOn} from '../optimizer/infer-depends-on.js';
 import {measureGraphEfficiency, MEASUREMENT_DISCLAIMER} from '../optimizer/measurement.js';
@@ -38,11 +41,17 @@ import {appendMeasureSnapshot} from '../optimizer/measure-ledger.js';
 import {runSessionsMeasure, runTrendMeasure} from './measure.js';
 import {runGraphExportCommand, runGraphStatsCommand} from './graph.js';
 import {runGraphServeCommand} from './graph-serve.js';
+import {runMigrateCommand} from './migrate.js';
+import {runRelocateGeneratedCommand} from './relocate-generated.js';
+import {runBeginCommand} from './begin.js';
+import {runKeyCreateCommand, runKeyListCommand} from './key.js';
+import {runSignoffCommand, runVerifiedSignoffCommand} from './signoff.js';
+import {runIngestReceiptCommand} from './ingest-receipt.js';
 import {strictSkipViolations} from '../stages/skip-policy.js';
 import {runArch} from '../stages/arch.js';
 import {runAudit} from '../stages/audit.js';
 import {clearDetectorResultCache, primeDetectorResultCache} from '../stages/detector-result-cache.js';
-import {clearTestRunCache, primeTestRunCache} from '../stages/test-run-cache.js';
+import {clearTestRunCache, currentGateProofEvidence, currentRunProofIdentity, primeTestRunCache, type CurrentRunProofEvidence} from '../stages/test-run-cache.js';
 import {runCommit} from '../stages/commit.js';
 import {runCov} from '../stages/cov.js';
 import {runDrift} from '../stages/drift.js';
@@ -63,18 +72,48 @@ import {staleSpecification} from '../stages/detectors/stale-specification.js';
 import {findLatestCheckpoint, readGitHead, recordCheckpoint, recordRollback} from '../core/checkpoint.js';
 import {gitOperationInProgress, gitOperationInProgressName} from '../core/git-ops.js';
 import {maintainDeliverable} from '../spec/deliverable-detect.js';
-import {computeInventory, writeInventoryToSpecYaml, writeFeatureIndex} from '../spec/inventory.js';
-import {writeDocLinksYaml} from '../spec/doc-references.js';
+import {
+  beginPreparedSchema02DoneGate,
+  consumePreparedSchema02DoneWriter,
+  preparedSchema02DoneGate,
+  refreshDerivedSpecProjections,
+  type DoneGateMark,
+  type GeneratedAttestationCompletion,
+  type PreparedSchema02DoneEvent,
+  type PreparedSchema02DoneWriter,
+} from '../spec/edit.js';
+import {requiredRootSchema} from '../spec/transaction.js';
 import {writeSpecDrivenAgentsMd} from '../init/agents-md.js';
 import {repairTestRefs} from '../spec/test-ref-repair.js';
-import {detectorCatalogSha256, writeAttestation} from '../spec/attestation.js';
+import {captureAttestationInputSnapshot, detectorCatalogSha256, featureAttestationV3, readAttestation, writeAttestation} from '../spec/attestation.js';
+import {compileSpecWorkspace, compileSpecWorkspaceWithLockHeld} from '../spec/compiler/compile.js';
+import type {SpecCompilation} from '../spec/compiler/types.js';
+import {
+  prospectiveDoneCompilation,
+  prospectiveDoneSpec,
+  withProspectiveCompilationOverlay,
+  withProspectiveSpecOverlay,
+} from '../spec/prospective.js';
+import {reduceLegacyStageAdapter} from '../assurance/adapters.js';
+import {createAttestationV3RetentionContext} from '../assurance/attestation.js';
+import {canonicalClosureJson, type AssuranceClosureInput} from '../assurance/closures.js';
+import {currentReceiptIdentities} from '../assurance/receipt-adapter.js';
+import {workspaceReceiptCensus} from '../assurance/receipt-census.js';
+import {mintRunCheckStagesAuthority} from '../assurance/run-authority.js';
+import {withWorkspaceMembership} from '../assurance/workspace-membership.js';
+import {assuranceClosureInputFromWorkspace, createWorkspaceAttestations, currentProofViewsFromWorkspace, effectiveFeatureScope, featureClosureSeals, hasApplicableSchema02TestCriteria, runnerConfigurationResolver, workspaceClosureSeals, workspaceIndependenceInputs, workspaceProfileSnapshot, type BoundCriteriaCollector, type WorkspaceProfileSnapshot, type WorkspaceReceiptContext} from '../assurance/workspace.js';
+import {liveCriterionReportsFromCurrentRun, staticCriterionReportsFromWorkspace, staticCriterionScopeFromWorkspace} from '../assurance/criterion-observations.js';
+import {emptyTrustSnapshot, type TrustSnapshot} from '../proof/receipt.js';
+import {evidenceOperations} from '../proof/trust.js';
+import {assuranceProfile, invalidateAssuranceVerdict, resolveRequestedAssuranceLevel, type AssuranceProfile, type AssuranceVerdict} from '../assurance/kernel.js';
+import {normalizeProfile, OBLIGATION_DESCRIPTORS, profileBlocksWarnClass, type AssuranceLevel, type AssuranceProfileId} from '../assurance/registry.js';
 import {buildBlindPayload, renderBlindBrief} from '../oracle/payload.js';
 import {requiredOracleWorklist} from '../oracle/policy.js';
-import {loadSpec} from '../spec/load.js';
+import {loadSpec, loadSpecFromDiskUnlocked} from '../spec/load.js';
 import {readEvidence} from '../hitl/audit.js';
 import {pulse, type PulseKind} from '../ui/pulse.js';
 import {buildPanelModel, renderPanel} from '../ui/panel.js';
-import {featureLabel, gateLabel, haltMessage, plainLead} from '../ui/softShell.js';
+import {gateLabel, plainLead, unboundCriterionGuidance} from '../ui/softShell.js';
 
 /** Handler for `clad serve`. Boots the MCP server over stdio. */
 export async function runServeCommand(opts: {cwd?: string}): Promise<void> {
@@ -87,8 +126,12 @@ export async function runServeCommand(opts: {cwd?: string}): Promise<void> {
   ]);
   const server = buildServer({
     cwd: opts.cwd,
+    // F9d — trust and expected digests are host/installation facts, never MCP
+    // tool arguments. Injecting them here is the only way a receipt ingested
+    // through the server can verify against the workspace's own registry.
+    evidence: evidenceOperations(opts.cwd ?? '.'),
     onboarding: {
-      renderDraft: (draft) => renderHostDraft(draft as Parameters<typeof renderHostDraft>[0]),
+      renderDraft: (draft) => renderHostDraft(draft as Parameters<typeof renderHostDraft>[0], opts.cwd ?? '.'),
       prepareInit: ({cwd, mode, intent}) => prepareHostInit(cwd, mode, intent),
       initialize: runInit,
       prepareClarify: (answer, {cwd}) => prepareHostClarify(cwd, answer),
@@ -137,10 +180,16 @@ export async function runInitCommand(
     roots?: string;
     withHook?: boolean;
     withCi?: boolean;
+    schema?: string;
     json?: boolean;
   },
 ): Promise<void> {
   const intent = intentTokens && intentTokens.length > 0 ? intentTokens.join(' ').trim() : undefined;
+  if (opts.schema !== undefined && opts.schema !== '0.1' && opts.schema !== '0.2') {
+    pulse('fail', 'init', 'Unknown spec schema. Use 0.2 (the current schema) or 0.1 (the legacy one).');
+    process.exit(2);
+    return;
+  }
   const result = await runInit({
     projectName: opts.name,
     force: opts.force,
@@ -150,6 +199,7 @@ export async function runInitCommand(
     intent,
     withHook: opts.withHook,
     withCi: opts.withCi,
+    ...(opts.schema ? {schema: opts.schema as InitSchemaVersion} : {}),
   });
   if (opts.json) {
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
@@ -162,94 +212,61 @@ export async function runInitCommand(
   const modeDetail = result.onboardingMode ? `language: ${result.language} · mode: ${result.onboardingMode}` : `language: ${result.language}`;
   pulse('note', 'init done', modeDetail);
 
-  // v0.3.43 — surface LLM-generated clarifying questions so the AI
-  // host (or a direct CLI user) sees the next-step prompts that
-  // refine the spec. The questions are calibrated to product-owner
-  // vocabulary — no implementation jargon.
-  if (result.clarifyingQuestions && result.clarifyingQuestions.length > 0) {
-    process.stdout.write('\n💡 A few more details would sharpen the spec:\n');
-    for (const [i, q] of result.clarifyingQuestions.entries()) {
-      process.stdout.write(`   ${i + 1}. ${q}\n`);
-    }
-    process.stdout.write('\n');
-  } else if (!intent) {
-    // Greenfield + no intent + direct CLI user — emit a gentle hint
-    // suggesting the intent-driven path so they can re-run with more
-    // context. The orchestrator persona normally asks for intent
-    // BEFORE invoking `clad init`, so this hint fires mostly for
-    // power users who skip the chat flow.
-    const greenfield = result.created.some((c) => c === 'docs/conventions.md');
-    if (greenfield) {
-      process.stdout.write('\n💡 Tip: for a more precise scaffold, describe the project:\n');
-      process.stdout.write('   clad init <project description>\n');
-      process.stdout.write('   e.g. clad init payment SaaS for B2B\n');
-      process.stdout.write('   The existing seeds divert to .cladding/scan/*.proposal.\n\n');
-    }
-  }
+  const completionHints = renderInitCompletionHints(result, intent);
+  if (completionHints) process.stdout.write(completionHints);
 
   process.exit(0);
 }
 
-interface RunCommandOptions {
-  cwd?: string;
-  maxIterations: string;
-  maxWallClockMs: string;
-  maxRetries: string;
-  json?: boolean;
-}
+/**
+ * Renders the system-authored completion guidance for `clad init`.
+ * User/model-authored questions pass through verbatim so the host can keep
+ * the user's language; only Cladding's framing is English single-source.
+ *
+ * @param result Completed init result that may carry follow-up questions.
+ * @param intent Original user intent, if supplied to `clad init`.
+ * @returns A complete stdout fragment, or an empty string when no hint applies.
+ * @see spec/features/init-onboarding-english-source-5cac007a.yaml AC-f12ce851
+ */
+export function renderInitCompletionHints(
+  result: Pick<InitResult, 'created' | 'clarifyingQuestions'>,
+  intent: string | undefined,
+): string {
+  const questions = result.clarifyingQuestions ?? [];
+  if (questions.length > 0) {
+    return [
+      '',
+      '💡 A few more details would sharpen the spec:',
+      ...questions.map((question, index) => `   ${index + 1}. ${question}`),
+      '',
+      '',
+    ].join('\n');
+  }
 
-/** Handler for `clad run [goal]` (formerly `drive`). Runs the autonomous loop. */
-export async function runRunCommand(
-  goal: string | undefined,
-  opts: RunCommandOptions,
-): Promise<void> {
-  // `clad run` is EXPERIMENTAL. The headless code-author transport is unbuilt
-  // and nothing auto-invokes it — the supported, exercised path is host-delegated
-  // (run `clad serve` and let your AI host loop the per-feature cadence). The loop
-  // halts honestly rather than certifying empty stubs when no real LLM is reachable.
-  pulse('note', 'run', 'EXPERIMENTAL — prefer the host-delegated path (clad serve + your AI host). See docs/feature-cycle.md § Execution surface.');
-  const {runDriveLoop} = await import('../drive/loop.js');
-  const result = await runDriveLoop({
-    cwd: opts.cwd,
-    goal,
-    budget: {
-      maxIterations: Number(opts.maxIterations),
-      maxWallClockMs: Number(opts.maxWallClockMs),
-      maxRetriesPerFeature: Number(opts.maxRetries),
-    },
-  });
-  const tag = result.halt.class === 'ALL_FEATURES_DONE' ? 'pass' : 'note';
-  if (opts.json) {
-    pulse(
-      tag,
-      'run',
-      `halt=${result.halt.class} iter=${result.iterations} features=${result.featuresTouched.length} stubs=${result.stubsCreated.length} gates=${result.gateRuns}`,
-    );
-    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-  } else {
-    const spec = loadSpec(opts.cwd ?? '.');
-    const touched = result.featuresTouched.map((id) => featureLabel(id, spec));
-    const summary = `${haltMessage(result.halt, spec)} iter=${result.iterations} features=${touched.length} stubs=${result.stubsCreated.length} gates=${result.gateRuns}`;
-    pulse(tag, 'run', summary);
-    if (touched.length > 0) {
-      process.stdout.write(`Touched: ${touched.join(', ')}\n`);
-    }
+  // Greenfield + no intent + direct CLI user — emit a gentle hint suggesting
+  // the intent-driven path. The orchestrator normally asks for intent before
+  // invoking `clad init`, so this primarily supports direct CLI users.
+  const greenfield = result.created.some((created) => created === 'docs/conventions.md');
+  if (!intent && greenfield) {
+    return [
+      '',
+      '💡 Tip: for a more precise scaffold, describe the project:',
+      '   clad init <project description>',
+      '   e.g. clad init payment SaaS for B2B',
+      '   The existing seeds divert to .cladding/scan/*.proposal.',
+      '',
+      '',
+    ].join('\n');
   }
-  // Honest exit code (anti-Vacuous-Green for the headless loop). A run that
-  // produced empty auto-stubs (no real implementation — the code-author transport
-  // is mock/unbuilt) is NOT a success even when the loop "cleared" features on the
-  // L1 floor: it implemented nothing. Surface that and exit non-zero, so a user or
-  // CI never reads a stub-only `clad run` as done. Likewise any non-completion
-  // halt exits non-zero. Only a real, fully-cleared run is 0.
-  const vacuous = result.stubsCreated.length > 0;
-  if (vacuous) {
-    pulse(
-      'fail',
-      'run',
-      `produced ${result.stubsCreated.length} empty auto-stub(s) and implemented nothing — the headless code-author needs a real LLM transport (set ANTHROPIC_API_KEY) or use the host-delegated path (clad serve + your AI host). This run did NOT do the work.`,
-    );
+  if (intent) {
+    return [
+      '',
+      onboardingCompletionMessage(),
+      '',
+      '',
+    ].join('\n');
   }
-  process.exit(result.halt.class === 'ALL_FEATURES_DONE' && !vacuous ? 0 : 1);
+  return '';
 }
 
 /**
@@ -273,10 +290,7 @@ export function runSyncCommand(opts: {proposeArchive?: boolean} = {}): void {
     if (gitOperationInProgress('.')) {
       pulse('note', 'sync', 'derived-file writes deferred — git operation in progress; re-run after the merge/rebase completes.');
     } else {
-      const inventory = computeInventory('.');
-      writeInventoryToSpecYaml('.', inventory);
-      writeFeatureIndex('.'); // F-37b4a8 — 1-file feature lookup at scale
-      writeDocLinksYaml('.'); // F-doc-graph — doc→spec/doc link index (Tier C)
+      refreshDerivedSpecProjections('.'); // inventory/index/doc-links share one journaled snapshot
       // F-a4085adf (#199) — refresh the spec-driven AGENTS.md managed block so
       // cross-host agents (Codex/Gemini/Cursor/…) read the same spec-sourced
       // guidance Claude gets. Marker-upsert: regenerates only the delimited
@@ -513,6 +527,18 @@ export interface CheckOutcome {
    * `clad done`) ignore it. Absent on the early unknown-tier bail-out.
    */
   readonly stages?: readonly StageOutcome[];
+  /** Canonical F6 projection, additive to the legacy stage JSON. */
+  readonly assurance?: AssuranceVerdict;
+  /** Machine-readable refusal made before any stage or attestation writer runs. */
+  readonly error?: string;
+  /** Deferred only for schema-0.2 `done`, then committed under its F4 target lock. */
+  readonly commitAttestation?: (completion: GeneratedAttestationCompletion) => void;
+  /**
+   * Present only when a GREEN schema 0.2 gate could not record a verification
+   * for the feature it was scoped to. It names the guard that refused, so the
+   * caller reports a cause instead of an unexplained missing claim.
+   */
+  readonly attestationRefusal?: {readonly guard: string; readonly detail: string};
 }
 
 /**
@@ -538,19 +564,117 @@ export function renderNoRunnerGuidance(labels: readonly string[]): string {
 }
 
 /**
+ * Compatibility-only root dispatch used when a compiler error prevents a full
+ * schema projection. It can grant raw module focus only to an explicit 0.1
+ * root; every other unreadable/unknown/0.2 root fails closed to repository
+ * execution. The compiler remains the sole schema-0.2 scope authority.
+ */
+function rootSelectsSchema01(cwd: string): boolean {
+  try {
+    return requiredRootSchema(cwd) === '0.1';
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Runs a tier's Iron Law stages in-process and reports the worst exit code.
  * Shared by `clad check` (which wraps it with `process.exit`) and `clad done`
  * (which gates the status flip on it), so the two verify against the SAME stage
  * pipeline.
  */
-export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier?: string; json?: boolean; silent?: boolean; focusModules?: readonly string[]}): CheckOutcome {
-  const tier = opts.tier ?? 'all';
+export interface CheckStageOptions {
+  internal?: boolean;
+  strict?: boolean;
+  tier?: string;
+  profile?: string;
+  assuranceLevel?: AssuranceLevel;
+  json?: boolean;
+  silent?: boolean;
+  focusModules?: readonly string[];
+  scopeSubjects?: readonly string[];
+  /** `clad done` prepares but does not stamp until lifecycle finalization. */
+  deferAttestation?: boolean;
+  /** Completion-only in-memory target; never written before the final F4 commit. */
+  prospectiveFeatureId?: string;
+  /** Exact non-serializable schema-0.2 completion capability from `clad done`. */
+  completionGate?: DoneGateMark;
+  /** Exact non-serializable success-event binding from the same `clad done` run. */
+  completionEvent?: PreparedSchema02DoneEvent;
+}
+
+/** Runs stages, refusing public completion transport flags without a prepared capability. */
+/** How many unrecorded done features are named before the note summarizes the rest. */
+const ATTESTATION_REFUSAL_NOTE_LIMIT = 5;
+
+/** How many unbound criteria are named before the binding note summarizes the rest. */
+const UNBOUND_CRITERION_NOTE_LIMIT = 5;
+
+/** Ascending level order, used only to tell a refused downgrade from a refused upgrade. */
+const ASSURANCE_LEVEL_ORDER: readonly AssuranceLevel[] = ['L1', 'L2', 'L3', 'L4'];
+
+export function runCheckStages(opts: CheckStageOptions): CheckOutcome {
+  // One gate evaluation reads one workspace membership listing; the next
+  // evaluation in the same long-lived process reads it again, so a file added
+  // between two gates is never sealed from a stale listing.
+  return withWorkspaceMembership(() => runCheckStagesEvaluation(opts));
+}
+
+/** Runs one gate evaluation inside the shared membership scope. */
+function runCheckStagesEvaluation(opts: CheckStageOptions): CheckOutcome {
+  const requestsCompletion = opts.deferAttestation === true
+    || opts.prospectiveFeatureId !== undefined
+    || opts.completionGate !== undefined
+    || opts.completionEvent !== undefined;
+  if (!requestsCompletion) return runCheckStagesCore(opts);
+  if (opts.deferAttestation !== true || opts.prospectiveFeatureId === undefined
+    || opts.completionGate === undefined || opts.completionEvent === undefined) {
+    return refuseUnpreparedCompletion(opts);
+  }
+  let capability: ReturnType<typeof preparedSchema02DoneGate>;
+  let writer: PreparedSchema02DoneWriter;
+  let spec: ReturnType<typeof loadSpec>;
+  let compilation: ReturnType<typeof compileSpecWorkspace>;
+  try {
+    capability = preparedSchema02DoneGate('.', opts.completionGate);
+    if (capability.featureId !== opts.prospectiveFeatureId
+      || opts.profile !== 'completion'
+      || opts.scopeSubjects?.length !== 1
+      || opts.scopeSubjects[0] !== `feature:${capability.featureId}`) {
+      return refuseUnpreparedCompletion(opts);
+    }
+    writer = beginPreparedSchema02DoneGate('.', opts.completionGate, opts.completionEvent).writer;
+    // The public runner owns the completion view from planning through every
+    // stage and mint. A late writer overlay cannot repair a detector that was
+    // allowed to observe an in-progress target.
+    spec = prospectiveDoneSpec(loadSpec('.'), capability.featureId);
+    compilation = prospectiveDoneCompilation(compileSpecWorkspace('.'), capability.featureId);
+  } catch {
+    return refuseUnpreparedCompletion(opts);
+  }
+  return withProspectiveSpecOverlay('.', spec, () =>
+    withProspectiveCompilationOverlay('.', compilation, () => runCheckStagesCore(opts, writer)));
+}
+
+/** Internal runner entered only after the public completion boundary is sealed. */
+function runCheckStagesCore(opts: CheckStageOptions, completionWriter?: PreparedSchema02DoneWriter): CheckOutcome {
+  const selectedProfile = normalizeProfile(opts.profile ?? opts.tier ?? 'all');
+  const tier = opts.tier ?? (opts.profile === 'feedback' || opts.profile === 'checkpoint' ? 'pre-commit' : opts.profile === 'release' ? 'all' : 'pre-push');
   // `silent` (the verdict poll) suppresses ALL user-facing IO — no pulse, no
   // --json stdout write, no attestation stamp — but still computes the honest
   // worst/anyFailed/stages and records the gate_run telemetry. A poll observes;
   // it never speaks or mutates.
   const silent = opts.silent === true;
-  const allowed = TIER_STAGES[tier];
+  if ((opts.profile !== undefined && selectedProfile === undefined)
+    || (opts.assuranceLevel !== undefined && !['L1', 'L2', 'L3', 'L4'].includes(opts.assuranceLevel))) {
+    const error = opts.profile !== undefined && selectedProfile === undefined
+      ? 'unknown assurance profile'
+      : 'unknown assurance level';
+    if (opts.json && !silent) process.stdout.write(`${JSON.stringify({tier, error, worst: 2, anyFailed: true, stages: []}, null, 2)}\n`);
+    else if (!silent) pulse('fail', 'check', error);
+    return {worst: 2, anyFailed: true, stages: []};
+  }
+  let allowed = TIER_STAGES[tier];
   if (!allowed) {
     if (opts.json && !silent) {
       process.stdout.write(`${JSON.stringify({tier, error: `unknown tier '${tier}'`, worst: 2, anyFailed: true, stages: []}, null, 2)}\n`);
@@ -559,14 +683,107 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
     }
     return {worst: 2, anyFailed: true, stages: []};
   }
+  // Release is a repository assertion, never a convenient spelling for a
+  // feature gate. Keep this at the exported runner boundary so MCP/internal
+  // callers cannot execute a subset then mint a repository-shaped result.
+  if (selectedProfile === 'release'
+    && ((opts.scopeSubjects?.length ?? 0) > 0 || (opts.focusModules?.length ?? 0) > 0)) {
+    const error = 'release profile is repository-wide and cannot be narrowed by feature or module';
+    if (opts.json && !silent) process.stdout.write(`${JSON.stringify({tier, error, worst: 1, anyFailed: true, stages: []}, null, 2)}\n`);
+    else if (!silent) pulse('fail', 'check', 'Release checks always run across the whole repository. Remove the feature or module filter.');
+    return {worst: 1, anyFailed: true, stages: [], error};
+  }
+  // Schema 0.2 profiles own the execution set.  The legacy aliases retain
+  // their historical 0.1 subsets, while a canonical profile never quietly
+  // defaults to `all` merely because no tier was supplied.
+  let profileCompilation: ReturnType<typeof compileSpecWorkspace> | undefined;
+  // A rejected ONE-RUN level is a refusal the caller asked for, so it is
+  // carried out of the compile guard and answered below. Without a requested
+  // level nothing is ever captured here and the default run is byte-identical.
+  let levelRejection: {readonly configured: AssuranceLevel; readonly requested: AssuranceLevel; readonly reason: string} | undefined;
+  if (selectedProfile) {
+    try {
+      profileCompilation = compileSpecWorkspace('.');
+      if (profileCompilation.schemaVersion === '0.2') {
+        const configured = profileCompilation.contract?.project.assuranceLevel ?? 'L2';
+        const resolved = resolveRequestedAssuranceLevel({
+          configured,
+          requested: opts.assuranceLevel,
+          boundedScope: opts.scopeSubjects !== undefined && opts.scopeSubjects.length > 0,
+        });
+        if (resolved.ok) {
+          const profileLevel = selectedProfile === 'feedback' || selectedProfile === 'checkpoint' ? 'L1' : resolved.level;
+          allowed = assuranceProfile(selectedProfile, profileLevel).obligations;
+        } else if (opts.assuranceLevel !== undefined) {
+          levelRejection = {configured, requested: opts.assuranceLevel, reason: resolved.reason};
+        }
+      }
+    } catch {
+      profileCompilation = undefined;
+    }
+  }
+  // Resolve the schema-0.2 scope before stages are constructed. A raw module
+  // list is only a schema-0.1 transport compatibility input; F6 stages must
+  // receive the compiler-proven closure that the reducer and v3 writer use.
+  let gateAssurancePlan: Schema02AssurancePlan | undefined;
+  if (selectedProfile && profileCompilation?.schemaVersion === '0.2') {
+    try {
+      const planned = schema02AssurancePlan(profileCompilation, selectedProfile, opts.assuranceLevel, opts.scopeSubjects);
+      if (planned !== undefined && 'levelRejected' in planned) {
+        levelRejection ??= {configured: planned.configured, requested: planned.requested, reason: planned.levelRejected};
+      }
+      gateAssurancePlan = assurancePlanOnly(planned);
+    } catch {
+      // A schema-0.2 planning failure must not retain a caller-provided module
+      // filter. Reduction later records the authoritative fault as blocking.
+      gateAssurancePlan = undefined;
+    }
+  }
+  // The kernel already decided; the adapter's only job is to say so. Running
+  // the stages anyway would print a green-stage legacy report for a run whose
+  // requested level was never honoured — a verdict with no visible cause.
+  if (levelRejection) {
+    const upgrade = ASSURANCE_LEVEL_ORDER.indexOf(levelRejection.requested) > ASSURANCE_LEVEL_ORDER.indexOf(levelRejection.configured);
+    const message = upgrade
+      ? `${levelRejection.reason} Only the completion profile on a bounded feature scope can raise the level for one run.`
+      : levelRejection.reason;
+    if (!silent) {
+      if (opts.json) {
+        process.stdout.write(`${JSON.stringify({
+          tier,
+          profile: selectedProfile,
+          configured_assurance_level: levelRejection.configured,
+          requested_assurance_level: levelRejection.requested,
+          assurance_level_rejected: message,
+        }, null, 2)}\n`);
+      } else {
+        pulse('fail', 'check', message);
+      }
+      process.exitCode = 1;
+    }
+    return {worst: 1, anyFailed: true, stages: [], error: message};
+  }
   // Focus-feature module scope (Gradle monorepos): forwarded to every command
   // stage and to the drift suite so the coverage detector reads per-module
-  // reports. Empty/absent → whole-repo (the unchanged default). @see toolchain/scoped-command.ts
-  const base: {focusModules?: readonly string[]} = {focusModules: opts.focusModules};
+  // reports. Schema 0.2 derives this from the same resolved plan used below;
+  // empty/absent means whole-repository execution.
+  const base: {focusModules?: readonly string[]} = profileCompilation?.schemaVersion === '0.2'
+    ? (gateAssurancePlan?.focusModules ? {focusModules: gateAssurancePlan.focusModules} : {})
+    : (profileCompilation?.schemaVersion === '0.1' || rootSelectsSchema01('.')) ? {focusModules: opts.focusModules} : {};
+  // D21 — authority comes from the DECLARED PROFILE, not the strict flag. A
+  // schema 0.2 completion/push/release run asserts its scope is fit to claim,
+  // so a warn-class drift finding blocks it with no transport escalation;
+  // `--strict` stays the explicit escalation that schema 0.1's legacy tiers
+  // (and the advisory feedback/checkpoint profiles) still rely on. Schema 0.1
+  // is byte-identical: `profileCompilation.schemaVersion` gates the whole
+  // predicate, so a legacy tier keeps its warn-tolerant non-strict run.
+  const profileOwnedWarnBlocking = profileCompilation?.schemaVersion === '0.2'
+    && selectedProfile !== undefined
+    && profileBlocksWarnClass(selectedProfile);
   const allStages = [
     ['stage_1.1', () => runType(base)],
     ['stage_1.2', () => runLint(base)],
-    ['stage_1.3', () => runDrift({...base, strict: opts.strict})],
+    ['stage_1.3', () => runDrift({...base, strict: opts.strict || profileOwnedWarnBlocking})],
     ['stage_1.4', runCommit],
     ['stage_1.5', runArch],
     ['stage_1.6', runSecret],
@@ -592,6 +809,69 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
   // element shape matches StageOutcome exactly, so `collected` returns cleanly
   // as `readonly StageOutcome[]`.
   const collected: {stage: string; label: string; status: GateStatus; exitCode: number; stderr?: string; findings?: readonly DriftFinding[]; skipReason?: 'no-runner' | 'tool-missing'}[] = [];
+  // The writer receives this pre-gate source revision, never a convenient
+  // post-gate reload.  A concurrent typed edit therefore rejects the stamp
+  // instead of attesting bytes this gate never observed.
+  let gateAttestationSnapshot: ReturnType<typeof captureAttestationInputSnapshot> | undefined;
+  try {
+    const snapshotSpec = opts.prospectiveFeatureId === undefined
+      ? loadSpec('.')
+      : prospectiveDoneSpec(loadSpec('.'), opts.prospectiveFeatureId);
+    gateAttestationSnapshot = captureAttestationInputSnapshot('.', snapshotSpec);
+    if (selectedProfile && profileCompilation?.schemaVersion === '0.2') {
+      if (gateAssurancePlan) {
+        const capturedPlan = gateAssurancePlan;
+        gateAttestationSnapshot = Object.freeze({
+          ...gateAttestationSnapshot,
+          runtime: Object.freeze({
+            inputSha256: capturedPlan.snapshot.inputSha256,
+            complete: capturedPlan.snapshot.complete,
+            matchesCurrent: (): boolean => {
+              try {
+                // The completion overlay is already popped when the F4
+                // writer asks this question. Re-read disk, then apply only
+                // the proposed status in memory so an intervening source,
+                // control, receipt, root, or shard change cannot hide behind
+                // the gate's former cache view.
+                // `matchesCurrent` is invoked by writeAttestation while its
+                // F4 lock is held. Use the explicit lock-held readers rather
+                // than trying to reacquire that non-reentrant workspace lock.
+                const diskSpec = loadSpecFromDiskUnlocked('.');
+                const currentSpec = opts.prospectiveFeatureId === undefined
+                  ? diskSpec
+                  : prospectiveDoneSpec(diskSpec, opts.prospectiveFeatureId);
+                const currentCompilation = opts.prospectiveFeatureId === undefined
+                  ? compileSpecWorkspaceWithLockHeld('.')
+                  : prospectiveDoneCompilation(compileSpecWorkspaceWithLockHeld('.'), opts.prospectiveFeatureId);
+                // The D17 closure loader reads the current Spec itself. Keep
+                // that read and the compiler view in the same reconstructed
+                // prospective target so the F4 recheck cannot compare a done
+                // gate seal with an in-progress disk closure.
+                const current = assurancePlanOnly(opts.prospectiveFeatureId === undefined
+                  ? schema02AssurancePlan(
+                    currentCompilation, selectedProfile, opts.assuranceLevel, opts.scopeSubjects, currentSpec,
+                  )
+                  : withProspectiveSpecOverlay('.', currentSpec, () =>
+                    withProspectiveCompilationOverlay('.', currentCompilation, () =>
+                      schema02AssurancePlan(
+                        currentCompilation, selectedProfile, opts.assuranceLevel, opts.scopeSubjects, currentSpec,
+                      ),
+                    )));
+                return current !== undefined
+                  && current.snapshot.complete
+                  && current.snapshot.inputSha256 === capturedPlan.snapshot.inputSha256;
+              } catch {
+                return false;
+              }
+            },
+          }),
+        });
+      }
+    }
+  } catch {
+    // Existing no-spec diagnostics retain their behavior; without a snapshot a
+    // schema 0.2 v3 stamp is conservatively unavailable.
+  }
   // F-e53596dd — prime the run-scoped detector cache so the drift stage's
   // ARCHITECTURE_VIOLATION + HARDCODED_SECRET runs are reused by stage_1.5/1.6
   // instead of re-spawning madge + secretlint (~5s of duplicate work per run).
@@ -602,7 +882,8 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
   // stage (2.1) spawns ONE coverage+dual-json vitest run that the coverage stage
   // (2.2) folds, instead of running the suite twice. Same '.' root, same
   // finally-clear discipline; clear also unlinks the shared temp json.
-  primeTestRunCache('.');
+  primeTestRunCache('.', gateAssurancePlan?.snapshot.inputSha256);
+  let currentRunProof: CurrentRunProofEvidence | undefined;
   try {
     for (const [name, run] of stages) {
       const r = run({}) as {
@@ -635,15 +916,18 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
     }
   } finally {
     clearDetectorResultCache();
+    if (gateAssurancePlan) currentRunProof = currentGateProofEvidence('.', gateAssurancePlan.snapshot.inputSha256);
     clearTestRunCache();
   }
   // STRICT SKIP-POLICY (F-67d2e9, generalizes the 0.5.x unit-only guard).
   // Under --strict, a skipped stage the spec DEMANDS is a fail: 1.1 when a
   // declared language ships done features, 2.1 when done features declare
-  // test_refs, 2.3 when done ACs declare oracle_refs, 2.4 when a declared-
-  // safe deliverable ships. Demand-gated — no demand keeps the lenient
-  // skip-as-pass contract; spec load failure yields no violations (ABSENCE_OF_
-  // GOVERNANCE owns that blocking signal). Table pinned in the gate golden matrix.
+  // test_refs, and 2.3 when done ACs declare oracle_refs. stage_2.4 is
+  // deliberately excluded: SMOKE_PROBE_DEMAND solely owns its safe-deliverable
+  // demand, avoiding a duplicate failure. Demand-gated — no demand keeps the
+  // lenient skip-as-pass contract; spec load failure yields no violations
+  // (ABSENCE_OF_GOVERNANCE owns that blocking signal). Table pinned in the gate
+  // golden matrix.
   if (opts.strict) {
     try {
       const spec = loadSpec();
@@ -657,16 +941,272 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
       /* spec unreadable → other detectors own it; don't block here */
     }
   }
-  // F-a5228c — verification attestation. Two halves:
-  //   EXEMPT  — when this strict pre-push/all run is RED *solely* from
-  //             STALE_ATTESTATION findings while every other stage passed,
-  //             count it GREEN: this very run IS the re-verification the
-  //             staleness demanded (otherwise re-attestation deadlocks on
-  //             its own warning). The cheap pre-commit tier gets no
-  //             exemption — there, staleness correctly says "run the full gate".
-  //   STAMP   — a GREEN strict pre-push/all run writes spec/attestation.yaml
-  //             (module tree-hashes per done feature), the committed,
-  //             clone-portable freshness anchor STALE_ATTESTATION compares.
+  // Re-attestation is part of the same verification decision: normalize the
+  // one self-staleness finding before F6 reduces its observations.  Doing this
+  // afterwards would leave a schema 0.2 profile unresolved and deadlock the
+  // very run that must replace the old receipt.
+  // The exemption must hold wherever warn-class blocking is active, so it
+  // reads the same profile-owned predicate the drift stage did. Keying it on
+  // the resolved plan alone would deadlock a completion run whose planning
+  // failed: drift would block on the stale receipt this very run replaces.
+  if (exemptSolelyStaleAttestation({
+    strict: opts.strict === true,
+    authoritative: profileOwnedWarnBlocking || gateAssurancePlan?.profile.authoritative === true,
+    tier,
+    stages: collected,
+  })) {
+    anyFailed = collected.some((stage) => isBlocking(stage.status));
+    worst = collected.reduce((current, stage) => Math.max(current, worstContribution(stage, stage.status)), 0);
+    if (!opts.json && !silent) pulse('note', 'attestation', 'stale entries re-verified by this run — re-attesting');
+  }
+  // F6 observes the already-run compatibility stages through one adapter.  It
+  // never invokes a command, recomputes a stage result, or changes 0.1's
+  // established exit result.  Schema 0.2 alone consumes the new authority.
+  const requestedProfile = selectedProfile;
+  let assurance: AssuranceVerdict | undefined;
+  let assuranceSchema: '0.1' | '0.2' | undefined;
+  let v3Entries: ReturnType<typeof createWorkspaceAttestations> = [];
+  let v3Retention: ReturnType<typeof createAttestationV3RetentionContext>;
+  let v3Freshness: readonly {readonly feature: string; readonly state: 'fresh' | 'stale' | 'unattested'; readonly field?: string}[] = [];
+  let attestationError: string | undefined;
+  let deferredAttestation: CheckOutcome['commitAttestation'];
+  let attestationRefusal: CheckOutcome['attestationRefusal'];
+  // Only a DONE feature is owed an attestation row, so only a done feature's
+  // refusal is worth reporting: an in-progress or planned feature having no row
+  // is the design, not a fault, and reporting it would put a line on every push
+  // gate of a workspace that has not completed anything yet.
+  const doneRefusals: {readonly feature: string; readonly guard: string; readonly detail: string}[] = [];
+  if (requestedProfile) {
+    try {
+      const compilation = profileCompilation ?? compileSpecWorkspace('.');
+      assuranceSchema = compilation.schemaVersion;
+      const configured = compilation.contract?.project.assuranceLevel ?? 'L2';
+      const level = resolveRequestedAssuranceLevel({
+        configured,
+        requested: opts.assuranceLevel,
+        boundedScope: opts.scopeSubjects !== undefined && opts.scopeSubjects.length > 0,
+      });
+      if (!level.ok) {
+        if (compilation.schemaVersion === '0.2') {
+          worst = Math.max(worst, 1);
+          anyFailed = true;
+        }
+      } else {
+        const profileLevel = requestedProfile === 'feedback' || requestedProfile === 'checkpoint' ? 'L1' : level.level;
+        const fallbackProfile = assuranceProfile(requestedProfile, profileLevel);
+        const fallbackScope = [...(opts.scopeSubjects ?? (compilation.schemaVersion === '0.2'
+          ? (compilation.contract?.features ?? []).map((feature) => `feature:${feature.id}`)
+          : ['project']))].sort();
+        const plan = compilation.schemaVersion === '0.2' && gateAssurancePlan?.compilation === compilation
+          ? gateAssurancePlan
+          : undefined;
+        // Observations are bound to the pre-gate closure digest.  Rebuilding
+        // once after the stages detects a source/test/module/config/receipt
+        // interleave before reduction; the writer repeats this comparison
+        // under the F4 lock.
+        let closureStable = compilation.schemaVersion === '0.1';
+        let postPlan: Schema02AssurancePlan | undefined;
+        if (plan) {
+          try {
+            const postCompilation = opts.prospectiveFeatureId === undefined
+              ? compileSpecWorkspace('.')
+              : prospectiveDoneCompilation(compileSpecWorkspace('.'), opts.prospectiveFeatureId);
+            const postSpec = opts.prospectiveFeatureId === undefined
+              ? undefined
+              : prospectiveDoneSpec(loadSpec('.'), opts.prospectiveFeatureId);
+            postPlan = assurancePlanOnly(schema02AssurancePlan(postCompilation, requestedProfile, opts.assuranceLevel, opts.scopeSubjects, postSpec));
+            closureStable = plan.snapshot.complete
+              && postPlan !== undefined
+              && postPlan.snapshot.complete
+              && postPlan.snapshot.inputSha256 === plan.snapshot.inputSha256;
+          } catch {
+            closureStable = false;
+          }
+        }
+        const profile = plan?.profile ?? fallbackProfile;
+        // Schema 0.1 keeps its historic stage subjects. B4 static subjects are
+        // introduced only through the schema-0.2 compiler-minted scope below.
+        //
+        // A workspace that declares no features yet still runs project-wide
+        // stages, and the reducer binds an observation to a subject: with an
+        // empty scope every executed stage stays unobserved, so a freshly
+        // scaffolded schema 0.2 workspace could never reach a green verdict
+        // (F-c4df5fb4). Schema 0.1 already names that subject `project`; name it
+        // here too. Attestation is unaffected — a scope with no feature address
+        // mints no receipt either way.
+        const resolvedScope = plan?.scopeAddresses ?? fallbackScope;
+        const scopeAddresses = resolvedScope.length > 0 ? resolvedScope : ['project'];
+        const oracleRequiredSubjects = plan?.oracleRequiredSubjects;
+        const staticReports = compilation.schemaVersion === '0.2'
+          ? plan?.snapshot.criterionObservations ?? staticCriterionReportsFromWorkspace('.', compilation, scopeAddresses)
+          : [];
+        const staticCriterionScope = compilation.schemaVersion === '0.2'
+          ? plan?.snapshot.staticCriterionScope ?? staticCriterionScopeFromWorkspace(compilation, scopeAddresses)
+          : undefined;
+        const liveReports = compilation.schemaVersion === '0.2'
+          ? liveCriterionReportsFromCurrentRun({
+            cwd: '.', compilation, scopeAddresses, currentRun: currentRunProof,
+            expectedGateInputSha256: plan?.snapshot.inputSha256,
+          })
+          : [];
+        // The criteria whose selection named a binding source. Without it the
+        // reducer cannot separate "nothing renewed this proof" from "this
+        // criterion never named a testcase", and would tell a reader to re-run
+        // a gate that can never clear the row. It is resolved BEFORE the
+        // adapter input is built, so the reducer never reads a half-filled
+        // collector, and it stays absent whenever no report joined.
+        const boundProofCriteria: BoundCriteriaCollector = {};
+        const currentProofViews = compilation.schemaVersion === '0.2'
+          ? currentProofViewsFromWorkspace('.', compilation, scopeAddresses, currentRunProof, plan?.snapshot.inputSha256, boundProofCriteria, plan?.receiptContext)
+          : [];
+        assurance = reduceLegacyStageAdapter({
+          profile,
+          configuredAssuranceLevel: plan?.configured ?? configured,
+          completeScope: compilation.schemaVersion === '0.1'
+            ? compilation.contract !== undefined || compilation.schemaVersion === '0.1'
+            : closureStable,
+          scopeAddresses,
+          inputSha256: plan?.snapshot.inputSha256 ?? workspaceClosureSeals('.', compilation).inputSha256,
+          inputAddresses: compilation.nodes.map((node) => node.address).sort(),
+          hasExecutableTests: compilation.schemaVersion === '0.2'
+            ? plan?.hasApplicableTestCriteria ?? hasApplicableSchema02TestCriteria(compilation, scopeAddresses)
+            : compilation.edges.some((edge) => edge.channel === 'test'),
+          hasOracleProof: oracleRequiredSubjects?.size !== undefined ? oracleRequiredSubjects.size > 0 : compilation.edges.some((edge) => edge.channel === 'oracle'),
+          ...(oracleRequiredSubjects ? {oracleRequiredSubjects} : {}),
+          hasDeliverable: plan?.hasDeliverable ?? compilation.nodes.some((node) => node.address === 'artifact:package.json'),
+          requiresQuality: plan?.requiresQuality ?? (level.level === 'L3' || level.level === 'L4'),
+          requiresHuman: plan?.requiresHuman ?? level.level === 'L4',
+          criterionObservations: [...staticReports, ...liveReports],
+          ...(staticCriterionScope ? {staticCriterionScope} : {}),
+          ...(plan?.snapshot.migrationBaselineCandidates !== undefined
+            ? {migrationBaselineCandidates: plan.snapshot.migrationBaselineCandidates}
+            : {}),
+          ...(compilation.schemaVersion === '0.2' && plan?.requiresHuman && plan.receiptContext !== undefined ? {
+            // Author mapping spawns one `git log` per implementation root, so
+            // it is assembled ONLY for a profile that actually needs a human
+            // obligation. An L1/L2/L3 gate never pays for it.
+            independenceInputs: workspaceIndependenceInputs({
+              cwd: '.', closures: plan.baseClosures, receiptContext: plan.receiptContext,
+              featureIds: [...plan.scopedFeatures],
+            }),
+          } : {}),
+          ...(compilation.schemaVersion === '0.2' ? {
+            proofViews: currentProofViews,
+            ...(boundProofCriteria.criteria === undefined ? {} : {boundProofCriteria: boundProofCriteria.criteria}),
+            currentProofObservationIdentity: currentRunProofIdentity(currentRunProof),
+            exactProofRequired: true,
+          } : {}),
+          stages: collected.map((stage) => ({stage: stage.stage, status: stage.status})),
+          environmentClass: 'foreground',
+        });
+        // The public reducer result remains a useful machine projection. Only
+        // this coordinator can additionally bind that exact object to the
+        // compiler-owned plan and stages it just executed; no public adapter
+        // call can replay this mint with caller-provided rows.
+        // Completion may enter through a caller that did not retain the
+        // prospective overlay.  Rebuild the one target status on the exact
+        // compiler snapshot used for the gate before deriving either private
+        // authority seals or its v3 row.  The verdict still carries the full
+        // compiler impact scope; this view only prevents the target's
+        // in-progress disk row from making its own completed receipt
+        // impossible to mint.
+        const attestationCompilation = opts.deferAttestation && opts.prospectiveFeatureId !== undefined
+          ? prospectiveDoneCompilation(compilation, opts.prospectiveFeatureId)
+          : compilation;
+        if (compilation.schemaVersion === '0.2' && plan && closureStable) {
+          // The authority seals exactly what the writer will seal below:
+          // same compilation, same receipt context. A verified receipt is a
+          // closure input, so sealing a receipt-free closure here would make
+          // the writer's row unmintable in every workspace that holds one.
+          const closures = assuranceClosureInputFromWorkspace('.', attestationCompilation, plan.receiptContext);
+          const featureSeals = plan.scopeAddresses.flatMap((address) => {
+            if (!address.startsWith('feature:')) return [];
+            const feature = address.slice('feature:'.length);
+            return [{feature, ...featureClosureSeals(closures, feature)}];
+          });
+          const profileIdentity = {
+            registrySha256: createHash('sha256').update(canonicalClosureJson(OBLIGATION_DESCRIPTORS), 'utf8').digest('hex'),
+            detectorCatalogSha256: detectorCatalogSha256(allDetectors),
+            toolIdentity: getCurrentCladdingVersion() ?? 'unknown',
+            environmentClass: 'foreground',
+            trustSnapshotSha256: plan.trustSnapshot.digest,
+          } as const;
+          mintRunCheckStagesAuthority(assurance, {
+            inputSha256: plan.snapshot.inputSha256,
+            scopeAddresses: plan.scopeAddresses,
+            profileAuthoritative: plan.profile.authoritative,
+            executedStageIds: collected.map((stage) => stage.stage),
+            featureSeals,
+            profileIdentity,
+          });
+        }
+        if (compilation.schemaVersion === '0.2' && requestedProfile !== 'feedback' && assurance.state !== 'green') {
+          worst = Math.max(worst, 1);
+          anyFailed = true;
+        }
+        if (assurance.state === 'green' && assurance.profile_complete
+          && (assurance.profile === 'completion' || assurance.profile === 'push' || assurance.profile === 'release')) {
+          const scopeFeatureIds = (plan?.scopeAddresses ?? opts.scopeSubjects ?? (compilation.schemaVersion === '0.2'
+            ? (compilation.contract?.features ?? []).map((feature) => `feature:${feature.id}`)
+            : (loadSpec('.').features ?? []).filter((feature) => feature.status === 'done').map((feature) => `feature:${feature.id}`)))
+            .map((address) => address.replace(/^feature:/, ''));
+          // A deferred schema-0.2 completion seals the full impact scope in
+          // its verdict, but only mints the target row. Existing done
+          // prerequisites/co-owners remain eligible only through the locked
+          // sibling-retention reducer, never as fresh replacement authority.
+          const replacementFeatureIds = opts.deferAttestation && opts.prospectiveFeatureId !== undefined
+            ? [opts.prospectiveFeatureId]
+            : scopeFeatureIds;
+          // F9d supplies the real current context: the committed public trust
+          // registry plus the complete safe `spec/evidence` census. A workspace
+          // whose census could not be proved safe has an UNRESOLVED receipt
+          // closure, and no row may be minted from a substituted empty set.
+          const receiptContext = plan === undefined
+            ? {candidates: [], trustSnapshot: emptyTrustSnapshot()} as const
+            : plan.receiptContext;
+          if (receiptContext !== undefined) {
+            v3Entries = createWorkspaceAttestations({
+              cwd: '.', compilation: attestationCompilation, verdict: assurance, featureIds: replacementFeatureIds,
+              detectorCatalogSha256: detectorCatalogSha256(allDetectors),
+              toolIdentity: getCurrentCladdingVersion() ?? 'unknown', environmentClass: 'foreground',
+              trustSnapshotSha256: receiptContext.trustSnapshot.digest,
+              receiptContext,
+              onRefusal: (feature, refusal) => {
+                // `clad done` reports its own target; a broad push/release
+                // profile has no single target and reports each done feature
+                // it could not record.
+                if (attestationRefusal === undefined && replacementFeatureIds.includes(feature)
+                  && (opts.prospectiveFeatureId === undefined || feature === opts.prospectiveFeatureId)) {
+                  attestationRefusal = refusal;
+                }
+                if (attestationCompilation.contract?.features.find((candidate) => candidate.id === feature)?.status === 'done') {
+                  doneRefusals.push({feature, ...refusal});
+                }
+              },
+            });
+            v3Retention = createAttestationV3RetentionContext(v3Entries, receiptContext);
+            const previous = readAttestation('.');
+            v3Freshness = v3Entries.map((entry) => {
+              const result = previous ? featureAttestationV3(previous, entry.feature, entry) : {state: 'unattested' as const};
+              return {feature: entry.feature, state: result.state, ...(result.state === 'stale' ? {field: result.field} : {})};
+            });
+          }
+      }
+      }
+    } catch {
+      // A schema 0.2 compiler/closure fault is not a compatibility warning:
+      // there is no complete authoritative input to reduce or stamp. Keep the
+      // schema 0.1 stage projection unchanged, but fail closed for F6.
+      if (profileCompilation?.schemaVersion === '0.2' || assuranceSchema === '0.2') {
+        worst = Math.max(worst, 1);
+        anyFailed = true;
+      }
+    }
+  }
+  // F-a5228c/F6 — schema 0.1 retains its GREEN strict pre-push/all attestation
+  // path.  Schema 0.2 stamps only from the authoritative profile-complete
+  // reducer verdict; `--strict` must not make that otherwise identical
+  // profile more or less authoritative.
   //   POLL    — under `silent` (the verdict poll) the EXEMPT half STILL runs: it
   //             recomputes worst/anyFailed, which ARE the verdict, so a poll must
   //             agree with `clad check`/`clad done` on a solely-stale tree
@@ -674,45 +1214,123 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
   //             writeAttestation mutation) is skipped: a poll is a read-only
   //             stop-signal, never a verification of record. The next real
   //             `clad check`/`clad done` does the writing.
-  if (opts.strict && (tier === 'pre-push' || tier === 'all')) {
-    const drift = collected.find((c) => c.stage === 'stage_1.3');
-    const strictFailing = (drift?.findings ?? []).filter((f) => f.severity === 'error' || f.severity === 'warn');
-    const solelyStale =
-      drift?.status === 'fail' &&
-      strictFailing.length > 0 &&
-      strictFailing.every((f) => f.detector === 'STALE_ATTESTATION');
-    const othersGreen = collected.every((c) => c.stage === 'stage_1.3' || !isBlocking(c.status));
-    if (solelyStale && othersGreen && drift) {
-      drift.status = 'pass';
-      drift.exitCode = 0;
-      drift.stderr = 'stale attestation exempted — this run re-verified and re-attests';
-      anyFailed = collected.some((c) => isBlocking(c.status));
-      worst = anyFailed ? Math.max(1, worst) : 0;
-      if (!opts.json && !silent) pulse('note', 'attestation', 'stale entries re-verified by this run — re-attesting');
-    }
+  const legacyMayStamp = opts.strict && (tier === 'pre-push' || tier === 'all');
+  const schema02MayStamp = assuranceSchema === '0.2' && v3Entries.length > 0 && gateAttestationSnapshot !== undefined;
+  const stampSchema02 = (completion?: GeneratedAttestationCompletion): void => {
+    if (gitOperationInProgress('.')) throw new Error('ATTESTATION_WRITE_DEFERRED');
+    writeAttestation('.', gateAttestationSnapshot!.spec, undefined, v3Entries, gateAttestationSnapshot, {
+      writeLegacy: false,
+      ...(v3Retention === undefined ? {} : {retention: v3Retention}),
+      ...(completion === undefined ? {} : {completion}),
+    });
+  };
+  if (legacyMayStamp || schema02MayStamp) {
     // STAMP — the mutation. A poll (silent) must never write spec/attestation.yaml.
-    if (!anyFailed && !silent) {
+    if (!anyFailed && !silent && schema02MayStamp && opts.deferAttestation) {
+      deferredAttestation = (completion) => {
+        if (completionWriter === undefined) throw new Error('UNPREPARED_SCHEMA02_COMPLETION');
+        consumePreparedSchema02DoneWriter('.', completionWriter, completion);
+        stampSchema02(completion);
+      };
+    } else if (!anyFailed && !silent && (assuranceSchema !== '0.2' || schema02MayStamp)) {
       if (gitOperationInProgress('.')) {
         if (!opts.json) pulse('note', 'attestation', 'deferred — git operation in progress; run the gate again after the merge/rebase completes.');
       } else {
         try {
-          if (writeAttestation('.', loadSpec(), {
-            cladding: getCurrentCladdingVersion() ?? 'unknown',
-            blocking: 'strict',
-            detectorsSha256: detectorCatalogSha256(allDetectors),
-          })) {
+          if ((assuranceSchema === '0.2'
+            ? (stampSchema02(), true)
+            : writeAttestation('.', gateAttestationSnapshot?.spec ?? loadSpec(), {
+              cladding: getCurrentCladdingVersion() ?? 'unknown',
+              blocking: 'strict',
+              detectorsSha256: detectorCatalogSha256(allDetectors),
+            }, v3Entries, gateAttestationSnapshot, {writeLegacy: true}))) {
             if (!opts.json) pulse('note', 'attestation', 'spec/attestation.yaml refreshed (verified tree stamped)');
           }
-        } catch {
-          /* unloadable spec → nothing to attest */
+        } catch (error) {
+          // Schema 0.2 cannot report a GREEN authoritative gate if the F4
+          // writer rejected its exact preimage.  Preserve legacy behavior for
+          // schema 0.1, but carry the failure into the canonical machine
+          // verdict rather than swallowing STALE_INPUT behind a success JSON.
+          if (assuranceSchema === '0.2' && assurance) {
+            assurance = invalidateAssuranceVerdict(assurance);
+            attestationError = (error as {code?: string}).code ?? 'ATTESTATION_WRITE_FAILED';
+            v3Entries = [];
+            worst = Math.max(worst, 1);
+            anyFailed = true;
+            if (!opts.json && !silent) pulse('fail', 'attestation', 'verification inputs changed before the attestation could be recorded. Run the gate again.');
+          }
         }
       }
+    }
+  }
+  // A green gate that records nothing used to say nothing at all, which is how
+  // a verification that could never be recorded stayed invisible. This is a
+  // standalone check, not an `else`: under `--strict` the legacy stamp branch
+  // above is entered and then falls through without writing a schema 0.2 row,
+  // and `--strict` is the command every gate message names.
+  if (assuranceSchema === '0.2' && !anyFailed && !silent && !opts.json
+    && assurance?.state === 'green' && assurance.profile_complete && doneRefusals.length > 0) {
+    // Naming the feature is the point: a row that was owed and not written is
+    // only actionable if the reader knows which feature is missing one.
+    for (const refusal of doneRefusals.slice(0, ATTESTATION_REFUSAL_NOTE_LIMIT)) {
+      pulse('note', 'attestation', `not refreshed for ${refusal.feature} — ${refusal.guard}: ${refusal.detail}.`);
+    }
+    if (doneRefusals.length > ATTESTATION_REFUSAL_NOTE_LIMIT) {
+      pulse('note', 'attestation', `… and ${doneRefusals.length - ATTESTATION_REFUSAL_NOTE_LIMIT} more feature(s) whose verification was not recorded.`);
+    }
+  }
+  // F-6349870d — a criterion with no test binding is the first RED an adopting
+  // host meets on schema 0.2, and until now the run said only that something
+  // failed. Name the one cure in place: the covers token that starts a test
+  // title. Rendered from the verdict rows, never stored in them, so no
+  // obligation, verdict, or attestation input changes.
+  const unboundGuidance = assuranceSchema === '0.2'
+    ? unboundCriterionGuidance(assurance?.results ?? [])
+    : [];
+  if (unboundGuidance.length > 0 && !opts.json && !silent) {
+    for (const line of unboundGuidance.slice(0, UNBOUND_CRITERION_NOTE_LIMIT)) {
+      pulse('note', 'binding', line);
+    }
+    if (unboundGuidance.length > UNBOUND_CRITERION_NOTE_LIMIT) {
+      pulse('note', 'binding', `… and ${unboundGuidance.length - UNBOUND_CRITERION_NOTE_LIMIT} more criterion(s) that no test claims.`);
     }
   }
   if (opts.json && !silent) {
     // Machine-readable, UNTRUNCATED — findings carry file/line/suggestion so an
     // agent fixes in one pass instead of re-running to discover where + what.
-    process.stdout.write(`${JSON.stringify({tier, worst, anyFailed, stages: collected}, null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify({
+      tier,
+      ...(assurance ? {
+        profile: assurance.profile,
+        requested_assurance_level: assurance.assurance_level,
+        configured_assurance_level: assurance.configured_assurance_level,
+        achieved_assurance_level: assurance.achieved_assurance_level,
+        scope_sha256: assurance.scope_sha256,
+        input_sha256: assurance.input_sha256,
+        profile_complete: assurance.profile_complete,
+        obligations: assurance.results,
+        // An unresolved verdict has to name WHY it could not resolve. The
+        // snapshot already addressed every incomplete closure; publishing it
+        // turns `profile_complete: false` from a verdict into a work list.
+        // Schema 0.1 has no such closure, and its JSON stays byte-identical.
+        ...(assuranceSchema === '0.2'
+          ? {
+            incomplete_addresses: gateAssurancePlan?.snapshot.incompleteAddresses ?? [],
+            // The same binding guidance the human run prints. clad_run_gate
+            // passes this document through verbatim, so an MCP host reads the
+            // cure here. Schema 0.1 keeps its byte-identical JSON.
+            unbound_criteria: unboundGuidance,
+          }
+          : {}),
+        independence: assurance.independence,
+        attestation_freshness: v3Freshness,
+        ...(attestationError ? {attestation_error: attestationError} : {}),
+        assurance,
+      } : {}),
+      worst,
+      anyFailed,
+      stages: collected,
+    }, null, 2)}\n`);
   } else if (anyFailed && !silent) {
     process.stdout.write('\nℹ Run `clad doctor` for the event log, or `clad sync` to check the spec. The findings above say what drifted and why.\n');
   }
@@ -738,8 +1356,203 @@ export function runCheckStages(opts: {internal?: boolean; strict?: boolean; tier
     blockers: blockingDetectorNames(collected),
     stopFingerprint: gateStopFingerprint(collected),
   });
-  return {worst, anyFailed, stages: collected};
+  return {worst, anyFailed, stages: collected, ...(assurance ? {assurance} : {}), ...(deferredAttestation ? {commitAttestation: deferredAttestation} : {}), ...(attestationRefusal ? {attestationRefusal} : {})};
 }
+
+/** Refuses caller-supplied completion transport before any stage or writer side effect. */
+function refuseUnpreparedCompletion(opts: CheckStageOptions): CheckOutcome {
+  const error = 'schema-0.2 completion verification must be started by clad done';
+  if (opts.json && !opts.silent) {
+    process.stdout.write(`${JSON.stringify({error, worst: 1, anyFailed: true, stages: []}, null, 2)}\n`);
+  } else if (!opts.silent) {
+    pulse('fail', 'check', 'Completion verification must be started by clad done.');
+  }
+  return {worst: 1, anyFailed: true, stages: [], error};
+}
+
+/**
+ * Turns the one self-invalidating stale-attestation finding into the current
+ * gate's re-verification result.  It is intentionally pure of the writer so
+ * callers can reduce the same corrected rows before deciding whether to stamp.
+ */
+export function exemptSolelyStaleAttestation(input: {
+  readonly strict: boolean;
+  /** Schema 0.2 authoritative profiles re-attest without a transport strict flag. */
+  readonly authoritative?: boolean;
+  readonly tier: string;
+  readonly stages: Array<{
+    stage: string;
+    status: GateStatus;
+    exitCode: number;
+    stderr?: string;
+    findings?: readonly DriftFinding[];
+  }>;
+}): boolean {
+  if ((!input.strict && input.authoritative !== true) || (input.tier !== 'pre-push' && input.tier !== 'all')) return false;
+  const drift = input.stages.find((stage) => stage.stage === 'stage_1.3');
+  const failing = (drift?.findings ?? []).filter((finding) => finding.severity === 'error' || finding.severity === 'warn');
+  const solelyStale = drift?.status === 'fail' && failing.length > 0 && failing.every((finding) => finding.detector === 'STALE_ATTESTATION');
+  const othersGreen = input.stages.every((stage) => stage.stage === 'stage_1.3' || !isBlocking(stage.status));
+  if (!solelyStale || !othersGreen || !drift) return false;
+  drift.status = 'pass';
+  drift.exitCode = 0;
+  drift.stderr = 'stale attestation exempted — this run re-verified and re-attests';
+  return true;
+}
+
+/** Pre-gate schema 0.2 policy and closure snapshot; it is reused after stages and under the writer lock. */
+interface Schema02AssurancePlan {
+  readonly compilation: SpecCompilation;
+  readonly profile: AssuranceProfile;
+  readonly configured: AssuranceLevel;
+  readonly scopeAddresses: readonly string[];
+  readonly scopedFeatures: ReadonlySet<string>;
+  /** Compiler-owned schema 0.2 Unit/Coverage applicability, not binding availability. */
+  readonly hasApplicableTestCriteria: boolean;
+  readonly oracleRequiredSubjects: ReadonlySet<string>;
+  readonly hasDeliverable: boolean;
+  readonly requiresQuality: boolean;
+  readonly requiresHuman: boolean;
+  /** The compiler-proven module closure supplied to command-stage adapters. */
+  readonly focusModules?: readonly string[];
+  /** Committed public trust registry snapshot; the empty snapshot when absent. */
+  readonly trustSnapshot: TrustSnapshot;
+  /**
+   * Current receipt/trust context, or undefined when the `spec/evidence` walk
+   * could not be proved safe. Undefined is an UNRESOLVED receipt closure and
+   * must never be replaced with an empty candidate set.
+   */
+  readonly receiptContext?: WorkspaceReceiptContext;
+  /** Receipt-free closure input the expected-digest producer resolved against. */
+  readonly baseClosures: AssuranceClosureInput;
+  readonly snapshot: WorkspaceProfileSnapshot;
+}
+
+/**
+ * A one-run level the planner refused, handed back so an adapter can say so.
+ *
+ * The planner owns the strictest bounded-scope test in the process, and a
+ * refusal it swallows is a refusal no caller can explain.
+ */
+interface Schema02LevelRejection {
+  readonly configured: AssuranceLevel;
+  readonly requested: AssuranceLevel;
+  readonly levelRejected: string;
+}
+
+/** Narrows a planner result to a plan, so a refusal never reads as a missing plan. */
+function assurancePlanOnly(result: Schema02AssurancePlan | Schema02LevelRejection | undefined): Schema02AssurancePlan | undefined {
+  return result === undefined || 'levelRejected' in result ? undefined : result;
+}
+
+/** Builds an exact subject-scoped plan from compiler facts without interpreting proof results. */
+function schema02AssurancePlan(
+  compilation: SpecCompilation,
+  requestedProfile: AssuranceProfileId,
+  requestedLevel: AssuranceLevel | undefined,
+  scopeSubjects: readonly string[] | undefined,
+  suppliedSpec?: ReturnType<typeof loadSpec>,
+): Schema02AssurancePlan | Schema02LevelRejection | undefined {
+  if (compilation.schemaVersion !== '0.2' || !compilation.contract) return undefined;
+  const configured = compilation.contract.project.assuranceLevel ?? 'L2';
+  // Resolve scope before accepting a one-run assurance upgrade: only an exact
+  // completion closure is bounded. Push remains an integration/repository run.
+  const initialProfile = assuranceProfile(requestedProfile, configured);
+  const effectiveScope = effectiveFeatureScope(compilation, initialProfile, scopeSubjects);
+  const level = resolveRequestedAssuranceLevel({
+    configured,
+    requested: requestedLevel,
+    boundedScope: requestedProfile === 'completion' && !effectiveScope.repository && effectiveScope.complete,
+  });
+  if (!level.ok) {
+    return requestedLevel === undefined
+      ? undefined
+      : {configured, requested: requestedLevel, levelRejected: level.reason};
+  }
+  const profileLevel = requestedProfile === 'feedback' || requestedProfile === 'checkpoint' ? 'L1' : level.level;
+  const profile = assuranceProfile(requestedProfile, profileLevel);
+  const allScopeAddresses = compilation.contract.features.map((feature) => `feature:${feature.id}`).sort();
+  let requestedScopeAddresses = [...effectiveScope.scopeAddresses];
+  let scopedFeatures = new Set(effectiveScope.featureIds);
+  let repositoryScope = effectiveScope.repository || requestedScopeAddresses.length === allScopeAddresses.length;
+  const currentSpec = suppliedSpec ?? loadSpec('.');
+  let oracleRequiredSubjects = new Set(requiredOracleWorklist(currentSpec)
+    .filter((row) => scopedFeatures.size === 0 || scopedFeatures.has(row.featureId))
+    .map((row) => `criterion:${row.featureId}/${row.acId}`));
+  let hasApplicableTestCriteria = hasApplicableSchema02TestCriteria(compilation, requestedScopeAddresses);
+  const requiresQuality = level.level === 'L3' || level.level === 'L4';
+  const requiresHuman = level.level === 'L4';
+  // F9d — one receipt-free closure assembly serves the expected-digest
+  // producer, the receipt-carrying closure, and every profile rebuild below.
+  // Deriving expected digests from a receipt-carrying closure would make each
+  // receipt's `reviewed_inputs_sha256` depend on itself and on its siblings.
+  const controlResolver = runnerConfigurationResolver('.');
+  const baseClosures = assuranceClosureInputFromWorkspace('.', compilation, undefined, undefined, controlResolver);
+  // One shared assembly, so the gate, the attestation writer, and the
+  // staleness detector can never seal three different receipt sets.
+  const {trustSnapshot, receiptContext} = workspaceReceiptCensus('.', baseClosures);
+  // Receipt identities are the ONLY receipt-derived closure input, so they are
+  // spread onto the one assembled closure rather than paying for a second
+  // module/binding walk that would otherwise run on every gate.
+  const gateClosures = receiptContext === undefined
+    ? baseClosures
+    : {...baseClosures, receiptIdentities: currentReceiptIdentities(receiptContext.candidates, receiptContext.trustSnapshot)};
+  const buildSnapshot = (scopeComplete: boolean): WorkspaceProfileSnapshot => workspaceProfileSnapshot('.', compilation, {
+    profile,
+    scopeAddresses: requestedScopeAddresses,
+    hasExecutableTests: hasApplicableTestCriteria,
+    oracleRequiredSubjects,
+    requiresHuman,
+    scopeComplete,
+    closureInput: gateClosures,
+    controlResolver,
+    ...(receiptContext === undefined ? {receiptCensusComplete: false} : {}),
+  });
+  let snapshot = buildSnapshot(effectiveScope.complete);
+  const selectScope = (scopeAddresses: readonly string[]): void => {
+    requestedScopeAddresses = [...scopeAddresses].sort();
+    scopedFeatures = new Set(requestedScopeAddresses.flatMap((address) => address.startsWith('feature:') ? [address.slice('feature:'.length)] : []));
+    hasApplicableTestCriteria = hasApplicableSchema02TestCriteria(compilation, requestedScopeAddresses);
+    oracleRequiredSubjects = new Set(requiredOracleWorklist(currentSpec)
+      .filter((row) => scopedFeatures.has(row.featureId))
+      .map((row) => `criterion:${row.featureId}/${row.acId}`));
+  };
+  if (snapshot.effectiveScopeAddresses.some((address) => !requestedScopeAddresses.includes(address))) {
+    selectScope(snapshot.effectiveScopeAddresses);
+    repositoryScope = requestedScopeAddresses.length === allScopeAddresses.length;
+    snapshot = buildSnapshot(effectiveScope.complete && !repositoryScope);
+  }
+  // Controls, contract closures, and runtime-dependency closures determine
+  // what a runner can honestly cover. If any is incomplete, rerun the whole
+  // repository rather than leaving the command stage focused on a subset.
+  const unsafeScope = snapshot.incompleteAddresses.some((address) =>
+    address === 'runner-controls' || address === 'scope-closure' || address.startsWith('contract:') || address.startsWith('runtime:'));
+  if (!repositoryScope && unsafeScope) {
+    repositoryScope = true;
+    selectScope(allScopeAddresses);
+    snapshot = buildSnapshot(false);
+  }
+  return {
+    compilation,
+    profile,
+    configured,
+    scopeAddresses: snapshot.effectiveScopeAddresses,
+    scopedFeatures,
+    hasApplicableTestCriteria,
+    oracleRequiredSubjects,
+    hasDeliverable: compilation.nodes.some((node) => node.address === 'artifact:package.json'),
+    requiresQuality,
+    requiresHuman,
+    ...(!repositoryScope && effectiveScope.complete && effectiveScope.focusModules
+      ? {focusModules: effectiveScope.focusModules}
+      : {}),
+    trustSnapshot,
+    ...(receiptContext === undefined ? {} : {receiptContext}),
+    baseClosures,
+    snapshot,
+  };
+}
+
 
 /** Handler for `clad check`. Runs the tier's Iron Law stages; exits with worst code. */
 /** Handler for `clad context <query>` (F-d2c806) — print the context slice. */
@@ -760,7 +1573,7 @@ export function runImpactCommand(query: string, opts: {depth?: string} = {}): vo
   try {
     const spec = loadSpec();
     const depth = opts.depth !== undefined ? Number(opts.depth) : undefined;
-    const slice = buildImpactSlice(spec, query, {depth});
+    const slice = buildImpactSlice(spec, query, {depth, graph: graphIrView('.', spec)});
     process.stdout.write(`${JSON.stringify(slice, null, 2)}\n`);
     process.exit('not_found' in slice ? 1 : 0);
   } catch (err) {
@@ -785,7 +1598,10 @@ export function runInferDepsCommand(opts: {ambiguity?: string} = {}): void {
         return null;
       }
     };
-    const result = inferDependsOn(spec, read, ambiguity !== undefined ? {maxOwnerAmbiguity: ambiguity} : {});
+    const result = inferDependsOn(spec, read, {
+      ...(ambiguity !== undefined ? {maxOwnerAmbiguity: ambiguity} : {}),
+      graph: graphIrView('.', spec),
+    });
     process.stdout.write(
       `${JSON.stringify({suggestions: result.suggestions, new_edges: result.edges.length, already_declared: result.alreadyDeclared.length, dynamic_import_files: result.dynamicImportFiles}, null, 2)}\n`,
     );
@@ -826,7 +1642,7 @@ export function runMeasureCommand(opts: {json?: boolean; sessions?: boolean; tre
         return null;
       }
     };
-    const r = measureGraphEfficiency(spec, read, '.');
+    const r = measureGraphEfficiency(spec, read, '.', graphIrView('.', spec));
     // Persist the summary BEFORE printing so the numbers stop evaporating on
     // stdout (F-39609db4). Best-effort: a failed/deduped write never blocks the
     // report or changes the exit code.
@@ -860,8 +1676,30 @@ export function runMeasureCommand(opts: {json?: boolean; sessions?: boolean; tre
   }
 }
 
-export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tier?: string; json?: boolean; feature?: string}): void {
+export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tier?: string; profile?: string; assuranceLevel?: AssuranceLevel; json?: boolean; feature?: string}): void {
+  if (opts.profile && !normalizeProfile(opts.profile)) {
+    pulse('fail', 'check', 'Unknown assurance profile. Use feedback, checkpoint, completion, push, or release.');
+    process.exit(2);
+    return;
+  }
+  if (opts.profile && opts.tier && normalizeProfile(opts.tier) !== normalizeProfile(opts.profile)) {
+    pulse('fail', 'check', 'The requested profile conflicts with the legacy tier alias. Use one matching profile or tier.');
+    process.exit(2);
+    return;
+  }
+  if (opts.assuranceLevel && !['L1', 'L2', 'L3', 'L4'].includes(opts.assuranceLevel)) {
+    pulse('fail', 'check', 'Unknown assurance level. Use L1, L2, L3, or L4.');
+    process.exit(2);
+    return;
+  }
+  const requestedProfile = normalizeProfile(opts.profile ?? opts.tier ?? 'all');
+  if (opts.feature && requestedProfile === 'release') {
+    pulse('fail', 'check', 'Release checks always run across the whole repository. Remove the feature filter.');
+    process.exit(2);
+    return;
+  }
   let focusModules: readonly string[] | undefined;
+  let scopeSubjects: readonly string[] | undefined;
   if (opts.feature) {
     // Opt-in module scope: resolve the named feature's modules. clad check
     // without --feature stays whole-repo (CI / tier=all unchanged).
@@ -875,12 +1713,13 @@ export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tie
         process.exit(1);
       }
       focusModules = f.modules;
+      scopeSubjects = [`feature:${f.id}`];
     } catch (err) {
       pulse('fail', 'check', (err as Error).message);
       process.exit(1);
     }
   }
-  const result = runCheckStages({...opts, focusModules});
+  const result = runCheckStages({...opts, focusModules, ...(scopeSubjects ? {scopeSubjects} : {})});
   // F-f4e184f7 + F-be5306eb: a non-blocking advisory when the feature cycle isn't
   // being driven — code with no feature specs (cold-start), or undone features with
   // no hook/CI. Suppressed under --json.
@@ -894,6 +1733,58 @@ export function runCheckCommand(opts: {internal?: boolean; strict?: boolean; tie
   // that pipes (vs. redirects to a file). Letting the event loop drain
   // guarantees the full payload is emitted, then Node exits with this code.
   process.exitCode = result.worst;
+}
+
+/**
+ * Names what a completed feature still leaves the developer to do.
+ *
+ * Sealing one feature on a schema 0.2 workspace moves the state every sibling's
+ * receipt was written against, so those receipts need one more push-profile run
+ * before the attestation is committed. A refused done and the schema 0.1 path
+ * leave nothing extra to say.
+ *
+ * @param result - Outcome of the completion attempt.
+ * @returns One plain sentence, or `undefined` when there is nothing to add.
+ * @see spec/features/spec-02-native-onboarding-c4df5fb4.yaml AC-8057bdd4
+ * @since 0.10.0
+ */
+export function doneCompletionGuidance(result: Pick<DoneResult, 'ok' | 'schemaVersion'>): string | undefined {
+  if (!result.ok || result.schemaVersion !== '0.2') return undefined;
+  return 'next: run clad check --tier=pre-push to re-attest sibling features, then commit spec/attestation.yaml';
+}
+
+/**
+ * Renders the one plain line that says how independently a completion was reviewed.
+ *
+ * WHY the source matters: a schema 0.1 completion reports the evidence-ledger
+ * label, where any human-authored evidence entry reads as independent, while a
+ * schema 0.2 completion reports the label its own assurance receipt attested,
+ * which separates a signature by the implementation's own author from a review
+ * by someone else. Saying the same two words for both would hide that
+ * difference from the reader who has to trust it.
+ *
+ * @param label - The label the completion reported.
+ * @param source - Which authority produced it.
+ * @returns One plain sentence for the `done` note line.
+ * @see spec/features/spec-02-done-independence-label-8e7f399b.yaml AC-73e0401d
+ * @since 0.10.0
+ */
+export function independenceNote(label: DoneIndependenceLabel, source?: DoneIndependenceSource): string {
+  if (source === 'evidence-ledger') {
+    return label === 'independent'
+      ? 'independence: independent — backed by human or independent review'
+      : 'independence: self-certified — no independent or human review yet';
+  }
+  switch (label) {
+    case 'independent':
+      return 'independence: independent — a registered issuer other than the implementation authors reviewed it';
+    case 'not-applicable':
+      return 'independence: not applicable — this assurance profile asks for no human review';
+    case 'unobserved':
+      return 'independence: unobserved — the implementation authors are not fully mapped, so independence could not be observed';
+    default:
+      return 'independence: self-certified — the implementation author signed, or no verified review exists yet';
+  }
 }
 
 /**
@@ -915,7 +1806,6 @@ export function runDoneCommand(featureId: string): void {
   }
   const r = runDone('.', featureId, {
     checkStages: runCheckStages,
-    onIndex: writeFeatureIndex,
     gitOpInProgress: gitOperationInProgressName,
     independence,
   });
@@ -923,12 +1813,10 @@ export function runDoneCommand(featureId: string): void {
   // Surface the independence label as a concise plain note (only once the gate
   // actually ran — the early refusals carry no label). Soft-shell wording.
   if (r.independence) {
-    const line =
-      r.independence === 'independent'
-        ? 'independence: independent — backed by human or independent review'
-        : 'independence: self-certified — no independent or human review yet';
-    pulse('note', `done · ${featureId}`, line);
+    pulse('note', `done · ${featureId}`, independenceNote(r.independence, r.independence_source));
   }
+  const guidance = doneCompletionGuidance(r);
+  if (guidance) pulse('note', `done · ${featureId}`, guidance);
   process.exit(r.code);
 }
 
@@ -1152,7 +2040,7 @@ export function runRouteCommand(prompt: string): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.9.4');
+  program.name('clad').description('Reference Ironclad CLI').version('0.10.0');
 
   program
     .command('init [intent...]')
@@ -1169,18 +2057,9 @@ export function createProgram(): Command {
     .option('--roots <list>', 'Override scanner source roots, comma-separated (e.g. packages/a/src,packages/b/src). Otherwise inferred from manifests + directory heuristics.')
     .option('--with-hook', 'Install git pre-commit (cheap tier) AND pre-push (strict tier) hooks. Opt-in; cladding never touches .git without it.')
     .option('--with-ci', 'Scaffold .github/workflows/cladding.yml running the strict pre-push gate — the authoritative enforcement layer.')
+    .option('--schema <version>', 'spec schema to scaffold: 0.2 (default, current) or 0.1 (legacy seed)')
     .option('--json', 'emit the raw InitResult for tooling; default is the human-readable surface')
     .action(runInitCommand);
-
-  program
-    .command('run [goal]')
-    .description('(experimental) Headless autonomous loop — iterate ready features, dispatch developer + reviewer personas, run L1 gates, record evidence. The supported, exercised path is host-delegated (clad serve + your AI host loops the cadence); this loop needs a real LLM transport and is not auto-invoked')
-    .option('--cwd <path>', 'target project directory (default cwd)')
-    .option('--max-iterations <n>', 'cap iterations (default 50)', '50')
-    .option('--max-wall-clock-ms <ms>', 'cap wall clock (default 600000)', '600000')
-    .option('--max-retries <n>', 'cap retries per feature (default 3)', '3')
-    .option('--json', 'emit the raw internal result (Iron Core view); default is a plain Soft Shell summary')
-    .action(runRunCommand);
 
   program
     .command('sync')
@@ -1190,6 +2069,88 @@ export function createProgram(): Command {
       'list STALE_SPECIFICATION findings whose suggestion.action is propose-archive (Phased Decommissioning Tier 2)',
     )
     .action(runSyncCommand);
+
+  program
+    .command('migrate')
+    .description('Preview schema migration, or apply explicit confirmed decisions as one recoverable transaction')
+    .requiredOption('--to <version>', 'target schema version (currently 0.2)')
+    .option('--apply', 'apply the current preview after explicit human decisions are supplied')
+    .option('--resolutions <path>', 'JSON object with the reviewed previewDigest and explicit confirmed decisions, required by --apply')
+    .option('--json', 'emit the deterministic internal preview for tooling')
+    .option('--cwd <path>', 'target project directory (default cwd)')
+    .action((opts: {to?: string; apply?: boolean; resolutions?: string; json?: boolean; cwd?: string}) => {
+      void runMigrateCommand(opts);
+    });
+
+  program
+    .command('relocate-generated')
+    .description('Preview moving the generated projections into spec/generated/, or apply the move as one recoverable transaction')
+    .option('--apply', 'perform the move; without it the command only previews')
+    .option('--json', 'emit the deterministic relocation plan for tooling')
+    .option('--cwd <path>', 'target project directory (default cwd)')
+    .action((opts: {apply?: boolean; json?: boolean; cwd?: string}) => {
+      void runRelocateGeneratedCommand(opts);
+    });
+
+  program
+    .command('begin <featureId>')
+    .description('Start an implementation cycle and save its pre-cycle checkpoint with the feature update')
+    .option('--cwd <path>', 'target project directory (default cwd)')
+    .option('--json', 'emit internal transaction details for automation')
+    .action((featureId: string, opts: {cwd?: string; json?: boolean}) => {
+      runBeginCommand({featureId, cwd: opts.cwd, json: opts.json});
+    });
+
+  program
+    .command('signoff <featureId>')
+    .description('Record local audit or UAT history. Asserted by default; with --verified --issuer <name> a human re-types the feature id at the terminal and cladding signs a portable receipt with the registered key. Without that confirmation, a registered issuer, or a local signing key it records asserted history only (HUMAN_REQUIRED in --json).')
+    .addOption(new Option('--claim <claim>', 'asserted claim kind: audit or uat').makeOptionMandatory().choices(['audit', 'uat']))
+    .option('--criterion <criterion>', 'criterion id; required for audit')
+    .addOption(new Option('--result <result>', 'audit result: pass or fail').choices(['pass', 'fail']))
+    .option('--note <note>', 'optional asserted history note')
+    .option('--cwd <path>', 'target project directory (default cwd)')
+    .option('--json', 'emit internal asserted-signoff details')
+    .option('--verified', 'request a signed receipt from a registered issuer; a human must confirm at the prompt')
+    .option('--issuer <issuer>', 'registered issuer name from spec/trust/issuers.yaml; required with --verified')
+    .action(async (featureId: string, opts: {claim: 'audit' | 'uat'; criterion?: string; result?: 'pass' | 'fail'; note?: string; cwd?: string; json?: boolean; verified?: boolean; issuer?: string}) => {
+      if (!opts.verified) { runSignoffCommand(featureId, opts); return; }
+      // Commander's sync `parse()` does not await an action, so a rejection
+      // here would surface as an unhandled rejection instead of a message.
+      try { await runVerifiedSignoffCommand(featureId, opts); } catch (error) {
+        process.stderr.write(`${(error as Error).message}\n`);
+        process.exitCode = 1;
+      }
+    });
+
+  const key = program
+    .command('key')
+    .description('Manage the issuer signing keys and the committed public trust registry.');
+  key
+    .command('create')
+    .description('Create one Ed25519 issuer key outside the workspace and register its public half.')
+    .requiredOption('--issuer <issuer>', 'issuer name recorded in spec/trust/issuers.yaml')
+    .option('--cwd <path>', 'target project directory (default cwd)')
+    .option('--json', 'emit issuer registration details')
+    .action((opts: {issuer: string; cwd?: string; json?: boolean}) => {
+      runKeyCreateCommand(opts.issuer, {cwd: opts.cwd, json: opts.json});
+    });
+  key
+    .command('list')
+    .description('List registered issuers and whether this machine holds each signing key.')
+    .option('--cwd <path>', 'target project directory (default cwd)')
+    .option('--json', 'emit issuer registry details')
+    .action((opts: {cwd?: string; json?: boolean}) => {
+      runKeyListCommand({cwd: opts.cwd, json: opts.json});
+    });
+
+  program
+    .command('ingest-receipt <receiptFile>')
+    .description('Create-only ingest of one portable receipt, verified against the committed trust registry (spec/trust/issuers.yaml).')
+    .option('--cwd <path>', 'target project directory (default cwd)')
+    .option('--json', 'emit receipt-ingestion details')
+    .action((receiptFile: string, opts: {cwd?: string; json?: boolean}) => {
+      runIngestReceiptCommand(receiptFile, opts);
+    });
 
   program
     .command('setup')
@@ -1214,6 +2175,8 @@ export function createProgram(): Command {
       '--tier <tier>',
       'run only the stages for a trigger: pre-commit (drift/arch/secret) | pre-push (+ type/lint/unit/cov/spec-conformance/deliverable-smoke) | all (default; full 15-stage gate, used by CI)',
     )
+    .option('--profile <profile>', 'assurance profile: feedback | checkpoint | completion | push | release (legacy tiers remain aliases)')
+    .option('--assurance-level <level>', 'one-run level L1 | L2 | L3 | L4; cannot lower the persisted project level')
     .option('--json', 'emit structured per-stage results (machine-readable: findings with file/line/suggestion, untruncated) — for agents/CI; cuts RED→fix round-trips')
     .option('--feature <id>', 'scope the gate to this feature\'s modules[] (Gradle monorepos): runs only :project: tasks instead of the root aggregate. No-op for non-Gradle repos or modules-less features')
     .action(runCheckCommand);
@@ -1225,7 +2188,7 @@ export function createProgram(): Command {
 
   program
     .command('done <featureId>')
-    .description('Mark a feature done ONLY if `clad check --tier=pre-push --strict` is GREEN (flip → gate → revert-on-red). Keeps `done` honest.')
+    .description('Mark a feature done through its completion gate (schema 0.2); schema 0.1 keeps strict pre-push compatibility (flip → gate → revert-on-red).')
     .action(runDoneCommand);
 
   program
@@ -1287,9 +2250,11 @@ export function createProgram(): Command {
   graph
     .command('export')
     .description('Export the graph: mermaid/dot/json to stdout, or an Obsidian vault to --out')
-    .option('--format <fmt>', 'mermaid | dot | json | obsidian | html (default: mermaid). html = a single self-contained offline viewer (requires --out)')
-    .option('--focus <query>', 'restrict to a feature/file node’s neighborhood (id, slug, or module path)')
-    .option('--depth <n>', 'neighborhood radius around --focus (default: unbounded)')
+    .option('--format <fmt>', 'mermaid | dot | json | obsidian | html (default: mermaid). json without --focus is the complete schema_version 2 export; html = a single self-contained offline viewer (requires --out)')
+    .option('--focus <query>', 'restrict to one node’s bounded, relation-aware projection (canonical address, feature id, slug, or repository path)')
+    .option('--depth <n>', 'relation hops from --focus, 1 to 3 (default: 1)')
+    .option('--max-nodes <n>', 'maximum nodes the --focus projection may materialize, 1 to 200 (default: 64)')
+    .option('--max-edges <n>', 'maximum edges the --focus projection may materialize, 1 to 400 (default: 128)')
     .option('--out <path>', 'write to a file (or, for obsidian, a vault dir — default .cladding/graph)')
     .action((opts) => runGraphExportCommand(opts));
   graph

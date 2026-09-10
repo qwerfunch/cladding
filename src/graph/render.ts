@@ -10,7 +10,7 @@
 //                graph navigably, in a tool the user already has.
 // All renderers are pure and deterministic (the model is pre-sorted).
 
-import type {EdgeKind, GraphNode, KnowledgeGraph, Tier} from './model.js';
+import type {EdgeKind, GraphNode, KnowledgeGraph, Tier} from './presentation.js';
 
 /**
  * The SSoT 4-tier palette — color encodes governance authority (not code

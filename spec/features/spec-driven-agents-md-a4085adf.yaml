@@ -1,44 +1,49 @@
 id: F-a4085adf
-slug: spec-driven-agents-md
-title: "spec-driven AGENTS.md — emit adopter guidance from spec for cross-host interop"
+title: spec-driven AGENTS.md — emit adopter guidance from spec for cross-host interop
 status: done
 modules:
   - src/init/agents-md.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-7e1a9c04
-    test_refs:
-      - tests/init/agents-md.test.ts
-    ears: state
-    condition: "while an adopting project's spec declares project.ai_hints"
-    text: "While an adopting project's spec declares project.ai_hints, clad init and clad sync shall render the AGENTS.md managed block from that spec — the project's test framework, primary branch, forbidden and preferred patterns, and preferred persona — instead of a static template."
-    notes: "Historical: pre-0.9.0 host-instructions.ts wrote a static template with zero spec interpolation; it was removed once this managed block became the sole AGENTS.md writer. Source fields: spec.yaml::project.ai_hints (F-5b9f9f/F-32b1e0) + project name/intent."
+    statement: While an adopting project's spec declares project.ai_hints, the clad
+      init and clad sync shall render the AGENTS.md managed block from that spec
+      — the project's test framework, primary branch, forbidden and preferred
+      patterns, and preferred persona — instead of a static template.
+    kind: behavior
+    notes: "Historical: pre-0.9.0 host-instructions.ts wrote a static template with
+      zero spec interpolation; it was removed once this managed block became the
+      sole AGENTS.md writer. Source fields: spec.yaml::project.ai_hints
+      (F-5b9f9f/F-32b1e0) + project name/intent."
   - id: AC-2c8b5f61
-    test_refs:
-      - tests/init/agents-md.test.ts
-    ears: state
-    condition: "while an AGENTS.md already carries the managed markers"
-    text: "While an AGENTS.md already carries the clad managed markers, re-emission shall regenerate only the delimited managed block and preserve any user-authored prose outside it, and shall be byte-stable when the spec is unchanged."
-    notes: "Reuse the marker-upsert discipline of upsertInventoryBlock (src/spec/inventory.ts:105-156): splice one delimited block, leave the rest, no-op write on unchanged input. Markers: <!-- clad:agents-md begin/end -->."
+    statement: While AGENTS.md carries clad managed markers, the system shall
+      regenerate only the delimited managed block while preserving outside prose
+      and remaining byte-stable for an unchanged spec.
+    kind: behavior
+    notes: "Reuse the marker-upsert discipline of upsertInventoryBlock
+      (src/spec/inventory.ts:105-156): splice one delimited block, leave the
+      rest, no-op write on unchanged input. Markers: <!-- clad:agents-md
+      begin/end -->."
   - id: AC-9d3f2e88
-    test_refs:
-      - tests/init/agents-md.test.ts
-    ears: state
-    condition: "while rendering for cross-host interop"
-    text: "While rendering the managed block, the system shall include the persona-to-capabilities map so non-Claude hosts (Codex, Gemini, and other AGENTS.md readers) receive the same spec-sourced guidance Claude gets."
-    notes: "Personas under src/agents/ carry both tools: (Claude) and capabilities: (provider-agnostic read/write/edit/exec/dispatch). The cross-host value #199 names is surfacing that vendor-neutral map."
+    statement: While rendering the managed block, the system shall include the
+      persona-to-capabilities map so non-Claude hosts (Codex, Gemini, and other
+      AGENTS.md readers) receive the same spec-sourced guidance Claude gets.
+    notes: "Personas under src/agents/ carry both tools: (Claude) and capabilities:
+      (provider-agnostic read/write/edit/exec/dispatch). The cross-host value
+      #199 names is surfacing that vendor-neutral map."
   - id: AC-4b6c1a97
-    test_refs:
-      - tests/init/agents-md.test.ts
-    ears: unwanted
-    condition: "if the spec cannot be loaded or declares no ai_hints"
-    response: "emit the generic guidance without failing"
-    text: "If the spec cannot be loaded or declares no ai_hints, the system shall fall back to the generic guidance and shall not fail the command."
-    notes: "Defensive: emission must degrade, never throw. A spec-less or hints-less adopter still gets a usable AGENTS.md."
+    statement: If the spec cannot be loaded or declares no ai_hints, then the system
+      shall fall back to generic guidance without failing the command.
+    kind: behavior
+    notes: "Defensive: emission must degrade, never throw. A spec-less or hints-less
+      adopter still gets a usable AGENTS.md."
   - id: AC-1f8d7b02
-    test_refs:
-      - tests/init/agents-md.test.ts
-    ears: unwanted
-    condition: "if an existing AGENTS.md carries no clad managed markers"
-    response: "not overwrite it wholesale"
-    text: "If an existing AGENTS.md carries no clad managed markers (a hand-authored file), the system shall not rewrite it wholesale, protecting hand-authored files such as cladding's own root AGENTS.md."
-    notes: "Keeps cladding's own hand-authored /AGENTS.md and its self-consistency detector/stage counts untouched (low-risk path). The managed block is opt-in via markers."
+    statement: If an existing AGENTS.md carries no clad managed markers (a
+      hand-authored file), then the system shall not rewrite it wholesale,
+      protecting hand-authored files such as cladding's own root AGENTS.md.
+    kind: constraint
+    rationale: Protects hand-authored guidance from wholesale replacement.
+    notes: Keeps cladding's own hand-authored /AGENTS.md and its self-consistency
+      detector/stage counts untouched (low-risk path). The managed block is
+      opt-in via markers.

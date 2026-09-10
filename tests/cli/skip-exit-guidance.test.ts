@@ -62,6 +62,22 @@ vi.mock('../../src/stages/deliverable-smoke.js', () => ({runDeliverableSmoke: ()
 const recordEventMock = vi.fn();
 vi.mock('../../src/events/log.js', () => ({recordEvent: (...a: unknown[]) => recordEventMock(...(a as []))}));
 
+// Rendering skip guidance is independent of the repository's current schema
+// and assurance receipts.  Freeze this all-stubbed gate at the legacy adapter
+// boundary; schema-0.2 profile behavior has dedicated fixture suites.
+vi.mock('../../src/spec/compiler/compile.js', () => ({
+  compileSpecWorkspace: () => ({schemaVersion: '0.1', nodes: [], edges: [], diagnostics: []}),
+}));
+vi.mock('../../src/assurance/workspace.js', () => ({
+  workspaceClosureSeals: () => ({inputSha256: 'a'.repeat(64), closures: {schemaVersion: '0.1', features: []}}),
+  currentProofBindingsFromWorkspace: () => [],
+  currentExecutableProofFeatureIdsFromWorkspace: () => [],
+  hasApplicableSchema02TestCriteria: () => false,
+  currentProofViewsFromWorkspace: () => [],
+  workspaceProfileSnapshot: () => ({inputSha256: 'a'.repeat(64), complete: true, closureInput: {schemaVersion: '0.1', features: []}, incompleteAddresses: []}),
+  createWorkspaceAttestations: () => [],
+}));
+
 const clad = await import('../../src/cli/clad.js');
 
 // The REAL runners, reached past the stubs above — half ① drives these.
@@ -126,7 +142,7 @@ afterEach(() => {
 });
 
 describe('AC-4b7d20e5 — every skip carries a structured reason, or none by design', () => {
-  test('the four command stages of a runner-less project tag no-runner, message byte-identical', () => {
+  test('[covers:F-c17e1edc/AC-4b7d20e5] the four command stages of a runner-less project tag no-runner, message byte-identical', () => {
     const results = [
       {r: runType({cwd: dir}), stderr: "no type checker registered for language 'unknown'"},
       {r: runLint({cwd: dir}), stderr: "no linter registered for language 'unknown'"},
@@ -187,7 +203,7 @@ describe('AC-4b7d20e5 — every skip carries a structured reason, or none by des
 });
 
 describe('AC-90c3f1a8 / AC-2f6e88d0 — the guidance text', () => {
-  test('names every skipped stage and carries the remedy inline, on one line', () => {
+  test('[covers:F-c17e1edc/AC-90c3f1a8] names every skipped stage and carries the remedy inline, on one line', () => {
     const line = clad.renderNoRunnerGuidance(['Type', 'Lint', 'Unit tests', 'Coverage']);
     for (const label of ['Type', 'Lint', 'Unit tests', 'Coverage']) expect(line).toContain(label);
     expect(line).toContain('.cladding/config.yaml');
@@ -241,7 +257,7 @@ describe('AC-90c3f1a8 / AC-2f6e88d0 / AC-b59a37c4 — what a check run renders a
     expect(out.worst).toBe(0);
   });
 
-  test('by-design and tool-missing skips alone print nothing', () => {
+  test('[covers:F-c17e1edc/AC-2f6e88d0] by-design and tool-missing skips alone print nothing', () => {
     stubs['stage_1.1'].mockImplementation(() => TOOL_MISSING);
     stubs['stage_2.3'].mockImplementation(() => BY_DESIGN);
     stubs['stage_2.4'].mockImplementation(() => BY_DESIGN);
@@ -257,7 +273,7 @@ describe('AC-90c3f1a8 / AC-2f6e88d0 / AC-b59a37c4 — what a check run renders a
     expect(stdout).not.toContain('Lint,');
   });
 
-  test('JSON carries the same discrimination and no prose', () => {
+  test('[covers:F-c17e1edc/AC-b59a37c4] JSON carries the same discrimination and no prose', () => {
     runnerlessGate();
     clad.runCheckStages({tier: 'pre-push', json: true});
     const doc = JSON.parse(stdout) as {stages: {stage: string; status: string; exitCode: number; skipReason?: string}[]};

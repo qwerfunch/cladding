@@ -87,14 +87,14 @@ describe('HOLLOW_GOVERNANCE detector', () => {
     expect(DEFAULT_MIN_FEATURES_FOR_DESIGN).toBe(8);
   });
 
-  test('below threshold: 7 features + both design tiers empty → no finding (size guard dominates)', () => {
+  test('[covers:F-f44d1b/AC-002] below threshold: 7 features + both design tiers empty → no finding (size guard dominates)', () => {
     writeSpec(dir, 7);
     writeCapabilities(dir, 0); // capabilities: []
     writeArchitecture(dir, 0); // layers: []
     expect(hollowGovernance.run({cwd: dir})).toEqual([]);
   });
 
-  test('threshold boundary: 8 features + both tiers empty → exactly 2 warn findings (one per file)', () => {
+  test('[covers:F-f44d1b/AC-001] threshold boundary: 8 features + both tiers empty → exactly 2 warn findings (one per file)', () => {
     writeSpec(dir, 8);
     writeCapabilities(dir, 0); // capabilities: []
     writeArchitecture(dir, 0); // layers: []
@@ -113,6 +113,19 @@ describe('HOLLOW_GOVERNANCE detector', () => {
     const arch = findings.find((f) => f.path === 'spec/architecture.yaml');
     expect(arch).toBeDefined();
     expect(arch!.message).toContain('layers: []');
+  });
+
+  test('[covers:F-f44d1b/AC-003] lifecycle status never removes a feature from the grown-design threshold', () => {
+    const statuses = ['planned', 'in_progress', 'done', 'blocked', 'archived', 'done', 'archived', 'blocked'];
+    const features = statuses
+      .map((status, index) => `  - {id: F-${String(index + 1).padStart(3, '0')}, title: t, status: ${status}}`)
+      .join('\n');
+    writeFileSync(join(dir, 'spec.yaml'), SPEC_HEADER + `features:\n${features}\n`);
+    writeCapabilities(dir, 0);
+    writeArchitecture(dir, 0);
+    const findings = hollowGovernance.run({cwd: dir});
+    expect(findings).toHaveLength(2);
+    expect(findings.every((finding) => finding.severity === 'warn')).toBe(true);
   });
 
   test('only capabilities empty: 8 features + capabilities: [] + populated architecture → exactly 1 warn (capabilities)', () => {
@@ -144,7 +157,7 @@ describe('HOLLOW_GOVERNANCE detector', () => {
     expect(hollowGovernance.run({cwd: dir})).toEqual([]);
   });
 
-  test('capabilities file MISSING: 8 features, no capabilities.yaml + layers: [] → 1 warn (architecture only), NO capabilities finding', () => {
+  test('[covers:F-f44d1b/AC-004] capabilities file MISSING: 8 features, no capabilities.yaml + layers: [] → 1 warn (architecture only), NO capabilities finding', () => {
     writeSpec(dir, 8);
     // deliberately do NOT write spec/capabilities.yaml — absence is
     // ABSENCE_OF_GOVERNANCE's concern, not this detector's.

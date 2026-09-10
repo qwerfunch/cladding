@@ -53,7 +53,7 @@ function srcFiles(): string[] {
 const rel = (p: string): string => relative(ROOT, p).split(sep).join('/');
 
 describe('subprocess-flag honesty — a spawner import implies the subprocess flag (AC-add14522)', () => {
-  test('every detector module that imports a subprocess runner carries subprocess: true', () => {
+  test('[covers:F-6ed216f3/AC-add14522] every detector module that imports a subprocess runner carries subprocess: true', () => {
     let checked = 0;
     for (const file of detectorFiles()) {
       const src = readFileSync(join(DETECTORS_DIR, file), 'utf8');
@@ -70,7 +70,7 @@ describe('subprocess-flag honesty — a spawner import implies the subprocess fl
     expect(checked, 'expected the two shipping subprocess detectors to be found by the import grep').toBeGreaterThanOrEqual(2);
   });
 
-  test('every detector flagged subprocess: true actually imports a subprocess runner (no phantom flag)', () => {
+  test('[covers:F-6ed216f3/AC-add14522] every detector flagged subprocess: true actually imports a subprocess runner (no phantom flag)', () => {
     // Converse honesty: the flag must not be sprinkled on a detector that does
     // not spawn, else the interactive profile would defer coverage it never
     // needed. Keeps the partition tight from both directions.
@@ -89,7 +89,7 @@ describe('subprocess-flag honesty — a spawner import implies the subprocess fl
 });
 
 describe('interactive profile is requested by exactly one call site — the PostToolUse hook lane (AC-b49435f8)', () => {
-  test('only src/cli/hook.ts requests the interactive profile', () => {
+  test('[covers:F-6ed216f3/AC-b49435f8] only src/cli/hook.ts requests the interactive profile', () => {
     const offenders = srcFiles()
       .filter((f) => REQUESTS_INTERACTIVE.test(readFileSync(f, 'utf8')))
       .map(rel)
@@ -100,7 +100,7 @@ describe('interactive profile is requested by exactly one call site — the Post
     expect(offenders).toEqual(['src/cli/hook.ts']);
   });
 
-  test('the full-suite consumers call runDrift without requesting the interactive profile', () => {
+  test('[covers:F-6ed216f3/AC-b49435f8] the full-suite consumers call runDrift without requesting the interactive profile', () => {
     // The named consumers of AC-b49435f8: check tiers (clad.ts), the MCP
     // gateFooter + drift tool (server.ts), and clad report (report.ts). runDrift's
     // default profile is full (proven in drift-interactive-profile.test.ts), so

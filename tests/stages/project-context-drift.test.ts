@@ -90,6 +90,12 @@ describe('PROJECT_CONTEXT_DRIFT detector', () => {
     expect(findings[0].path).toBe('docs/project-context.md');
   });
 
+  test('[covers:F-fe0f7a96/AC-7ffc85fa] an unrefined project context tells the user to run clad clarify', () => {
+    writeSpec(dir, 8);
+    writeContextDoc(dir, `# Project\n\n## Why\n\n${MARKER_RERUN}\n`);
+    expect(projectContextDrift.run({cwd: dir})[0]?.message).toContain('clad clarify');
+  });
+
   test('8 features + REFINED prose (no markers) → no finding', () => {
     writeSpec(dir, 8);
     writeContextDoc(dir, REFINED_PROSE);
@@ -102,7 +108,17 @@ describe('PROJECT_CONTEXT_DRIFT detector', () => {
     expect(projectContextDrift.run({cwd: dir})).toEqual([]);
   });
 
-  test('8 features + NO docs/project-context.md → no finding (absence not flagged here)', () => {
+  test('[covers:F-78b50d/AC-002] a below-threshold or refined project context is not flagged', () => {
+    writeSpec(dir, 7);
+    writeContextDoc(dir, `# Project\n\n${MARKER_RERUN}\n`);
+    expect(projectContextDrift.run({cwd: dir})).toEqual([]);
+
+    writeSpec(dir, 8);
+    writeContextDoc(dir, REFINED_PROSE);
+    expect(projectContextDrift.run({cwd: dir})).toEqual([]);
+  });
+
+  test('[covers:F-78b50d/AC-003] 8 features + NO docs/project-context.md → no finding (absence not flagged here)', () => {
     writeSpec(dir, 8);
     // deliberately do NOT write docs/project-context.md — absence is
     // ABSENCE_OF_GOVERNANCE's concern, not this detector's.
@@ -138,7 +154,7 @@ describe('PROJECT_CONTEXT_DRIFT strict promotion (integration)', () => {
     expect(report.exitCode).toBe(1);
   });
 
-  test('default: an unrefined project-context.md does NOT fail but is reported', () => {
+  test('[covers:F-78b50d/AC-001] default: an unrefined project-context.md does NOT fail but is reported', () => {
     const report = runDrift({cwd: dir});
     expect(report.pass).toBe(true);
     expect(report.findings.some((f) => f.detector === 'PROJECT_CONTEXT_DRIFT')).toBe(true);

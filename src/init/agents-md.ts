@@ -23,6 +23,7 @@ import {existsSync, readFileSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 
 import {loadSpec} from '../spec/load.js';
+import {requiredRootSchema} from '../spec/transaction.js';
 import type {Spec} from '../spec/types.js';
 
 /** Managed-block delimiters. Everything between them is regenerated from spec;
@@ -50,6 +51,11 @@ const PERSONA_CAPABILITIES: ReadonlyArray<readonly [string, string]> = [
   ['observability', 'read, exec'],
   ['orchestrator', 'read, write, edit, exec, dispatch'],
 ];
+
+/** The workspace spec schema the managed block is written for. Schema 0.2 binds
+ * a test to a criterion through a title token, so its guidance differs from the
+ * 0.1 EARS guidance; every 0.1 render stays byte-identical (AC-147722e1). */
+export type ManagedBlockSchema = '0.1' | '0.2';
 
 export type SpecAgentsMdResult =
   /** File was absent — created fresh (frame + managed block). */
@@ -105,13 +111,122 @@ function renderDocPointers(cwd: string): string {
   return `- Deeper context: ${parts.join(' and ')}.\n`;
 }
 
+/** The cycle paragraph. Schema 0.2 names the typed authoring tools and the
+ * title token that binds a test to a criterion (AC-6a6386a3); schema 0.1 keeps
+ * the paragraph it has always had (AC-147722e1). */
+function renderFeatureCycle(schema: ManagedBlockSchema): readonly string[] {
+  if (schema === '0.2') {
+    return [
+      'Finish ONE feature end-to-end before the next: create its spec entry with',
+      '`clad_create_feature` (a purpose is required, `capability_refs` may be an empty list, and',
+      'every criterion carries a `kind` and a `statement`) → start it with `clad_begin` → implement',
+      '→ author tests in a separate context → bind each test to the criterion it proves by STARTING',
+      'the test title with `[covers:<feature id>/<criterion id>]` → run the pre-push gate → finish',
+      'with the resolved Cladding `done <featureId>` (which sets `status: done` only when that gate',
+      'is GREEN). The title token is the only binding this schema reads: `test_refs` are not',
+      'accepted. Do not author spec entries ahead of their code, or hand-write `status: done`.',
+    ];
+  }
+  return [
+    'Finish ONE feature end-to-end before the next: author its spec entry (`acceptance_criteria`',
+    '+ `modules`) → implement → author tests in a separate context → run the declared test',
+    'command and confirm it collected relevant tests → run the resolved Cladding command',
+    'with `done <featureId>` (sets `status: done` only when the strict pre-push gate is',
+    'GREEN). Package test scripts must not depend on shell-expanded glob patterns. Do not',
+    'author spec entries ahead of their code, or hand-write `status: done`.',
+  ];
+}
+
+/** How a criterion is written, and (on schema 0.2) how a test claims one. */
+function renderCriterionGuidance(schema: ManagedBlockSchema): readonly string[] {
+  if (schema === '0.2') {
+    return [
+      'Every criterion carries a `kind` — `behavior`, `quality`, or `constraint` — and a strict',
+      '`statement`: exactly one **shall**, ending in a period, with the system phrase opening with',
+      '**the** and no comma inside either the When clause or the system phrase. A `constraint` also',
+      'needs a `rationale`. Put the reasoning in `notes`; it is free prose and nothing parses it.',
+      '',
+      'A test claims a criterion by STARTING its title with `[covers:<feature id>/<criterion id>]`,',
+      "for example `it('[covers:F-…/AC-…] rejects an expired token', …)`, with the feature's and",
+      "criterion's own ids in place of the ellipses. The token",
+      'must open a string-literal test title; a `describe()` title is never read, and several tokens',
+      'may follow one another when one test proves several criteria. Until a criterion has such a',
+      'test the gate reports it as unobserved, and the feature cannot finish.',
+    ];
+  }
+  return [
+    'Each criterion may declare an `ears` pattern. When it does, its `condition` must open',
+    'with that pattern\'s trigger word — the gate rejects the entry otherwise:',
+    '',
+    '| `ears` | `condition` must | example |',
+    '|---|---|---|',
+    '| `ubiquitous` | be omitted — the rule always holds | *(none)* |',
+    '| `event` | start with **when** | `when the upload completes` |',
+    '| `state` | start with **while** | `while the queue is draining` |',
+    '| `optional` | start with **where** | `where telemetry is enabled` |',
+    '| `unwanted` | start with **if** | `if the checksum does not match` |',
+    '| `complex` | start with **while** and also contain a **when** clause | `while offline, when a retry fires` |',
+    '',
+    'Write the obligation in `text`, or in the `action` / `response` fields — both are read',
+    'as the requirement. Put the reasoning in `notes`; it is free prose and nothing parses it.',
+  ];
+}
+
+/** Which words a translated spec entry still has to keep in English, and where.
+ * Schema 0.1 constrains the first word of a `condition`; schema 0.2 parses the
+ * `statement` itself, so its two keywords are the ones that stay. */
+function renderLanguageKeywords(schema: ManagedBlockSchema): readonly string[] {
+  if (schema === '0.2') {
+    return [
+      'If the user asks for another language, write `title`, `purpose` and `notes` in it. The next',
+      'entry then follows by the rule above, so a one-time request carries forward on its own.',
+      'Switching language applies to NEW entries; never rewrite existing ones into another',
+      "language — those are the project's own words.",
+      '',
+      'Two words stay English wherever they appear, because the gate matches them literally: the',
+      'leading **When** of a trigger clause and the **shall** of the obligation. The rest of a',
+      '`statement` is yours:',
+      '',
+      '    statement: When the upload completes, the system shall notify the author.',
+      '    statement: When 업로드가 끝나면, the system shall notify the author.',
+      '',
+      'Identifiers are not prose and are never translated: feature and criterion ids, the `kind`',
+      'values themselves, and file paths.',
+    ];
+  }
+  return [
+    'If the user asks for another language, write `title`, `notes` and `text` in it. The next',
+    'entry then follows by the rule above, so a one-time request carries forward on its own.',
+    'Switching language applies to NEW entries; never rewrite existing ones into another',
+    "language — those are the project's own words.",
+    '',
+    'Four words stay English wherever they appear, because the gate matches them literally and',
+    'EARS is a published notation: **when**, **while**, **if**, **where**. Only the FIRST word',
+    'of a `condition` is constrained — the rest of the sentence is yours:',
+    '',
+    '    condition: "when the app exits"      · condition: "when 앱이 종료될 때"',
+    '',
+    'Identifiers are not prose and are never translated: feature and criterion ids, the `ears`',
+    'values themselves, and file paths.',
+  ];
+}
+
 /**
  * Renders the cladding-managed AGENTS.md block from the project's spec. Pure
  * (no writes). Degrades gracefully: a null spec or a spec with no `ai_hints`
  * yields the generic guidance (project sections + persona map) rather than
  * throwing — AC-4b6c1a97.
+ *
+ * `schema` decides which authoring guidance is emitted. It defaults to the
+ * loaded spec's own declaration, so a caller holding a spec never has to say
+ * it; `writeSpecDrivenAgentsMd` passes it explicitly because a schema 0.2
+ * workspace whose compiler snapshot fails to load arrives here as `null`.
  */
-export function renderAgentsMdManagedBlock(spec: Spec | null, cwd: string = '.'): string {
+export function renderAgentsMdManagedBlock(
+  spec: Spec | null,
+  cwd: string = '.',
+  schema: ManagedBlockSchema = spec?.schema === '0.2' ? '0.2' : '0.1',
+): string {
   const name = spec?.project?.name?.trim();
   const intent = (spec?.project?.intent_summary ?? spec?.project?.description)?.trim();
   const persona = spec?.project?.ai_hints?.preferred_persona?.trim();
@@ -134,7 +249,7 @@ export function renderAgentsMdManagedBlock(spec: Spec | null, cwd: string = '.')
     '## Single source of truth',
     '',
     '- `spec.yaml` is authoritative (Tier A); code must conform to its `features[]` and',
-    '  `acceptance_criteria`. Feature detail lives in `spec/features/<slug>-<hash>.yaml` —',
+    '  `acceptance_criteria`. Feature detail lives in `spec/features/<slug>-<hash8>.yaml` —',
     '  never hand-author `F-NNN` filenames; ask cladding via the `clad` CLI (or',
     '  `clad_create_feature` when your host has cladding wired as an MCP server).',
     '- For shell commands, use `node .cladding/host/serve.cjs <arguments>` when that',
@@ -146,29 +261,11 @@ export function renderAgentsMdManagedBlock(spec: Spec | null, cwd: string = '.')
     '',
     '## Feature cycle — one at a time',
     '',
-    'Finish ONE feature end-to-end before the next: author its spec entry (`acceptance_criteria`',
-    '+ `modules`) → implement → author tests in a separate context → run the declared test',
-    'command and confirm it collected relevant tests → run the resolved Cladding command',
-    'with `done <featureId>` (sets `status: done` only when the strict pre-push gate is',
-    'GREEN). Package test scripts must not depend on shell-expanded glob patterns. Do not',
-    'author spec entries ahead of their code, or hand-write `status: done`.',
+    ...renderFeatureCycle(schema),
     '',
     '## Writing an acceptance criterion',
     '',
-    'Each criterion may declare an `ears` pattern. When it does, its `condition` must open',
-    'with that pattern\'s trigger word — the gate rejects the entry otherwise:',
-    '',
-    '| `ears` | `condition` must | example |',
-    '|---|---|---|',
-    '| `ubiquitous` | be omitted — the rule always holds | *(none)* |',
-    '| `event` | start with **when** | `when the upload completes` |',
-    '| `state` | start with **while** | `while the queue is draining` |',
-    '| `optional` | start with **where** | `where telemetry is enabled` |',
-    '| `unwanted` | start with **if** | `if the checksum does not match` |',
-    '| `complex` | start with **while** and also contain a **when** clause | `while offline, when a retry fires` |',
-    '',
-    'Write the obligation in `text`, or in the `action` / `response` fields — both are read',
-    'as the requirement. Put the reasoning in `notes`; it is free prose and nothing parses it.',
+    ...renderCriterionGuidance(schema),
     '',
     '## What language to write a spec entry in',
     '',
@@ -178,19 +275,7 @@ export function renderAgentsMdManagedBlock(spec: Spec | null, cwd: string = '.')
     'voice no matter who is at the keyboard; it is a property of the project, not of whoever',
     'you are talking to right now.',
     '',
-    'If the user asks for another language, write `title`, `notes` and `text` in it. The next',
-    'entry then follows by the rule above, so a one-time request carries forward on its own.',
-    'Switching language applies to NEW entries; never rewrite existing ones into another',
-    'language — those are the project\'s own words.',
-    '',
-    'Four words stay English wherever they appear, because the gate matches them literally and',
-    'EARS is a published notation: **when**, **while**, **if**, **where**. Only the FIRST word',
-    'of a `condition` is constrained — the rest of the sentence is yours:',
-    '',
-    '    condition: "when the app exits"      · condition: "when 앱이 종료될 때"',
-    '',
-    'Identifiers are not prose and are never translated: feature and criterion ids, the `ears`',
-    'values themselves, and file paths.',
+    ...renderLanguageKeywords(schema),
     '',
     '## Design evolves with each feature',
     '',
@@ -260,7 +345,18 @@ export function writeSpecDrivenAgentsMd(cwd: string = '.'): SpecAgentsMdResult {
   } catch {
     spec = null; // AC-4b6c1a97 — degrade, never fail the command
   }
-  const block = renderAgentsMdManagedBlock(spec, cwd);
+  // A schema 0.2 workspace whose compiler snapshot cannot be read arrives as a
+  // null spec, so the schema is read from the root declaration rather than
+  // inferred from the loaded document (which would silently emit 0.1 guidance).
+  let schema: ManagedBlockSchema = spec?.schema === '0.2' ? '0.2' : '0.1';
+  if (spec === null) {
+    try {
+      schema = requiredRootSchema(cwd);
+    } catch {
+      schema = '0.1';
+    }
+  }
+  const block = renderAgentsMdManagedBlock(spec, cwd, schema);
   const path = join(cwd, 'AGENTS.md');
 
   if (!existsSync(path)) {

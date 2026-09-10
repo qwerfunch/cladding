@@ -4,7 +4,7 @@ import {formatImpactCard, editMagnitude} from '../../src/cli/hook.js';
 import type {ImpactSlice} from '../../src/optimizer/reverse-slice.js';
 
 describe('impact card', () => {
-  test('formatImpactCard renders owner, breaks, and tests for a touched file', () => {
+  test('[covers:F-d6b93648/AC-ee0f17] formatImpactCard renders owner, breaks, and tests for a touched file', () => {
     const slice: ImpactSlice = {
       focus: {id: 'F-abc123', title: 'Login'},
       impacted: [
@@ -23,6 +23,11 @@ describe('impact card', () => {
     expect(card).toContain('F-abc123 Login'); // focus id + title (F-f46d5c61)
     expect(card).toContain('2 features depend on this');
     expect(card).toContain('3 tests guard it');
+    // The count alone never said WHAT to run, so the fallback card names up to two paths.
+    const lines = card.split('\n');
+    expect(lines).toHaveLength(2);
+    expect(lines[1]).toBe('run: t1, t2 (+1 more)');
+    expect(card.length).toBeLessThanOrEqual(600);
 
     const moduleSlice: ImpactSlice = {
       focus: {module: 'src/x.ts', owners: ['F-aaa', 'F-bbb']},
@@ -36,9 +41,21 @@ describe('impact card', () => {
     expect(moduleCard).not.toBe('');
     expect(moduleCard).toContain('F-aaa');
     expect(moduleCard).toContain('co-owner');
+    expect(moduleCard.split('\n')).toHaveLength(1); // no regression set → the original one-liner
+
+    // Two or fewer paths name themselves with no "+N more" tail, and a very long set is
+    // still clipped to the 600-char ceiling rather than flooding the transcript.
+    const two = formatImpactCard({...slice, test_refs: ['t1', 't2']}, 'src/login.ts');
+    expect(two.split('\n')[1]).toBe('run: t1, t2');
+    const long = formatImpactCard(
+      {...slice, test_refs: [`tests/${'a'.repeat(400)}.test.ts`, `tests/${'b'.repeat(400)}.test.ts`]},
+      'src/login.ts',
+    );
+    expect(long.length).toBe(600);
+    expect(long.endsWith('…')).toBe(true);
   });
 
-  test('formatImpactCard is empty when the file touches no feature', () => {
+  test('[covers:F-d6b93648/AC-ee0f17] formatImpactCard is empty when the file touches no feature', () => {
     const slice: ImpactSlice = {
       focus: {module: 'src/x.ts'},
       impacted: [],
@@ -50,7 +67,7 @@ describe('impact card', () => {
     expect(formatImpactCard(slice, 'src/x.ts')).toBe('');
   });
 
-  test('a blank ledger discloses itself; a dense ledger does not; the empty-card path stays empty (F-c6a32fff)', () => {
+  test('[covers:F-c6a32fff/AC-10b1a2f8] a blank ledger discloses itself; a dense ledger does not; the empty-card path stays empty (F-c6a32fff)', () => {
     const blank: ImpactSlice = {
       focus: {module: 'src/x.ts', owners: ['F-aaa']},
       impacted: [],
@@ -85,7 +102,7 @@ describe('impact card', () => {
     expect(formatImpactCard(ownerless, 'src/x.ts')).toBe('');
   });
 
-  test('editMagnitude measures Edit, Write, and MultiEdit changed-char size', () => {
+  test('[covers:F-d6b93648/AC-e49483] editMagnitude measures Edit, Write, and MultiEdit changed-char size', () => {
     expect(editMagnitude({content: 'abcde'})).toBe(5);
     expect(editMagnitude({new_string: 'abc'})).toBe(3);
     expect(
@@ -94,7 +111,7 @@ describe('impact card', () => {
     expect(editMagnitude({})).toBe(0);
   });
 
-  test('ai_hints and the developer persona steer agents to the working-set tools', () => {
+  test('[covers:F-d6b93648/AC-a42705] ai_hints and the developer persona steer agents to the working-set tools', () => {
     const specText = readFileSync('spec.yaml', 'utf8');
     expect(specText).toContain('clad_get_working_set');
 

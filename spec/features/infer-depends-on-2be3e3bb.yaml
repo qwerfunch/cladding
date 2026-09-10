@@ -1,36 +1,44 @@
 id: F-2be3e3bb
-slug: infer-depends-on
-title: "Infer feature depends_on from the code import graph — populate the graph edge cladding never produced"
+title: Infer feature depends_on from the code import graph — populate the graph
+  edge cladding never produced
 status: done
-depends_on:
-  - F-7794a6bc
 modules:
   - src/optimizer/infer-depends-on.ts
   - src/cli/clad.ts
+depends_on:
+  - F-7794a6bc
+capability_refs: []
 acceptance_criteria:
   - id: AC-ffcc0e
-    ears: event
-    condition: "when inferDependsOn runs over a spec whose features declare modules with import statements"
-    action: "for each feature, extract imports from its module files, resolve each import to the feature(s) that own the imported file (via the reverse-index module-owners), and emit a feature→feature depends_on edge to the owning feature when it is different from the importer"
-    response: "the dependency graph cladding never auto-produced is reconstructed from real code coupling — a project authored without hand-written depends_on gets a populated graph"
-    text: "When inferDependsOn runs, the system shall emit a feature→feature edge for each import that resolves to a module owned by a different feature."
-    test_refs:
-      - "tests/optimizer/infer-depends-on.test.ts#infers A->B when A's module imports a file owned by B"
-      - "tests/optimizer/infer-depends-on.test.ts#emits no edge for stdlib/third-party/unowned imports"
-      - "tests/optimizer/infer-depends-on.test.ts#never emits a self-edge when a feature imports its own module"
-    notes: "## Why\nMeasured gap: depends_on is load-bearing for the whole graph layer (prune/context/impact/iterative/drive) but PRODUCED by nothing — clad_create_feature/scan/onboarding never emit it, no detector flags its absence. doverunner-vapt (174 features, cladding-authored) had 0 edges → all graph tools returned empty. This reconstructs edges deterministically from the import graph (vapt: 0 → 698 edges, 157/174 features). ## Honesty\nThis POPULATES the graph (a precondition for any graph value); it is NOT a correctness claim. It does not auto-write the spec — it produces reviewable suggestions (anti-self-cert: a human merges the edges)."
+    statement: When inferDependsOn runs, the system shall emit a feature→feature
+      edge for each import that resolves to a module owned by a different
+      feature.
+    notes: >-
+      ## Why
+
+      Measured gap: depends_on is load-bearing for the whole graph layer
+      (prune/context/impact/iterative/drive) but PRODUCED by nothing —
+      clad_create_feature/scan/onboarding never emit it, no detector flags its
+      absence. doverunner-vapt (174 features, cladding-authored) had 0 edges →
+      all graph tools returned empty. This reconstructs edges deterministically
+      from the import graph (vapt: 0 → 698 edges, 157/174 features). ## Honesty
+
+      This POPULATES the graph (a precondition for any graph value); it is NOT a
+      correctness claim. It does not auto-write the spec — it produces
+      reviewable suggestions (anti-self-cert: a human merges the edges).
   - id: AC-84b71a
-    ears: state
-    condition: "while an import resolves to a module co-owned by more than maxOwnerAmbiguity features (default 1)"
-    action: "skip that import as an ambiguous (weak) signal rather than emitting an edge to every co-owner"
-    response: "shared/utility modules don't explode the graph with spurious fan-out; only unambiguous single-owner imports become edges by default"
-    text: "While an imported module is owned by more than maxOwnerAmbiguity features, the system shall not emit an edge for it."
-    test_refs:
-      - "tests/optimizer/infer-depends-on.test.ts#skips imports of modules owned by multiple features by default"
-    notes: "## Why\nMeasured: vapt has 129/434 multi-owner modules (one shared by 23 features). Counting every co-owner tripled edges (4357) with noise; capping at 1 unambiguous owner gives a clean 698 (median 4/feature)."
+    statement: While an imported module is owned by more than maxOwnerAmbiguity
+      features, the system shall not emit an edge for it.
+    notes: >-
+      ## Why
+
+      Measured: vapt has 129/434 multi-owner modules (one shared by 23
+      features). Counting every co-owner tripled edges (4357) with noise;
+      capping at 1 unambiguous owner gives a clean 698 (median 4/feature).
   - id: AC-4e0fd0
-    ears: ubiquitous
-    text: "Inference shall be deterministic and pure given the spec + injected file contents (no direct fs in the core; the reader is injected like code-excerpt), and shall separate NEW edges from those already declared in depends_on so callers surface only the additions."
-    test_refs:
-      - "tests/optimizer/infer-depends-on.test.ts#is deterministic for identical spec and file contents"
-      - "tests/optimizer/infer-depends-on.test.ts#separates already-declared edges from new suggestions"
+    statement: The inference core shall remain deterministic and pure for the
+      specification and injected file contents, use an injected reader like
+      code-excerpt instead of direct filesystem access, separate new edges from
+      edges already declared in `depends_on`, and expose only the newly inferred
+      edges to callers.
+    kind: quality

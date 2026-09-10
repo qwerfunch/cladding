@@ -1,52 +1,51 @@
 id: F-b81d203e
-slug: vacuous-test-guard
-title: "vacuous-test guard — a done feature's declared tests must actually execute"
+title: vacuous-test guard — a done feature's declared tests must actually execute
 status: done
 modules:
   - src/stages/vacuous-tests.ts
   - src/stages/unit.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-41e112d3
-    test_refs:
-      - tests/stages/vacuous-tests.test.ts
-    ears: unwanted
-    condition: "if a done feature declares test_refs yet none of those test files executed a passing test"
-    response: "emit a blocking VACUOUS_TESTS finding so the --strict gate is not GREEN"
-    text: "If a done feature declares test_refs but none of those test files executed a passing (non-skipped) test, the system shall make the strict gate not GREEN via a VACUOUS_TESTS finding, so clad done reverts the feature."
-    notes: "THE gap exp-1/exp-2 confirmed: an all-it.skip suite exits 0 -> stage_2.1 pass -> hasBehavioralProof true -> verdict DONE. Gate-level enforcement = adoption-independent (exp-2 meta-lesson)."
+    statement: If a done feature declares test_refs but none of those test files
+      executed a passing (non-skipped) test, then the system shall make the
+      strict gate not GREEN via a VACUOUS_TESTS finding, so clad done reverts
+      the feature.
+    kind: behavior
+    notes: "THE gap exp-1/exp-2 confirmed: an all-it.skip suite exits 0 -> stage_2.1
+      pass -> hasBehavioralProof true -> verdict DONE. Gate-level enforcement =
+      adoption-independent (exp-2 meta-lesson)."
   - id: AC-5d9c66b8
-    test_refs:
-      - tests/stages/vacuous-tests.test.ts
-    ears: state
-    condition: "while the unit test runner produces machine-readable per-test results"
-    text: "While the unit test runner produces machine-readable per-test results, the system shall compute per-file executed-pass counts from them."
-    notes: "Reuse the vitest json shape already parsed by finding-parser.ts (F-b7873005). Capture json to a temp file while keeping the human reporter on stdout."
+    statement: While the unit test runner produces machine-readable per-test
+      results, the system shall compute per-file executed-pass counts from them.
+    notes: Reuse the vitest json shape already parsed by finding-parser.ts
+      (F-b7873005). Capture json to a temp file while keeping the human reporter
+      on stdout.
   - id: AC-1a0b1b26
-    test_refs:
-      - tests/stages/vacuous-tests.test.ts
-    ears: unwanted
-    condition: "if neither per-test data nor a definitive aggregate execution count can be parsed, or the test runner is unsupported"
-    response: "fall back to the existing exit-code behavior with no error"
-    text: "If neither per-test data nor a definitive aggregate execution count can be parsed, or the test runner is unsupported, the system shall fall back to the exit-code behavior without failing the gate."
-    notes: "DEFENSIVE (non-negotiable): a parse failure must NEVER fail the gate. Guard fires only when we are confident."
+    statement: If neither per-test data nor a definitive aggregate execution count
+      can be parsed or the test runner is unsupported, then the system shall
+      fall back to exit-code behavior without failing the gate.
+    kind: behavior
+    notes: "DEFENSIVE (non-negotiable): a parse failure must NEVER fail the gate.
+      Guard fires only when we are confident."
   - id: AC-d7a9568e
-    test_refs:
-      - tests/stages/vacuous-tests.test.ts
-    ears: state
-    condition: "while a done feature has at least one test file that executed a passing test"
-    text: "While a done feature has at least one test file that executed a passing test, the system shall not fire the vacuous finding."
-    notes: "No false positive on genuinely-tested features (the multi-feature realistic case: one vacuous feature among real ones must NOT flag the real ones)."
+    statement: While a done feature has at least one test file that executed a
+      passing test, the system shall not fire the vacuous finding.
+    notes: "No false positive on genuinely-tested features (the multi-feature
+      realistic case: one vacuous feature among real ones must NOT flag the real
+      ones)."
   - id: AC-4f3d74ee
-    test_refs:
-      - tests/stages/vacuous-tests.test.ts
-    ears: ubiquitous
-    text: "The guard shall apply only to done features and shall preserve the test runner's human-readable output."
-    notes: "Planned/in-progress features are legitimately incomplete. Dual-reporter (json to file + default to stdout) so clad check output stays readable."
+    statement: The guard shall apply only to done features while preserving the test
+      runner's human-readable output.
+    kind: behavior
+    notes: Planned/in-progress features are legitimately incomplete. Dual-reporter
+      (json to file + default to stdout) so clad check output stays readable.
   - id: AC-0e76a1b2
-    test_refs:
-      - tests/stages/unit.test.ts
-    ears: unwanted
-    condition: "if a successful test command definitively reports zero executed tests"
-    response: "emit a blocking VACUOUS_TESTS finding under strict mode"
-    text: "If a successful test command definitively reports zero executed tests, the system shall emit a blocking VACUOUS_TESTS finding under strict mode."
-    notes: "This runner-independent aggregate guard owns the zero-test case discovered during onboarding handoff verification; it is not scoped to initialized projects."
+    statement: If a successful test command definitively reports zero executed
+      tests, then the system shall emit a blocking VACUOUS_TESTS finding under
+      strict mode.
+    kind: behavior
+    notes: This runner-independent aggregate guard owns the zero-test case
+      discovered during onboarding handoff verification; it is not scoped to
+      initialized projects.

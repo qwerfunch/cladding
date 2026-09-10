@@ -1,7 +1,7 @@
 // Cladding · unit tests · plain-first finding render + English catalog (F-dd8dc994, F-9af291fa)
 //
 // Sibling home: tests/ui/softShell.test.ts pins the PRE-EXISTING softShell
-// exports (featureLabel/haltMessage/gateLabel); this file is the AC-owning
+// exports (featureLabel/gateLabel); this file is the AC-owning
 // suite for the plain-first-render surface the same module grew —
 // DETECTOR_PLAIN, plainLead/plainFinding, and the three surface templates. It
 // complements (does not duplicate) the existing-pin fallout already covered in
@@ -31,6 +31,7 @@
 // exported template of its own (unlike the other three) — its literal format
 // is pinned here via a source-text assertion.
 
+import {createHash} from 'node:crypto';
 import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -40,6 +41,7 @@ import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 import {allDetectors} from '../src/stages/detectors/index.js';
 import {missingImplementation} from '../src/stages/detectors/missing-implementation.js';
 import {runDone} from '../src/cli/done.js';
+import {readEvents} from '../src/events/log.js';
 import {TOOL_NAMES} from '../src/serve/server.js';
 import {
   DETECTOR_PLAIN,
@@ -49,6 +51,7 @@ import {
   plainLead,
   stopBlockMessage,
 } from '../src/ui/softShell.js';
+import {inspectLocaleTailSources, inspectLocaleTailWorkspace, localeTailSourceUniverse} from '../src/assurance/criterion-observations.js';
 
 const ROOT = process.cwd();
 
@@ -124,6 +127,19 @@ describe('DETECTOR_PLAIN catalog completeness (AC-746969b3)', () => {
     expect(actions.some((a) => a.includes('clad '))).toBe(true);
   });
 
+  test('[covers:F-dd8dc994/AC-746969b3] every live detector has a plain-English lead and any action avoids MCP tool names', () => {
+    const registryNeedles = TOOL_NAMES.flatMap((tool) => [tool, tool.replace(/^clad_/, '')]);
+    for (const name of names) {
+      const entry = DETECTOR_PLAIN[name];
+      expect(entry?.lead.trim().length, `${name}.lead`).toBeGreaterThan(0);
+      if (!entry?.action) continue;
+      expect(entry.action, `${name}.action`).not.toMatch(/\bclad_[a-z_]+/);
+      for (const needle of registryNeedles) {
+        expect(entry.action, `${name}.action`).not.toContain(needle);
+      }
+    }
+  });
+
   // F-ebbb20af AC-0cece94c — the leak that slipped past the action-only scan:
   // INVENTORY_DRIFT.lead said "shard files". Scan LEADS too, for the internal
   // word "shard" and for any MCP tool name.
@@ -142,13 +158,23 @@ describe('DETECTOR_PLAIN catalog completeness (AC-746969b3)', () => {
 // ─── AC-263adf79 — plain lead first, machine detail demoted to a tail ──────
 
 describe('plainFinding render shape (AC-263adf79)', () => {
+  test('[covers:F-dd8dc994/AC-25f77cec] renders tails only from detector and normalized path while static locale policy rejects forbidden concepts and permits String.localeCompare', () => {
+    expect(plainFinding({detector: 'AC_DRIFT', path: 'src/../src/a.ts', message: 'raw'}))
+      .toBe(`${DETECTOR_PLAIN.AC_DRIFT.lead} (AC_DRIFT · src/a.ts)`);
+    const sources = Object.fromEntries(localeTailSourceUniverse().map((path) => [path, 'const ordered = String.localeCompare;']));
+    expect(inspectLocaleTailSources(sources)).toMatchObject({state: 'pass', complete: true});
+    const field = ['project', '.locale'].join('');
+    expect(inspectLocaleTailSources({...sources, 'src/ui/softShell.ts': `const value = ${field};`})).toMatchObject({state: 'fail'});
+    expect(inspectLocaleTailWorkspace(ROOT)).toMatchObject({state: 'pass', complete: true});
+  });
+
   const finding = {
     detector: 'MISSING_IMPLEMENTATION',
     path: 'src/auth/login.ts',
     message: "feature F-x declares module 'src/auth/login.ts' but the file does not exist",
   };
 
-  test('the plain lead comes first; detector + path are a parenthetical tail', () => {
+  test('[covers:F-dd8dc994/AC-263adf79] the plain lead comes first; detector + path are a parenthetical tail', () => {
     const out = plainFinding(finding);
     const lead = DETECTOR_PLAIN.MISSING_IMPLEMENTATION.lead;
     expect(out).toBe(`${lead} (MISSING_IMPLEMENTATION · src/auth/login.ts)`);
@@ -273,13 +299,16 @@ describe('hook integration — Stop + PostToolUse render sites', () => {
       expect(doc.reason.indexOf('(MISSING_IMPLEMENTATION · src/auth/login.ts)')).toBeGreaterThan(doc.reason.indexOf(lead));
     });
 
-    test('the stop-block fingerprint hashes detector|path only — changing ONLY the message still demotes the repeat run', () => {
+    test('[covers:F-dd8dc994/AC-0eee6e0a] lifecycle events retain raw fields and fingerprint only detector and path', () => {
       driftStub.mockImplementation(() => ({
         pass: false,
         exitCode: 1,
         findings: [{detector: 'MISSING_IMPLEMENTATION', severity: 'error', path: 'src/auth/login.ts', message: 'message A'}],
       }));
       expect(runHookEvent('Stop', {stop_hook_active: false}, cwd)).not.toBe('');
+      const fingerprint = createHash('sha256').update('MISSING_IMPLEMENTATION|src/auth/login.ts').digest('hex');
+      const blocked = readEvents(cwd).find((event) => event.type === 'stop_blocked');
+      expect(blocked?.payload).toMatchObject({count: 1, fingerprint});
       driftStub.mockImplementation(() => ({
         pass: false,
         exitCode: 1,
@@ -291,11 +320,14 @@ describe('hook integration — Stop + PostToolUse render sites', () => {
       // message this would re-block. It must demote to '' — hook.ts::runStopGate
       // hashes `${f.detector}|${f.path}` only (AC-ad2a34e1).
       expect(runHookEvent('Stop', {stop_hook_active: false}, cwd)).toBe('');
+      const exits = readEvents(cwd).filter((event) => event.type === 'stop_exit_recorded');
+      expect(exits).toHaveLength(1);
+      expect(exits[0].payload).toMatchObject({count: 1, fingerprint});
     });
   });
 
   describe('PostToolUse — drift line leads plain, tail is "(details: DETECTOR)"', () => {
-    test('an AC_DRIFT error surfaces the plain lead and the "(details: AC_DRIFT)" tail; the raw message never leaks', () => {
+    test('[covers:F-ebbb20af/AC-0cece94c] an AC_DRIFT error surfaces the plain lead and the "(details: AC_DRIFT)" tail; the raw message never leaks', () => {
       driftStub.mockImplementation(() => ({
         pass: false,
         exitCode: 1,
@@ -315,6 +347,7 @@ describe('done refusal — plain lead prepended, machine tail preserved', () => 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'clad-plain-done-'));
     mkdirSync(join(dir, 'spec', 'features'), {recursive: true});
+    writeFileSync(join(dir, 'spec.yaml'), 'schema: "0.1"\n', 'utf8');
     writeFileSync(join(dir, 'spec', 'features', 'x-abc123.yaml'), 'id: F-abc123\nslug: x\nstatus: in_progress\ntitle: X\n', 'utf8');
   });
 

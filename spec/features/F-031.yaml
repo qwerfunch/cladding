@@ -6,32 +6,20 @@ modules:
   - tests/spec/load.test.ts
 depends_on:
   - F-010
+capability_refs: []
 acceptance_criteria:
   - id: AC-045
-    ears: optional
-    condition: where spec.yaml's features is empty or missing AND spec/features/
-      directory exists
-    action: load each *.yaml file as one feature and merge into the spec
-    response: returns a fully-populated Spec object as if it were unsharded
-    text: Where spec.yaml's features field is empty or missing and a spec/features/
-      directory exists, the loader shall load each *.yaml file under that
-      directory as one feature and merge the results into the spec object.
-    test_refs:
-      - tests/spec/load.test.ts
+    statement: Where spec.yaml's features field is empty or missing and a
+      spec/features/ directory exists, the loader shall load each *.yaml file
+      under that directory as one feature and merge the results into the spec
+      object.
   - id: AC-046
-    ears: ubiquitous
-    action: prefer inline features when both inline and sharded sources exist
-    response: sharded directory is ignored when master has inline features
-    text: When spec.yaml carries inline features AND a spec/features/ directory also
-      exists, the loader shall use the inline values and ignore the directory.
-      This keeps backward-compatibility with existing unsharded specs.
-    test_refs:
-      - tests/spec/load.test.ts
+    statement: When spec.yaml carries inline features and a spec/features/ directory
+      also exists, the loader shall use the inline values and ignore the
+      directory to preserve compatibility with unsharded specifications.
+    kind: behavior
   - id: AC-047
-    ears: optional
-    condition: where spec/architecture.yaml exists AND master has no inline architecture
-    action: load that file as the spec's architecture
-    response: architecture field is populated from the sharded file
-    text: Where spec/architecture.yaml exists and the master spec has no inline
+    statement: Where spec/architecture.yaml exists and the master spec has no inline
       architecture, the loader shall load that file as the spec's architecture.
-    evidence_refs: [fixture:F-031_AC-047]
+    evidence_refs:
+      - fixture:F-031_AC-047

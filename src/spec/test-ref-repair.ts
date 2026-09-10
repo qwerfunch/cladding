@@ -17,10 +17,12 @@
 //             author removing the prefix makes them count. No manufactured
 //             evidence.
 
-import {existsSync, readFileSync, readdirSync, statSync, writeFileSync} from 'node:fs';
+import {existsSync, readFileSync, readdirSync, statSync} from 'node:fs';
 import {basename, join, relative} from 'node:path';
 
 import {parse} from 'yaml';
+
+import {commitSchema01CompatibilityMutation, type Schema01CompatibilityReplacement} from './edit.js';
 
 const SKIP_PREFIXES = ['self-dogfood:', 'fixture:', 'derived:'];
 const TEST_FILE = /\.(test|spec)\.[jt]sx?$/;
@@ -30,6 +32,12 @@ export interface RepairOutcome {
   readonly repaired: ReadonlyArray<{readonly shard: string; readonly from: string; readonly to: string}>;
   /** `derived:` suggestions appended. */
   readonly suggested: ReadonlyArray<{readonly shard: string; readonly ref: string}>;
+}
+
+/** Deterministic test seam between preparing byte-bound repairs and their commit. */
+export interface RepairTestOptions {
+  /** Invoked only by regression tests after every source shard has been inspected. */
+  readonly testBeforeCommit?: () => void;
 }
 
 /** Recursively collect test files under tests/ (bounded: skips dotdirs). */
@@ -58,12 +66,15 @@ function collectTestFiles(root: string, dir = root, acc: string[] = []): string[
  * features' shards. Text-level edits (string replace / line append) keep the
  * shard byte-stable everywhere else — no parse-and-reserialize churn.
  */
-export function repairTestRefs(cwd: string = '.'): RepairOutcome {
+export function repairTestRefs(cwd: string = '.', options: RepairTestOptions = {}): RepairOutcome {
   const featuresDir = join(cwd, 'spec', 'features');
   const testsRoot = join(cwd, 'tests');
   const repaired: {shard: string; from: string; to: string}[] = [];
   const suggested: {shard: string; ref: string}[] = [];
   if (!existsSync(featuresDir) || !existsSync(testsRoot)) return {repaired, suggested};
+  const rootPath = join(cwd, 'spec.yaml');
+  if (existsSync(rootPath) && /^schema:\s*["']?0\.2["']?\s*$/m.test(readFileSync(rootPath, 'utf8'))) return {repaired, suggested};
+  const replacements: Schema01CompatibilityReplacement[] = [];
 
   const testFiles = collectTestFiles(testsRoot);
   const byBasename = new Map<string, string[]>();
@@ -78,6 +89,7 @@ export function repairTestRefs(cwd: string = '.'): RepairOutcome {
     if (!file.endsWith('.yaml') && !file.endsWith('.yml')) continue;
     const shardPath = join(featuresDir, file);
     let body: string;
+    let before: string;
     let doc: {
       slug?: string;
       status?: string;
@@ -85,7 +97,8 @@ export function repairTestRefs(cwd: string = '.'): RepairOutcome {
       acceptance_criteria?: {id?: string; test_refs?: string[]; evidence_refs?: string[]}[];
     } | null;
     try {
-      body = readFileSync(shardPath, 'utf8');
+      before = readFileSync(shardPath, 'utf8');
+      body = before;
       doc = parse(body) as typeof doc;
     } catch {
       continue;
@@ -138,7 +151,14 @@ export function repairTestRefs(cwd: string = '.'): RepairOutcome {
       }
     }
 
-    if (changed) writeFileSync(shardPath, body, 'utf8');
+    // `body` was derived from the bytes initially parsed above. Re-reading at
+    // commit preparation would silently authorize a writer that arrived while
+    // this repair was planning its replacement.
+    if (changed) replacements.push({path: `spec/features/${file}`, before, after: body});
+  }
+  if (replacements.length > 0) {
+    options.testBeforeCommit?.();
+    commitSchema01CompatibilityMutation(cwd, replacements);
   }
   return {repaired, suggested};
 }

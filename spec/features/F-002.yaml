@@ -5,11 +5,10 @@ modules:
   - src/stages/lint.ts
 depends_on:
   - F-001
+capability_refs: []
 acceptance_criteria:
   - id: AC-003
-    ears: ubiquitous
-    action: delegate linting to the project's own toolchain
-    response: returns a stage_1.2 StageResult mirroring the linter exit
-    text: The system shall delegate linting to the project's own toolchain and
+    statement: The system shall delegate linting to the project's own toolchain and
       return a stage_1.2 result with the linter's exit code.
-    evidence_refs: [self-dogfood:stage:lint]
+    evidence_refs:
+      - self-dogfood:stage:lint

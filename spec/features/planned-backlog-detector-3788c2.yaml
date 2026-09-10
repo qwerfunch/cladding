@@ -1,6 +1,4 @@
-# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
 id: F-3788c2
-slug: planned-backlog-detector
 title: PLANNED_BACKLOG detector — enforced floor for the per-feature cadence (v0.4.x)
 status: done
 modules:
@@ -8,24 +6,16 @@ modules:
   - src/stages/detectors/index.ts
 depends_on:
   - F-3b3690
+capability_refs:
+  - drift-detection
 acceptance_criteria:
   - id: AC-001
-    ears: event
-    condition: when more than DEFAULT_MAX_PLANNED_AHEAD planned or in_progress features have no code on disk
-    action: 'more than the tolerated number of planned/in_progress features have no code on disk (zero existing modules)'
-    response: 'PLANNED_BACKLOG emits exactly one finding naming the stalled count and pointing at docs/feature-cycle.md — the spec has raced ahead of the code (the AC-only batch that MISSING_IMPLEMENTATION cannot see, since it has no module paths to check)'
-    text: When more than DEFAULT_MAX_PLANNED_AHEAD planned or in_progress features have no implemented module on disk, the system shall raise a PLANNED_BACKLOG finding that the spec has raced ahead of the code.
-    test_refs: [tests/stages/planned-backlog.test.ts]
+    statement: When more than DEFAULT_MAX_PLANNED_AHEAD planned or in_progress
+      features have no implemented module on disk, the system shall raise a
+      PLANNED_BACKLOG finding that the spec has raced ahead of the code.
   - id: AC-002
-    ears: ubiquitous
-    action: 'classify the backlog finding as warn so a deliberate short design-spike does not hard-break a conversational session, yet a push/CI/pre-commit-hook gate under --strict does block it'
-    response: 'the finding is severity:warn — informational under the default drift policy, fail-grade under --strict (it rides the existing warn/strict dial in drift.ts, no new mechanism); a clean spec-first session is never blocked locally, but a batched backlog cannot reach a strict gate green'
-    text: The system shall classify the backlog finding as warn-severity, so it is advisory by default and blocking only under --strict.
-    test_refs: [tests/stages/planned-backlog.test.ts]
+    statement: The system shall classify the backlog finding as warn-severity, so it
+      is advisory by default and blocking only under --strict.
   - id: AC-003
-    ears: unwanted
-    condition: if a planned or in_progress feature declares at least one module that exists on disk
-    action: 'a planned or in_progress feature declares at least one module that exists on disk (real in-flight progress)'
-    response: 'that feature is NOT counted toward the backlog — "has code on disk" means at least one declared module exists, so genuine work-in-progress and legitimate small look-ahead under the threshold never false-fail; a feature whose declared module is merely missing is already a hard MISSING_IMPLEMENTATION error and needs no second signal'
-    text: If a planned or in_progress feature has at least one existing module on disk, then the system shall not count it toward the planned backlog.
-    test_refs: [tests/stages/planned-backlog.test.ts]
+    statement: If a planned or in_progress feature has at least one existing module
+      on disk, then the system shall not count it toward the planned backlog.

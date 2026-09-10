@@ -1,7 +1,6 @@
-# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
 id: F-0144b9
-slug: ab-extended-task-manager
-title: A/B extended — 30-feature task-manager React project shipped under docs/ab-evaluation-extended/ (v0.3.49)
+title: A/B extended — 30-feature task-manager React project shipped under
+  docs/ab-evaluation-extended/ (v0.3.49)
 status: done
 modules:
   - tests/scenarios/ab-extended/_feature-set.ts
@@ -14,34 +13,25 @@ modules:
   - docs/ab-evaluation-extended/scenarios/task-manager/report.md
 depends_on:
   - F-99c6e5
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: 'define 30 task-manager features across 5 categories (UI/CRUD/Filter/Category/Persistence) with deterministic F-hash6 ids derived from slugs'
-    text: The system shall define 30 task-manager features with deterministic ids and ACs.
-    test_refs: [tests/scenarios/ab-extended/case-task-manager.test.ts]
+    statement: The system shall define 30 task-manager features with deterministic
+      ids and ACs.
   - id: AC-002
-    ears: ubiquitous
-    action: 'ship a curator (_curator.ts) that emits a complete React 19 + Vite 6 + TS 5.6 + Tailwind 4 task-manager project into the given cwd for both cladding and vanilla groups, including package.json with runnable scripts'
-    text: The system shall ship a curator that emits runnable React 19 + Vite 6 + TS + Tailwind projects for both groups.
-    test_refs: [tests/scenarios/ab-extended/case-task-manager.test.ts]
+    statement: The system shall ship a curator that emits runnable React 19 + Vite 6
+      + TS + Tailwind projects for both groups.
   - id: AC-003
-    ears: ubiquitous
-    action: 'snapshot both groups at 7 milestones (1, 5, 10, 15, 20, 25, 30 features) capturing the 8-dimension metrics plus new performance dimension (src LoC, test LoC, spec LoC, file counts, spec/code ratio, capture duration bucket)'
-    text: The system shall snapshot both groups at 7 milestones with structural + performance metrics.
-    test_refs: [tests/scenarios/ab-extended/case-task-manager.test.ts]
+    statement: The system shall snapshot both groups at 7 milestones with structural
+      + performance metrics.
   - id: AC-004
-    ears: ubiquitous
-    action: 'at M30 apply 4 drift-injection scenarios + 5 AI domain queries reusing the existing F-ba2e05 modules, then render a deterministic markdown report under docs/ab-evaluation-extended/scenarios/task-manager/report.md'
-    text: The system shall apply drift injection and AI queries at M30 and render a deterministic report.
-    test_refs: [tests/scenarios/ab-extended/case-task-manager.test.ts]
+    statement: The system shall apply drift injection and AI queries at M30 and
+      render a deterministic report.
   - id: AC-005
-    ears: ubiquitous
-    action: 'emit the M30 React projects for both groups under docs/ab-evaluation-extended/scenarios/task-manager/{cladding,vanilla}/ when UPDATE_AB_REPORTS=1 so reviewers can cd in and run npm install plus npm run dev locally (committed source removed by F-9a3b61 — see .gitignore)'
-    text: The system shall emit both groups M30 React projects on-demand under UPDATE_AB_REPORTS=1.
-    test_refs: [tests/scenarios/ab-extended/case-task-manager.test.ts]
+    statement: The system shall emit both groups M30 React projects on-demand under
+      UPDATE_AB_REPORTS=1.
   - id: AC-006
-    ears: ubiquitous
-    action: 'verify all measurements support the new hypotheses H9 (linear scale), H10 (AI query cost partial — domain-tuned limitation), H11 (drift catch rate preserved at 3/4), H12 (capture duration bounded under 2s)'
-    text: The system shall report H9, H10, H11, H12 verdicts with quantitative anchors.
-    evidence_refs: [docs/ab-evaluation-extended/summary.md]
+    statement: The system shall report H9, H10, H11, H12 verdicts with quantitative
+      anchors.
+    evidence_refs:
+      - docs/ab-evaluation-extended/summary.md

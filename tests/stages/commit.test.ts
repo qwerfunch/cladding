@@ -34,7 +34,7 @@ describe('runCommit (stage_1.4)', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('clean working tree → pass=true', () => {
+  test('[covers:F-059/AC-142] clean working tree is a pass observation', () => {
     execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     const r = runCommit({cwd: dir});
     expect(r.pass).toBe(true);
@@ -42,7 +42,7 @@ describe('runCommit (stage_1.4)', () => {
     expect(r.stage).toBe('stage_1.4');
   });
 
-  test('dirty working tree → pass=false, exitCode=1, stderr enumerates changes', () => {
+  test('[covers:F-059/AC-142] dirty working tree is a fail observation', () => {
     execaSyncMock.mockReturnValueOnce({
       exitCode: 0,
       stdout: ' M src/foo.ts\n?? new-file.ts\n',
@@ -75,7 +75,7 @@ describe('runCommit (stage_1.4)', () => {
     expect(r.stderr).toBe('not a git repository');
   });
 
-  test('git binary absent (ENOENT) → exitCode=2 (skipped)', () => {
+  test('[covers:F-059/AC-142] git ENOENT is an unobserved observation', () => {
     const err = new Error('spawn ENOENT') as NodeJS.ErrnoException;
     err.code = 'ENOENT';
     execaSyncMock.mockImplementationOnce(() => {

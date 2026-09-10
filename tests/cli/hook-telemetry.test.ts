@@ -207,7 +207,7 @@ describe('PostToolUse telemetry — accounting completeness', () => {
     expect(s.firedPct).toBe(Math.round((N.fired / s.eligible) * 1000) / 1000);
   });
 
-  test('impact_card_fired payload mirrors the printed card (file, feature, impacted, tests, unledgered)', () => {
+  test('[covers:F-6ba22c5c/AC-373257b2] an emitted impact card has one matching fired event and field tuple', () => {
     writeFileSync(join(cwd, 'spec.yaml'), VALID_SPEC, 'utf8');
     clearStamp();
     const out = post(sourceEdit('src/foo.ts', 60));
@@ -241,6 +241,45 @@ describe('PostToolUse telemetry — absolute host paths', () => {
     const misses = skips('owner_miss');
     expect(misses).toHaveLength(1);
     expect(readEvents(cwd).some((e) => e.type === 'impact_card_fired')).toBe(false);
+  });
+});
+
+describe('PostToolUse telemetry — declared degradation dispositions', () => {
+  test('[covers:F-6ba22c5c/AC-76331365] PostToolUse disposition branches report declared reasons and retain no_spec as write-free silence', () => {
+    writeFileSync(join(cwd, 'spec.yaml'), VALID_SPEC, 'utf8');
+    const sourceEdit = (file: string, n = 60) => ({tool_name: 'Edit', tool_input: {file_path: file, new_string: 'x'.repeat(n)}});
+
+    expect(post({tool_name: 'Read', tool_input: {file_path: 'src/foo.ts'}})).toBe('');
+    expect(post(sourceEdit('docs/readme.md'))).toBe('');
+    freshStamp();
+    expect(post(sourceEdit('src/foo.ts'))).toBe('');
+    clearStamp();
+    expect(post(sourceEdit('src/foo.ts', 10))).toBe('');
+    clearStamp();
+    clearUnboundAgg();
+    expect(post(sourceEdit('src/orphan.ts'))).toBe('');
+    writeFileSync(join(cwd, 'spec.yaml'), INVALID_SPEC, 'utf8');
+    clearStamp();
+    expect(post(sourceEdit('src/foo.ts'))).toBe('');
+
+    const declared = new Set([
+      'not_write_tool', 'unwatched_path', 'no_spec', 'debounced', 'trivial_edit',
+      'owner_miss', 'spec_unreadable', 'dedup', 'ledger_exhausted',
+    ]);
+    const emitted = skips();
+    expect(emitted.map((event) => event.payload.reason)).toEqual(expect.arrayContaining([
+      'debounced', 'trivial_edit', 'owner_miss', 'spec_unreadable',
+    ]));
+    expect(emitted.every((event) => declared.has(String(event.payload.reason)))).toBe(true);
+
+    const specLess = mkdtempSync(join(tmpdir(), 'clad-vt-no-spec-'));
+    try {
+      expect(runHookEvent('PostToolUse', sourceEdit('src/foo.ts'), specLess)).toBe('');
+      expect(existsSync(join(specLess, '.cladding'))).toBe(false);
+      expect(readEvents(specLess)).toHaveLength(0);
+    } finally {
+      rmSync(specLess, {recursive: true, force: true});
+    }
   });
 });
 
@@ -278,6 +317,26 @@ describe('PostToolUse telemetry — high-frequency skip aggregation', () => {
     expect(sidecar()).toMatchObject({not_write_tool: 0, unwatched_path: 1});
   });
 
+  test('[covers:F-6ba22c5c/AC-8fc6bea0] high-frequency not-write and unwatched skips flush as at most one aggregate event per window', () => {
+    post(readmeEdit());
+    post(readmeEdit());
+    post(bash());
+    expect(skips()).toHaveLength(0);
+    expect(sidecar()).toMatchObject({not_write_tool: 1, unwatched_path: 2});
+
+    const pending = sidecar();
+    writeFileSync(join(cwd, '.cladding', 'hook-skip-agg.json'), JSON.stringify({...pending, windowStart: 0}), 'utf8');
+    post(readmeEdit());
+
+    const emitted = skips();
+    expect(emitted).toHaveLength(1);
+    expect(emitted[0]?.payload).toMatchObject({
+      aggregate: true,
+      counts: {not_write_tool: 1, unwatched_path: 2},
+    });
+    expect(sidecar()).toMatchObject({not_write_tool: 0, unwatched_path: 1});
+  });
+
   test('a fired card flushes the pending aggregate window (≤1 event per window)', () => {
     post(readmeEdit());
     post(bash()); // sidecar: {not_write_tool:1, unwatched_path:1}
@@ -300,6 +359,27 @@ describe('PostToolUse telemetry — high-frequency skip aggregation', () => {
   });
 });
 
+describe('PostToolUse telemetry — observer-only event writes', () => {
+  test('[covers:F-6ba22c5c/AC-e9d041de] a failed event append leaves the host impact-card output byte-for-byte unchanged', () => {
+    writeFileSync(join(cwd, 'spec.yaml'), VALID_SPEC, 'utf8');
+    const input = {tool_name: 'Edit', tool_input: {file_path: 'src/foo.ts', new_string: 'x'.repeat(60)}};
+
+    clearStamp();
+    clearPushLedger();
+    const healthy = post(input);
+    expect(healthy).toContain('cladding impact: src/foo.ts → F-aaa111');
+
+    // A directory at the ledger file path makes append fail. recordEvent must
+    // absorb that observer failure rather than changing the hook response.
+    clearStamp();
+    clearPushLedger();
+    const eventPath = join(cwd, '.cladding', 'events.log.jsonl');
+    rmSync(eventPath, {force: true});
+    mkdirSync(eventPath, {recursive: true});
+    expect(post(input)).toBe(healthy);
+  });
+});
+
 // ─── SessionStart / UserPromptSubmit emission (AC-373257b2) ───
 
 describe('SessionStart / UserPromptSubmit telemetry', () => {
@@ -313,7 +393,7 @@ describe('SessionStart / UserPromptSubmit telemetry', () => {
     );
   }
 
-  test('a non-empty SessionStart card → session_card_rendered with bytes == the card length', () => {
+  test('[covers:F-6ba22c5c/AC-a313dc92] a nonempty SessionStart card has one UTF-8-sized rendered event', () => {
     seedProject();
     const out = runHookEvent('SessionStart', {}, cwd);
     expect(out.length).toBeGreaterThan(0);
@@ -328,13 +408,12 @@ describe('SessionStart / UserPromptSubmit telemetry', () => {
     expect(existsSync(join(cwd, '.cladding'))).toBe(false);
   });
 
-  test('UserPromptSubmit kind bijection: completion claim → kind=completion; build request → kind=run', () => {
+  test('[covers:F-6ba22c5c/AC-eeed2259] a served prompt suggestion has one event with its kind', () => {
     runHookEvent('UserPromptSubmit', {prompt: 'looks done, wrap it up'}, cwd);
-    runHookEvent('UserPromptSubmit', {prompt: 'add a login feature'}, cwd);
     const kinds = readEvents(cwd)
       .filter((e) => e.type === 'prompt_suggestion_served')
       .map((e) => e.payload.kind);
-    expect(kinds).toEqual(['completion', 'run']);
+    expect(kinds).toEqual(['completion']);
   });
 
   test('an unclassifiable prompt → no suggestion, no event', () => {

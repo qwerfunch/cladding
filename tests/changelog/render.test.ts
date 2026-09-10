@@ -59,7 +59,7 @@ const SHIPPED: ChangelogManifest = manifestWith({
 });
 
 describe('changelog/render — renderChangelogMarkdown', () => {
-  test('markdown groups by capability headings and carries AC sentences with no internal ids', () => {
+  test('[covers:F-904495a5/AC-72a97f] markdown groups by capability headings and carries AC sentences with no internal ids', () => {
     const md = renderChangelogMarkdown(SHIPPED);
     expect(md).toContain('# Changes since v1.2.3');
     expect(md).toContain('## Authentication');
@@ -72,12 +72,12 @@ describe('changelog/render — renderChangelogMarkdown', () => {
     expect(md).not.toMatch(/\bAC-[0-9a-f]{3,}\b/);
   });
 
-  test('renders the honest no-shipped-changes line for a zero-change manifest', () => {
+  test('[covers:F-904495a5/AC-72a97f] renders the honest no-shipped-changes line for a zero-change manifest', () => {
     const md = renderChangelogMarkdown(manifestWith({since: 'v9.9.9'}));
     expect(md).toBe('no shipped changes since v9.9.9');
   });
 
-  test('unsharded commits render under an honest not-yet-spec-tracked section', () => {
+  test('[covers:F-904495a5/AC-72a97f] unsharded commits render under an honest not-yet-spec-tracked section', () => {
     const md = renderChangelogMarkdown(
       manifestWith({unsharded_commits: [{hash: 'abc1234', subject: 'feat: add a thing users can see'}]}),
     );
@@ -127,7 +127,7 @@ describe('changelog/render — renderAuditTable', () => {
     ],
   };
 
-  test('audit table keeps ids, marks an unresolved ref ✗ and labels a derived: ref', () => {
+  test('[covers:F-904495a5/AC-60067c] audit table keeps ids, marks an unresolved ref ✗ and labels a derived: ref', () => {
     const table = renderAuditTable(SHIPPED, spec, dir);
     expect(table).toContain('| feature | AC | EARS | verification refs |');
     // ids KEPT — this is the audit surface.
@@ -147,7 +147,7 @@ describe('changelog/render — renderAuditTable', () => {
 });
 
 describe('changelog/render — renderCatalog', () => {
-  test('catalog lists capability then feature then plain AC sentences', () => {
+  test('[covers:F-904495a5/AC-72a97f] catalog lists capability then feature then plain AC sentences', () => {
     const spec: Spec = {
       schema: '0.1',
       project: {name: 'probe', language: 'typescript'},

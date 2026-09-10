@@ -8,7 +8,7 @@
 // (spec/features/ab-case-doc-binding-bae800bd.yaml) at the extractor, the real
 // repo, and the DOC_LINK_INTEGRITY detector.
 
-import {extractDocReferences, writeDocLinksYaml, DOC_SCAN_EXCLUDE} from '../../src/spec/doc-references.js';
+import {extractDocReferences, renderDocLinksYaml, DOC_SCAN_EXCLUDE} from '../../src/spec/doc-references.js';
 import type {DocLinks, DocRefScan} from '../../src/spec/doc-references.js';
 import {docReferenceIntegrity} from '../../src/stages/detectors/doc-reference-integrity.js';
 import {loadSpec} from '../../src/spec/load.js';
@@ -82,35 +82,37 @@ describe('doc declarations · extraction + materialization (AC-b0e7dd4d)', () =>
     writeFileSync(full, body);
   };
 
-  test('an explicit clad-doc-links declaration binds exactly the named ids', () => {
+  test('[covers:F-bae800bd/AC-b0e7dd4d] an explicit clad-doc-links declaration binds exactly the named ids', () => {
     wdoc('docs/note.md', '<!-- clad-doc-links: F-16138071, F-06dfdad6 -->\n\nThis report never names a feature in prose.');
     const m = byDoc(extractDocReferences(dir));
     expect(m['docs/note.md'].features).toEqual(['F-06dfdad6', 'F-16138071']);
   });
 
-  test('declarations across multiple comment lines union their ids', () => {
+  test('[covers:F-bae800bd/AC-b0e7dd4d] declarations across multiple comment lines union their ids', () => {
     wdoc('docs/note.md', '<!-- clad-doc-links: F-16138071 -->\nprose\n<!-- clad-doc-links: F-06dfdad6, F-7794a6bc -->');
     const m = byDoc(extractDocReferences(dir));
     expect(m['docs/note.md'].features).toEqual(['F-06dfdad6', 'F-16138071', 'F-7794a6bc']);
   });
 
-  test('a clad-doc-links declaration inside a code fence is inert', () => {
+  test('[covers:F-bae800bd/AC-b0e7dd4d] a clad-doc-links declaration inside a code fence is inert', () => {
     wdoc('docs/note.md', 'How to declare a link:\n```\n<!-- clad-doc-links: F-16138071 -->\n```\nNo binding here.');
     const m = byDoc(extractDocReferences(dir));
     expect(m['docs/note.md'].features).toEqual([]);
   });
 
-  test('ids on a clad-doc-links: ignore line bind nothing', () => {
+  test('[covers:F-bae800bd/AC-b0e7dd4d] ids on a clad-doc-links: ignore line bind nothing', () => {
     wdoc('docs/note.md', '<!-- clad-doc-links: ignore - F-abc123 is only an illustrative example -->\n\nTeaching doc.');
     const m = byDoc(extractDocReferences(dir));
     expect(m['docs/note.md'].features).toEqual([]);
     expect(m['docs/note.md'].features).not.toContain('F-abc123');
   });
 
-  test('writeDocLinksYaml materializes declared ids into spec/_doc-links.yaml', () => {
+  test('[covers:F-bae800bd/AC-b0e7dd4d] renderDocLinksYaml materializes declared ids into spec/_doc-links.yaml', () => {
     mkdirSync(join(dir, 'spec'), {recursive: true});
     wdoc('docs/note.md', '<!-- clad-doc-links: F-16138071, F-06dfdad6 -->\nEvidence with no prose id.');
-    expect(writeDocLinksYaml(dir)).toBe(true);
+    const rendered = renderDocLinksYaml(dir);
+    expect(rendered).not.toBeNull();
+    writeFileSync(join(dir, 'spec', '_doc-links.yaml'), rendered!);
     const yaml = readFileSync(join(dir, 'spec', '_doc-links.yaml'), 'utf8');
     expect(yaml).toContain('"docs/note.md"');
     expect(yaml).toContain('F-16138071');
@@ -119,7 +121,11 @@ describe('doc declarations · extraction + materialization (AC-b0e7dd4d)', () =>
 });
 
 describe('doc declarations · five A/B case docs bound in the real repo (AC-91d9d1a5)', () => {
-  test('each of the five A/B case docs binds every id it declares, all resolving to real features', () => {
+  test('the base corpus still projects byte-identically to the committed legacy index', () => {
+    expect(renderDocLinksYaml(repoRoot)).toBe(readFileSync(join(repoRoot, 'spec', '_doc-links.yaml'), 'utf8'));
+  });
+
+  test('[covers:F-bae800bd/AC-91d9d1a5] each of the five A/B case docs binds every id it declares, all resolving to real features', () => {
     const known = new Set(loadSpec(repoRoot).features.map((f) => f.id));
     const rows = byDoc(extractDocReferences(repoRoot));
     for (const doc of CASE_DOCS) {
@@ -134,13 +140,13 @@ describe('doc declarations · five A/B case docs bound in the real repo (AC-91d9
     }
   });
 
-  test('case-efficiency-measurement.md binds F-16138071 (the README efficiency receipt)', () => {
+  test('[covers:F-bae800bd/AC-91d9d1a5] case-efficiency-measurement.md binds F-16138071 (the README efficiency receipt)', () => {
     const row = byDoc(extractDocReferences(repoRoot))['docs/ab-evaluation/case-efficiency-measurement.md'];
     expect(row).toBeDefined();
     expect(row.features).toContain('F-16138071');
   });
 
-  test('every extracted excluded-dir doc carries an explicit declaration (no organic-id leakage)', () => {
+  test('[covers:F-bae800bd/AC-91d9d1a5] every extracted excluded-dir doc carries an explicit declaration (no organic-id leakage)', () => {
     const excluded = extractDocReferences(repoRoot).docs.filter((d) => isExcluded(d.doc));
     expect(excluded.length, 'the five case docs make the bound excluded set non-empty').toBeGreaterThanOrEqual(5);
     for (const d of excluded) {
@@ -172,7 +178,7 @@ describe('doc declarations · marker-less byte-identity (AC-437fb005)', () => {
     writeFileSync(full, body);
   };
 
-  test('an excluded-dir doc with organic ids and a link but no declaration is absent', () => {
+  test('[covers:F-bae800bd/AC-437fb005] an excluded-dir doc with organic ids and a link but no declaration is absent', () => {
     wdoc('docs/ab-evaluation/organic.md', 'Findings mention F-ee47fc2b and F-7794a6bc. See [ref](./other.md).');
     wdoc('docs/ab-evaluation/other.md', '# other');
     wdoc('docs/dogfood/note.md', 'benchmark F-06dfdad6');
@@ -183,7 +189,7 @@ describe('doc declarations · marker-less byte-identity (AC-437fb005)', () => {
     expect(m['docs/dogfood/note.md']).toBeUndefined();
   });
 
-  test('a normal doc without a declaration extracts organic ids and links unchanged', () => {
+  test('[covers:F-bae800bd/AC-437fb005] a normal doc without a declaration extracts organic ids and links unchanged', () => {
     wdoc('docs/guide.md', 'covers F-ee47fc2b and F-7794a6bc. [see](./ref.md). inline `F-cafef00d` stays out.');
     wdoc('docs/ref.md', '# ref');
     const m = byDoc(extractDocReferences(dir));
@@ -209,7 +215,7 @@ describe('doc declarations · DOC_LINK_INTEGRITY stays green (AC-2ee28415)', () 
     writeFileSync(full, body);
   };
 
-  test('DOC_LINK_INTEGRITY reports zero findings referencing the five A/B case docs (real repo)', () => {
+  test('[covers:F-bae800bd/AC-2ee28415] DOC_LINK_INTEGRITY reports zero findings referencing the five A/B case docs (real repo)', () => {
     const findings = docReferenceIntegrity
       .run({cwd: repoRoot})
       .filter((f) => f.detector === 'DOC_LINK_INTEGRITY');
@@ -220,18 +226,18 @@ describe('doc declarations · DOC_LINK_INTEGRITY stays green (AC-2ee28415)', () 
     expect(offending).toEqual([]);
   });
 
-  test('DOC_LINK_INTEGRITY warns on an unresolved declared id and stays silent when it resolves', () => {
+  test('[covers:F-bae800bd/AC-2ee28415] DOC_LINK_INTEGRITY errors on an unresolved declared id and stays silent when it resolves', () => {
     writeFileSync(join(dir, 'spec.yaml'), SPEC);
     wdoc('docs/ab-evaluation/bogus.md', '<!-- clad-doc-links: F-deadbeef -->\nno prose id');
     wdoc('docs/ab-evaluation/good.md', '<!-- clad-doc-links: F-001 -->\nno prose id');
     const findings = docReferenceIntegrity
       .run({cwd: dir})
       .filter((f) => f.detector === 'DOC_LINK_INTEGRITY');
-    // Positive control: the detector really does validate declared ids in an
-    // excluded dir, so the real-repo green above is a genuine pass.
+    // Positive control: explicit declarations stay strict even in an excluded
+    // dir, so the real-repo green above is a genuine pass.
     expect(
       findings.some(
-        (f) => f.severity === 'warn' && f.path === 'docs/ab-evaluation/bogus.md' && f.message.includes('F-deadbeef'),
+        (f) => f.severity === 'error' && f.path === 'docs/ab-evaluation/bogus.md' && f.message.includes('F-deadbeef'),
       ),
     ).toBe(true);
     expect(findings.some((f) => f.path === 'docs/ab-evaluation/good.md')).toBe(false);

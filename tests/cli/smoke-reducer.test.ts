@@ -24,6 +24,16 @@ describe('gateStatusOf — disposition-first', () => {
     expect(gateStatusOf({pass: false, exitCode: 2})).toBe('skip');
     expect(gateStatusOf({pass: false, exitCode: 1})).toBe('fail');
   });
+
+  test('[covers:F-e0f6c7/AC-b26813][covers:F-e0f6c7/AC-ccc5c2] dispositions keep their own non-blocking statuses while legacy stages use exit-code fallback', () => {
+    expect(gateStatusOf({pass: true, exitCode: 0, disposition: 'na'})).toBe('na');
+    expect(gateStatusOf({pass: true, exitCode: 0, disposition: 'liveness'})).toBe('liveness');
+    expect(worstContribution({exitCode: 0, disposition: 'na'}, 'na')).toBe(0);
+    expect(worstContribution({exitCode: 0, disposition: 'liveness'}, 'liveness')).toBe(0);
+    expect(gateStatusOf({pass: true, exitCode: 0})).toBe('pass');
+    expect(gateStatusOf({pass: false, exitCode: 2})).toBe('skip');
+    expect(gateStatusOf({pass: false, exitCode: 1})).toBe('fail');
+  });
 });
 
 describe('isBlocking — the honest blocking set', () => {

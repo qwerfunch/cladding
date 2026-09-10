@@ -1,38 +1,41 @@
 id: F-ede6fa75
-slug: self-measuring-release
-title: "clad changelog --measure embeds the release's own reproducible numbers, refusing anything it cannot reproduce at HEAD"
+title: clad changelog --measure embeds the release's own reproducible numbers,
+  refusing anything it cannot reproduce at HEAD
 status: done
 modules:
   - src/changelog/render.ts
   - src/optimizer/measure-ledger.ts
   - src/cli/changelog.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-713458d9
-    ears: event
-    condition: "when clad changelog --measure runs and .cladding/measure.jsonl holds a snapshot whose head equals the current git HEAD"
-    text: "When a snapshot matches current HEAD, the system shall render a Measured block from that snapshot including the head, spec_digest, and the exact reproduce command (git checkout <head> && clad measure)."
-    notes: "WHY: a release note that carries its own re-derivable measurement cannot go stale the way the README 4× claim did."
-    test_refs: [tests/changelog/measured-block.test.ts]
+    statement: When a snapshot matches current HEAD, the system shall render a
+      Measured block from that snapshot including the head, spec_digest, and the
+      exact reproduce command (git checkout <head> && clad measure).
+    notes: "WHY: a release note that carries its own re-derivable measurement cannot
+      go stale the way the README 4× claim did."
   - id: AC-36b1df91
-    ears: unwanted
-    condition: "if no snapshot in the ledger matches the current git HEAD"
-    text: "If no snapshot matches HEAD, then the system shall render a not-measured-at-this-commit notice and shall never substitute an older snapshot's numbers."
+    statement: If no snapshot matches HEAD, then the system shall render a
+      not-measured-at-this-commit notice without substituting older snapshot
+      numbers.
+    kind: behavior
     notes: "WHY: nearest-older substitution is exactly the stale-claim failure mode."
-    test_refs: [tests/cli/changelog-measure.test.ts]
   - id: AC-38b63d18
-    ears: ubiquitous
-    text: "The Measured block shall always carry the deterministic-upper-bound attribution disclaimer verbatim (the MEASUREMENT_DISCLAIMER constant), never a headline number without its honest qualifier."
-    notes: "WHY: the 4× headline was reclassified as cap arithmetic — the qualifier is load-bearing, tested as literal string."
-    test_refs: [tests/changelog/measured-block.test.ts]
+    statement: The Measured block shall always carry the deterministic-upper-bound
+      attribution disclaimer verbatim (the MEASUREMENT_DISCLAIMER constant),
+      never a headline number without its honest qualifier.
+    notes: "WHY: the 4× headline was reclassified as cap arithmetic — the qualifier
+      is load-bearing, tested as literal string."
   - id: AC-a7e810b1
-    ears: optional
-    condition: "where a snapshot also exists whose head equals the resolved --since ref commit"
-    text: "Where both endpoints are measured, the system shall append a release-over-release delta line for median slice tokens, median structural ratio, and median coverage."
+    statement: Where both endpoints are measured, the system shall append a
+      release-over-release delta line for median slice tokens, median structural
+      ratio, and median coverage.
     notes: "WHY: trend at release granularity, reusing F-39609db4 math."
-    test_refs: [tests/changelog/measured-block.test.ts]
   - id: AC-8969e2af
-    ears: unwanted
-    condition: "if the measure ledger is unreadable or malformed or --json is combined with --measure"
-    text: "If the ledger is unreadable the changelog shall still render fully with the not-measured notice; and with --json the manifest shall carry measured as the snapshot object or null with a reason — explicit, never omissive."
-    notes: "WHY: measurement embellishes the release note, never breaks it; JSON consumers need explicit absence."
-    test_refs: [tests/cli/changelog-measure.test.ts]
+    statement: If the ledger is unreadable, then the changelog shall render fully
+      with the not-measured notice and carry measured as a snapshot object or
+      null with a reason in JSON.
+    kind: behavior
+    notes: "WHY: measurement embellishes the release note, never breaks it; JSON
+      consumers need explicit absence."

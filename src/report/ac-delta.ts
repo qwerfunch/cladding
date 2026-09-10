@@ -17,7 +17,7 @@
 // byte-identically for a fixed repository state (AC-4faef94d).
 //
 // Layer: `report` is foundation-tier (spec/architecture.yaml) — it must never
-// import stages/drive/cli/serve.
+// import stages/cli/serve.
 
 import type {SpecEntryRevision} from '../changelog/collect.js';
 import type {AcceptanceCriterion} from '../spec/types.js';

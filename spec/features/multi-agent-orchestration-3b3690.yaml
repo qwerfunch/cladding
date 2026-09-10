@@ -1,6 +1,4 @@
-# Cladding · Tier A · SSoT — Iron Law sealed · Refreshed by: clad_create_feature / manual
 id: F-3b3690
-slug: multi-agent-orchestration
 title: Multi-agent spec→code→tests feature cycle — host-engine harness (v0.4.x, S0–S4)
 status: done
 modules:
@@ -10,34 +8,40 @@ modules:
   - src/agents/reviewer.md
 depends_on:
   - F-af96b1
+capability_refs: []
 acceptance_criteria:
   - id: AC-001
-    ears: ubiquitous
-    action: 'clad init announces a non-firing LLM dispatch instead of silently emitting deterministic stub spec/scenarios'
-    response: 'runInit writes an honest stderr notice whenever onboarding.source != ''llm'' — a loud "dispatcher did not fire" warning on an unexpected deterministic fallback, a soft "--no-llm" notice when forced, and a partial-fallback notice for hybrid; the silent stub that read as success is gone (dispatch-layer Vacuous Green)'
-    text: The system shall announce a non-firing LLM dispatch at clad init so a deterministic stub spec is never mistaken for a real domain-aware seed.
-    test_refs: [tests/cli/init.test.ts]
+    statement: The system shall announce a non-firing LLM dispatch at clad init so a
+      deterministic stub spec is never mistaken for a real domain-aware seed.
   - id: AC-002
-    ears: ubiquitous
-    action: 'provide a deterministic per-feature cycle (docs/feature-cycle.md) that the orchestrator runs ONE feature at a time with real host subagents, where every step barrier is a cladding gate (clad sync / clad check) rather than an agent''s opinion'
-    response: 'docs/feature-cycle.md defines the per-feature cycle SPEC→IMPLEMENT→TEST→REVIEW→DONE (one feature end-to-end, then the next; fan-out = N concurrent instances of the same cycle, never a global up-front SPEC phase) with hard ▣ barriers (clad sync validates the shard before any code = spec-first; clad check --tier=pre-push --strict after implement, before review; loop-until-green); src/agents/orchestrator.md points to it and operationalizes Principles 2 and 3'
-    text: The system shall drive development through a deterministic per-feature cycle where agents propose and cladding''s gates dispose, with spec-first and one-feature-at-a-time enforced as hard barriers.
-    evidence_refs: [docs/feature-cycle.md, src/agents/orchestrator.md]
+    statement: The system shall drive development through a deterministic
+      per-feature cycle in which agents propose and cladding gates dispose while
+      enforcing spec-first and one-feature-at-a-time as hard barriers.
+    kind: constraint
+    rationale: The development cycle preserves the specification-first and
+      single-feature control boundaries.
+    evidence_refs:
+      - docs/feature-cycle.md
+      - src/agents/orchestrator.md
   - id: AC-003
-    ears: ubiquitous
-    action: 'author acceptance tests in a SEPARATE specialists dispatch handed the acceptance_criteria + module signatures (not the implementation), distinct from the code dispatch'
-    response: 'src/agents/developer.md defines one-role-per-dispatch (code | test-author): the test-author is handed the acceptance_criteria + module signatures only and instructed not to read the implementation, and the cycle never routes both roles to one dispatch, so the two are independent agent contexts with no shared memory (the structural half). Test-author blindness to the implementation is advisory — the dispatch keeps Read access, so it is upheld by the prompt + the reviewer''s audit, not a sandbox; the enforced anti-self-cert is the identity layer (checkAc requires human evidence before stage_4; the drive loop halts when reviewer identity equals the implementer''s)'
-    text: The system shall author a feature''s acceptance tests in an independent agent dispatch handed only the acceptance criteria and module signatures, so the tests are authored from the spec rather than the implementation.
-    evidence_refs: [src/agents/developer.md, docs/feature-cycle.md]
+    statement: The system shall author a feature's acceptance tests in an
+      independent agent dispatch given only the acceptance criteria and module
+      signatures so the tests are authored from the specification rather than
+      the implementation.
+    kind: constraint
+    rationale: Independent test authoring preserves the separation between the
+      implementation and its acceptance checks.
+    evidence_refs:
+      - src/agents/developer.md
+      - docs/feature-cycle.md
   - id: AC-004
-    ears: ubiquitous
-    action: 'fan out reviewers by lens (correctness · spec-conformance · security · performance) as independent read-only contexts whose passes:false is a hard block'
-    response: 'src/agents/reviewer.md gains a Lens section so parallel reviewers split the audit without overlap (their union is full coverage); a passes:false verdict is a hard block the cycle acts on by looping the violations back to specialists until green — a gate, not advice'
-    text: The system shall review code and tests with parallel per-lens reviewers whose failing verdict blocks completion until resolved.
-    evidence_refs: [src/agents/reviewer.md]
+    statement: The system shall review code and tests with parallel per-lens
+      reviewers whose failing verdict blocks completion until resolved.
+    evidence_refs:
+      - src/agents/reviewer.md
   - id: AC-005
-    ears: ubiquitous
-    action: 'run independent (non-overlapping-module) work-units in parallel with git-worktree isolation, checkpoint-before / rollback-on-fail, and merge-on-green into a final strict gate on the merged tree'
-    response: 'docs/feature-cycle.md "Parallel execution & isolation" gives one worktree per unit, clad checkpoint/rollback per unit, merge only after local type/lint/unit pass, and a final clad check --strict on the merged tree so cross-unit drift is caught; the DAG (not an agent) decides what fans out together'
-    text: The system shall fan out independent work-units in isolated git worktrees and reconcile them through a deterministic merge gate, so parallel implementation never corrupts siblings.
-    evidence_refs: [docs/feature-cycle.md]
+    statement: The system shall fan out independent work-units in isolated git
+      worktrees and reconcile them through a deterministic merge gate, so
+      parallel implementation never corrupts siblings.
+    evidence_refs:
+      - docs/feature-cycle.md

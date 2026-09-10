@@ -17,6 +17,8 @@
 // derive (file attr, classname as-is, dot→slash conversion) and match test_refs
 // extension-agnostically, so one parser covers all four families.
 
+import {relative, resolve} from 'node:path';
+
 /** Aggregate pass/fail/skip counts for one test file. */
 export interface FileTestStatus {
   pass: number;
@@ -24,8 +26,33 @@ export interface FileTestStatus {
   skip: number;
 }
 
-/** Parsed report keyed by every normalized path-shaped key a testcase yields. */
-export type JUnitReport = Map<string, FileTestStatus>;
+/** One source-level testcase observation retained beside the legacy aggregates. */
+export interface JUnitCaseObservation {
+  /** The strongest path-shaped key emitted by the report, when present. */
+  readonly file?: string;
+  /** Every normalized path carrier supplied by file/classname attributes. */
+  readonly files: readonly string[];
+  /** Raw runner classname retained for exact-source diagnostics. */
+  readonly className?: string;
+  /** Exact runner testcase name. */
+  readonly name: string;
+  /**
+   * Explicit source title when a non-JUnit current-run adapter provides one.
+   * Parsed JUnit XML intentionally leaves this absent, so it remains exact-only.
+   */
+  readonly sourceTitle?: string;
+  /** Error is kept distinct even though legacy aggregates count it as a fail. */
+  readonly status: 'pass' | 'fail' | 'skip' | 'error';
+}
+
+/**
+ * Parsed report keyed by every normalized path-shaped key a testcase yields.
+ * The Map surface is intentionally unchanged for existing file-level callers;
+ * F5 consumers use `cases` for exact binding joins.
+ */
+export interface JUnitReport extends Map<string, FileTestStatus> {
+  readonly cases?: readonly JUnitCaseObservation[];
+}
 
 /** Strip `./`, normalize separators, drop a trailing slash — for path matching. */
 function normalize(p: string): string {
@@ -48,8 +75,10 @@ export function isPathLike(s: string): boolean {
   return s.includes('/') || (s.includes('.') && !/\s/.test(s));
 }
 
-const ATTR = (attrs: string, name: string): string | undefined =>
-  new RegExp(`\\b${name}="([^"]*)"`).exec(attrs)?.[1];
+const ATTR = (attrs: string, name: string): string | undefined => {
+  const value = new RegExp(`\\b${name}=(?:"([^"]*)"|'([^']*)')`).exec(attrs);
+  return value ? decodeXmlEntities(value[1] ?? value[2] ?? '') : undefined;
+};
 
 // A <testcase ...>…</testcase> or self-closed <testcase ... />.
 const TESTCASE = /<testcase\b([^>]*?)(\/>|>([\s\S]*?)<\/testcase>)/g;
@@ -86,7 +115,8 @@ function candidateKeys(attrs: string): string[] {
  * testcases, so the shared accumulator aggregates per file correctly.
  */
 export function parseJUnitReport(xml: string): JUnitReport {
-  const out: JUnitReport = new Map();
+  const out = new Map<string, FileTestStatus>() as JUnitReport;
+  const cases: JUnitCaseObservation[] = [];
   let m: RegExpExecArray | null;
   TESTCASE.lastIndex = 0;
   while ((m = TESTCASE.exec(xml)) !== null) {
@@ -95,12 +125,107 @@ export function parseJUnitReport(xml: string): JUnitReport {
     const keys = candidateKeys(attrs);
     if (keys.length === 0) continue;
     const acc = out.get(keys[0]) ?? {pass: 0, fail: 0, skip: 0};
-    if (/<(failure|error)\b/.test(body)) acc.fail += 1;
-    else if (/<skipped\b/.test(body)) acc.skip += 1;
+    const status = /<error\b/.test(body) ? 'error' : /<failure\b/.test(body) ? 'fail' : /<skipped\b/.test(body) ? 'skip' : 'pass';
+    if (status === 'error' || status === 'fail') acc.fail += 1;
+    else if (status === 'skip') acc.skip += 1;
     else acc.pass += 1;
     for (const key of keys) out.set(key, acc);
+    const className = ATTR(attrs, 'classname');
+    const name = ATTR(attrs, 'name') ?? '';
+    cases.push({
+      ...(keys[0] ? {file: keys[0]} : {}),
+      files: Object.freeze([...new Set(keys)]),
+      ...(className ? {className} : {}),
+      name,
+      status,
+    });
   }
+  Object.defineProperty(out, 'cases', {value: Object.freeze(cases), enumerable: false});
   return out;
+}
+
+/**
+ * Converts Vitest's current JSON reporter payload into the shared JUnit view.
+ *
+ * A structured `ancestorTitles` path is authoritative because a space-joined
+ * `fullName` cannot safely distinguish nested suites. Older reporters retain
+ * the established full-name/title fallback.
+ *
+ * @param bytes - Opaque JSON bytes captured from the current Vitest run.
+ * @param cwd - Workspace root used to normalize reporter file names.
+ * @returns The normalized report, or `undefined` for invalid reporter bytes.
+ * @throws Never; invalid reporter bytes and unsupported shapes return `undefined`.
+ * @example
+ * const report = parseVitestJsonReport(vitestJson, process.cwd());
+ * @see docs/design/spec-0.2/proof-and-editing.md#d11--test-binding-and-observation
+ * @since 0.10.0
+ */
+export function parseVitestJsonReport(bytes: string, cwd: string): JUnitReport | undefined {
+  try {
+    const parsed = JSON.parse(bytes) as {
+      testResults?: readonly {
+        readonly name?: string;
+        readonly assertionResults?: readonly {
+          readonly status?: string;
+          readonly fullName?: string;
+          readonly title?: string;
+          readonly ancestorTitles?: unknown;
+        }[];
+      }[];
+    };
+    if (!Array.isArray(parsed.testResults)) return undefined;
+    const report = new Map() as JUnitReport;
+    const cases: JUnitCaseObservation[] = [];
+    for (const file of parsed.testResults) {
+      if (typeof file.name !== 'string') continue;
+      const repoPath = relative(resolve(cwd), resolve(cwd, file.name)).replaceAll('\\', '/');
+      if (!repoPath || repoPath === '..' || repoPath.startsWith('../')) continue;
+      for (const assertion of file.assertionResults ?? []) {
+        // A structured native suite path is the sole safe way to distinguish
+        // nested cases; space-joined reporter names cannot preserve that fact.
+        const ancestorTitles = assertion.ancestorTitles;
+        const hasNativeSuitePath = Array.isArray(ancestorTitles)
+          && ancestorTitles.every((ancestor) => typeof ancestor === 'string')
+          && typeof assertion.title === 'string';
+        const name = hasNativeSuitePath
+          ? [...ancestorTitles, assertion.title].join(' > ')
+          : assertion.fullName ?? assertion.title;
+        if (!name) continue;
+        const status = assertion.status === 'passed' ? 'pass' as const
+          : assertion.status === 'failed' ? 'fail' as const
+            : assertion.status === 'skipped' || assertion.status === 'pending' || assertion.status === 'todo' ? 'skip' as const
+              : 'error' as const;
+        const aggregate = report.get(repoPath) ?? {pass: 0, fail: 0, skip: 0};
+        if (status === 'pass') aggregate.pass += 1;
+        else if (status === 'skip') aggregate.skip += 1;
+        else aggregate.fail += 1;
+        report.set(repoPath, aggregate);
+        cases.push(Object.freeze({
+          file: repoPath,
+          files: Object.freeze([repoPath]),
+          className: repoPath,
+          name,
+          ...(typeof assertion.title === 'string' ? {sourceTitle: assertion.title} : {}),
+          status,
+        }));
+      }
+    }
+    Object.defineProperty(report, 'cases', {value: Object.freeze(cases), enumerable: false});
+    return report;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Decodes the XML entities valid in attribute values, including numeric forms. */
+function decodeXmlEntities(value: string): string {
+  return value.replace(/&(?:(amp|lt|gt|quot|apos)|#(x[0-9a-fA-F]+|[0-9]+));/g, (_match, named: string | undefined, numeric: string | undefined) => {
+    if (named) return ({amp: '&', lt: '<', gt: '>', quot: '"', apos: "'"} as Record<string, string>)[named]!;
+    const numericValue = numeric!;
+    const codePoint = numericValue.startsWith('x') ? Number.parseInt(numericValue.slice(1), 16) : Number.parseInt(numericValue, 10);
+    if (!Number.isInteger(codePoint) || codePoint < 0 || codePoint > 0x10ffff || (codePoint >= 0xd800 && codePoint <= 0xdfff)) return '\ufffd';
+    return String.fromCodePoint(codePoint);
+  });
 }
 
 /**

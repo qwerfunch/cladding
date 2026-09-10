@@ -26,6 +26,7 @@ import {join} from 'node:path';
 import process from 'node:process';
 
 import {GEMINI_DOCTOR_POLICY_RELATIVE, getCurrentCladdingVersion} from '../init/host-setup.js';
+import {featureIdRe} from '../spec/feature-id.js';
 import {loadSpec} from '../spec/load.js';
 import {pulse} from '../ui/pulse.js';
 
@@ -91,13 +92,13 @@ export interface HostSmokeArtifact {
 /**
  * Sentinel per surface. The prompts target cladding's MCP tools; a real answer
  * echoes a recognisable token:
- *   - list-features → a real feature id  (F-xxxxxx, 6–8 hex)
+ *   - list-features → a real feature id accepted by the central reader policy
  *   - get-feature   → the QUERIED id echoed back (dynamic — see parseHostOutput)
  *   - run-check     → a drift verdict keyword (drift / finding / GREEN / RED)
  */
 export const SURFACE_SENTINELS: Readonly<Record<SurfaceName, {pattern: RegExp; label: string}>> = {
-  'list-features': {pattern: /F-[0-9a-f]{6,8}/, label: 'a real feature id (F-xxxxxx)'},
-  'get-feature': {pattern: /F-[0-9a-f]{6,8}/, label: 'the queried feature id echoed'},
+  'list-features': {pattern: featureIdRe(), label: 'a real feature identifier'},
+  'get-feature': {pattern: featureIdRe(), label: 'the queried feature identifier echoed'},
   // Word-bounded on purpose: the first live run's /RED/i matched the "red"
   // inside "occurred" in a gemini crash trace — a surface-level vacuous green.
   // GREEN/RED stay uppercase-only (verdict tokens); drift/finding(s) allow a
@@ -138,8 +139,8 @@ export function parseHostOutput(surface: SurfaceName, text: string, expectedId?:
   let pattern = SURFACE_SENTINELS[surface].pattern;
   let label = SURFACE_SENTINELS[surface].label;
   if (surface === 'get-feature' && expectedId) {
-    // The id charset (F-[0-9a-f]) carries no regex metacharacters, so it is
-    // safe to embed literally.
+    // Feature ids are emitted from a restricted policy alphabet, so quoting the
+    // requested value gives the exact echo sentinel without a broad matcher.
     pattern = new RegExp(expectedId);
     label = `the queried id ${expectedId} echoed`;
   }

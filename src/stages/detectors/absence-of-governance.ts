@@ -30,7 +30,7 @@
 import {existsSync, readdirSync} from 'node:fs';
 import {join} from 'node:path';
 
-import {loadSpec} from '../../spec/load.js';
+import {loadSpec, wasSpecPathParsedInRunCache} from '../../spec/load.js';
 import {parseSpec} from '../../spec/parse.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
 
@@ -186,8 +186,14 @@ function shardParseFailure(cwd: string): {path: string; reason: string} | null {
       continue;
     }
     for (const name of [...entries].sort()) {
+      const path = join(dirAbs, name);
+      // The coordinator's immutable snapshot already parsed this exact shard.
+      // Retain the parse check for files the loader did not consume (for
+      // example a shard beside non-empty inline features), so no malformed
+      // input can hide behind the fast path.
+      if (wasSpecPathParsedInRunCache(cwd, path)) continue;
       try {
-        parseSpec(join(dirAbs, name));
+        parseSpec(path);
       } catch (err) {
         return {path: `${sub}/${name}`, reason: (err as Error).message};
       }

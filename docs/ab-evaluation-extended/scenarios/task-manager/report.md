@@ -72,7 +72,7 @@ Four deterministic drift scenarios injected at feature-30 state. "Caught" = at l
 | DI-1 Stale module reference (rename src/components/Header.tsx → src/components/Header.RENAMED.tsx without spec update) | ✅ | MISSING_IMPLEMENTATION, UNMAPPED_ARTIFACT, STATUS_DRIFT | · | — |
 | DI-2 Architecture violation (src/lib/filter.ts imports ../components/Header) | ✅ | ARCHITECTURE_FROM_SPEC, INFERABLE_DEPENDS_ON | · | — |
 | DI-3 Hardcoded secret (add API key constant to src/lib/export-import.ts) | · | — | · | — |
-| DI-4 Untested AC (add AC-003 to spec/features/add-task-3cbf38.yaml without test) | ✅ | MISSING_TESTS | N/A | N/A |
+| DI-4 Unverified criterion (add AC-003 to spec/features/add-task-3cbf38.yaml without test) | ✅ | MISSING_TESTS | N/A | N/A |
 
 **Catch rate at M30**: A = 3/4 · B = 0/3 · **cladding-exclusive = 3**
 

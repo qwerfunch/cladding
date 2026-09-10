@@ -8,21 +8,21 @@ Run `clad checkpoint <featureId>` from the project root. Iron Law backbone Phase
 
 The checkpoint event payload carries:
 
-- `featureId` — the spec id, accepts both `F-NNN` legacy and `F-<hash6>` (v0.3.9+) shapes.
+- `featureId` — the spec id, accepts both `F-NNN` legacy and six-or-more-hex hash shapes; newly authored records emit `F-<hash8>`.
 - `gitHead` — full 40-char commit sha at the time of the call (or `null` when the project is not a git repository).
 - `specDigest` — sha-256 over the merged spec for replay verification.
 - `timestamp` — ISO 8601.
 
 ```
 clad checkpoint F-001
-clad checkpoint F-a3f9c2
+clad checkpoint F-a3f9c2e1
 ```
 
 The output is a single Pulse line: `✓ checkpoint · <featureId>  head=<sha12> digest=<digest12>`. The event lands in `.cladding/events.log.jsonl` as `type: "feature_checkpoint"` and can be inspected with `clad doctor --json` or `clad_get_events` over MCP.
 
 ## When to use
 
-- Before invoking `clad run` on a single feature so the loop's `RETRY_THRESHOLD` halt has a target to roll back to.
+- Before starting a feature with your AI host so a failed attempt has a known-good target to roll back to.
 - Before a manual refactor large enough that `git stash` is unwieldy.
 - Right after `clad sync` reports the spec is valid, so the checkpoint pins exactly the validated spec digest the implementation will start from.
 

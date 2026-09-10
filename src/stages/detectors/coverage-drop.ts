@@ -8,7 +8,8 @@
 //
 // Cladding does NOT spawn the coverage tool from inside the detector
 // — that's stage_2.2's job. The detector reads the artifact left
-// behind by a prior run. Missing artifact → single info finding.
+// behind by a prior run. Missing Istanbul/JaCoCo artifacts remain info findings;
+// a Python workspace with no Cobertura report remains silent.
 
 import {existsSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
@@ -161,6 +162,7 @@ function runCoverageDrop(opts: CommandStageOptions): readonly DriftFinding[] {
     // Load-failure policy (see detectors/with-spec.ts): fall back to manifests.
   }
   const cfg = resolveLanguageConfig(cwd, specLanguage);
+  const isPythonCobertura = cfg.ext === 'py' && cfg.coverageFormat === 'cobertura-xml';
   // Kotlin: the coverage report is Kover OR JaCoCo. Probe both by existence
   // (Kover-first); when neither is present yet, name the resolved tool's path
   // so the "run stage_2.2 first" hint points at the right file.
@@ -170,6 +172,10 @@ function runCoverageDrop(opts: CommandStageOptions): readonly DriftFinding[] {
       : cfg.coverageSummary;
   const path = join(cwd, summaryRel);
   if (!existsSync(path)) {
+    // Cobertura is the Python-specific format. A Python workspace need not have
+    // coverage.py installed or run yet, so report absence is not fabricated
+    // into an advisory; Istanbul and JaCoCo retain their legacy info finding.
+    if (isPythonCobertura) return [];
     return [
       {
         detector: NAME,
@@ -201,7 +207,7 @@ function runCoverageDrop(opts: CommandStageOptions): readonly DriftFinding[] {
     // absent evidence is never fabricated into a coverage problem, and this is
     // a new format so there is no prior warn behaviour to preserve. istanbul and
     // jacoco keep their existing "no counter" warn (byte-for-byte no-regression).
-    if (cfg.coverageFormat === 'cobertura-xml') return [];
+    if (isPythonCobertura) return [];
     return [
       {
         detector: NAME,

@@ -12,7 +12,7 @@ Specifically, cladding closes three gaps in AI-coupled development:
 
 - **Spec ↔ code traceability**: Every feature has an id, modules, ACs, and a status. Every source file maps to a feature (or trips `UNMAPPED_ARTIFACT`).
 - **Architecture invariants**: `spec/architecture.yaml` declares layers + forbidden imports; `ARCHITECTURE_FROM_SPEC` enforces them.
-- **Multi-developer safety**: Hash-based feature ids (`F-<hash6>`) prevent collisions when multiple developers concurrently invoke `clad_create_feature`.
+- **Multi-developer safety**: Eight-hex hash-based feature ids (`F-<hash8>`) prevent collisions when multiple developers concurrently invoke `clad_create_feature`.
 
 The 4-tier SSoT model (Tier A spec sealed → Tier B design editable → Tier C derived → Tier D audit/transient) gives every artifact an explicit refresh authority. Cladding's own scaffold is itself measured (via the A/B evaluation framework, F-4db939 + F-ba2e05) against vanilla Claude Code on the same intent.
 

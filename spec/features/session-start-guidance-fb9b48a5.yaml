@@ -1,39 +1,40 @@
 id: F-fb9b48a5
-slug: session-start-guidance
-title: "SessionStart card advertises the context capability and injects ai_hints preferred patterns"
+title: SessionStart card advertises the context capability and injects ai_hints
+  preferred patterns
 status: done
 modules:
   - src/cli/hook.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-b08371b3
-    ears: event
-    condition: "when the SessionStart hook fires in a cwd containing spec.yaml"
-    text: "When SessionStart fires in a cladding project, renderSessionStartCard shall append one context-capability line describing what cladding can slice for the work at hand \u2014 naming NO MCP tool (agents discover tools via the protocol; users must never meet internal names)."
-    notes: "WHY (amended 2026-07-06, F-f46d5c61): the original tool-name advertisement carried its own falsification clause \u2014 remove if pull rate stays 0 \u2014 and the B1 protocol measured exactly that (64 cycles, 0 pulls). Names removed per the user-language pivot; the capability phrasing stays as the once-per-session nudge."
-    test_refs:
-      - "tests/cli/hook-session-guidance.test.ts#exactly one context line, after gate/stop-block, before policy, naming NO MCP tool"
+    statement: When SessionStart fires in a cladding project, the
+      renderSessionStartCard shall append one context-capability line describing
+      what cladding can slice for the work at hand — naming NO MCP tool (agents
+      discover tools via the protocol; users must never meet internal names).
+    kind: behavior
+    notes: "WHY (amended 2026-07-06, F-f46d5c61): the original tool-name
+      advertisement carried its own falsification clause — remove if pull rate
+      stays 0 — and the B1 protocol measured exactly that (64 cycles, 0 pulls).
+      Names removed per the user-language pivot; the capability phrasing stays
+      as the once-per-session nudge."
   - id: AC-14f7778c
-    ears: optional
-    condition: "where project.ai_hints.preferred_patterns is non-empty"
-    text: "Where preferred_patterns exist, the card shall render at most 2 prefer lines whose prefer/over/when values are verbatim substrings of the spec.yaml values (no paraphrase), each line truncated to 140 characters."
-    notes: "WHY: cross-vendor A/B showed a shared artifact both vendors READ converges behavior; ai_hints currently reaches an agent only via a working-set call it never makes."
-    test_refs:
-      - "tests/cli/hook-session-guidance.test.ts#three {when,prefer,over} entries → exactly two prefer lines, each ≤140, values verbatim"
-      - "tests/cli/hook-session-guidance.test.ts#a 200-char prefer value → single truncated prefer line ≤140 ending in an ellipsis"
+    statement: Where preferred_patterns exist, the card shall render at most 2
+      prefer lines whose prefer/over/when values are verbatim substrings of the
+      spec.yaml values (no paraphrase), each line truncated to 140 characters.
+    notes: "WHY: cross-vendor A/B showed a shared artifact both vendors READ
+      converges behavior; ai_hints currently reaches an agent only via a
+      working-set call it never makes."
   - id: AC-20893cbc
-    ears: ubiquitous
-    text: "The system shall keep the total SessionStart card at or under 9 lines at any feature count, with ordering: counts, in-progress, last gate, stop-block, tools, prefer, policy line."
-    notes: "WHY: noise budget — the session card is the one guaranteed-read surface; bloat here trains users to ignore it."
-    test_refs:
-      - "tests/cli/hook-session-guidance.test.ts#full card ≤9 lines, ordered counts→in-progress→gate→stop-block→tools→prefer→policy"
-      - "tests/cli/hook-session-guidance.test.ts#stays ≤9 lines at high feature count — many in-progress collapse to one line"
+    statement: "The system shall keep the total SessionStart card at or under 9
+      lines at any feature count, with ordering: counts, in-progress, last gate,
+      stop-block, tools, prefer, policy line."
+    notes: "WHY: noise budget — the session card is the one guaranteed-read surface;
+      bloat here trains users to ignore it."
   - id: AC-5303e049
-    ears: unwanted
-    condition: "if ai_hints is absent or structurally malformed while spec.yaml parses"
-    text: "If ai_hints is absent or malformed, then the card shall render the tools-advertisement line only (no prefer lines) and shall not throw, preserving the hook error-as-silence contract."
-    notes: "WHY: guidance is best-effort; a broken hints block must never cost the session card."
-    test_refs:
-      - "tests/cli/hook-session-guidance.test.ts#ai_hints is a bare string"
-      - "tests/cli/hook-session-guidance.test.ts#preferred_patterns is a bare string"
-      - "tests/cli/hook-session-guidance.test.ts#entries missing required fields"
-      - "tests/cli/hook-session-guidance.test.ts#ai_hints absent entirely"
+    statement: If ai_hints is absent or malformed, then the card shall render only
+      the tools-advertisement line with no prefer lines, not throw, and preserve
+      the hook error-as-silence contract.
+    kind: behavior
+    notes: "WHY: guidance is best-effort; a broken hints block must never cost the
+      session card."

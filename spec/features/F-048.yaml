@@ -1,37 +1,45 @@
 id: F-048
 title: Cladding drive — deterministic L1 floor for autonomous loops
-status: done
-modules:
-  - src/drive/halt.ts
-  - src/drive/loop.ts
-  - src/cli/clad.ts
+status: archived
+modules: []
 depends_on:
   - F-031
   - F-047
+capability_refs: []
 acceptance_criteria:
   - id: AC-083
-    ears: ubiquitous
-    action: ship a deterministic autonomous loop that scaffolds features without invoking an LLM
-    response: src/drive/loop.ts iterates ready features in dependency order, creates module stubs on disk, runs L1 gates (type · lint · arch), and records evidence per pass
-    text: >-
-      The system shall ship a deterministic drive floor — an autonomous
-      loop that scaffolds in_progress and planned features without
-      invoking an LLM. The loop iterates ready features in dependency
-      order, materialises module stubs, and runs L1 gates (type · lint
-      · arch), recording an evidence entry per successful pass.
-    test_refs:
-      - tests/drive/halt.test.ts
+    statement: The drive loop shall select the first ready non-archived feature in
+      authored dependency order.
+    notes: >
+      ## Historical atomicity note — 2026-08-31
+
+      Reason: the former criterion combined scheduling, stub fallback, and gate
+      evidence.
+
+      Previous compound criterion text (non-normative): The system shall ship a
+      deterministic drive floor — an autonomous loop that scaffolds in_progress
+      and planned features without invoking an LLM. The loop iterates ready
+      features in dependency order, materialises module stubs, and runs L1 gates
+      (type · lint · arch), recording an evidence entry per successful pass.
+  - id: AC-dff8f340
+    statement: When the specialist adapter returns zero concrete mutations, the
+      drive loop shall create stubs only for absent declared modules.
+  - id: AC-f7e0aea5
+    statement: When each drive-loop iteration runs, the drive loop shall record
+      type, lint, and architecture gate observations reduced through the F6
+      adapter with the current closure digest and registered adapter identities.
+    kind: behavior
   - id: AC-084
-    ears: state
-    condition: while the autonomous loop is running
-    action: terminate with a single class from a closed 10-class halt enum
-    response: "src/drive/halt.ts exports HaltClass with exactly ten members; runDriveLoop always returns a HaltReason"
-    text: >-
-      While the loop runs, the system shall enforce the budget invariants
-      (max iterations · wall clock · retries per feature) and terminate
-      with a single class from the closed 10-class halt enum
-      (ALL_FEATURES_DONE · MAX_ITERATIONS · WALL_CLOCK · BUDGET_EXCEEDED
-      · BLOCKED_FEATURE · RETRY_THRESHOLD · GATE_NO_PROGRESS ·
-      HUMAN_REQUIRED · LLM_UNAVAILABLE · UNCAUGHT_ERROR).
-    test_refs:
-      - tests/drive/halt.test.ts
+    statement: When the run loop terminates, the drive loop shall return a
+      HaltReason whose class is declared by the current HaltClass registry and
+      whose detail identifies the deciding condition.
+    kind: behavior
+    notes: >
+      ## Historical note
+
+      The historical closed ten-class enumeration is obsolete because transport
+      classes expanded.
+archive_reason: "Retired in 0.10.0 with the headless drive loop: no recorded
+  session ran the loop (0 runs across 5,176 events measured 2026-09-02) and the
+  host-delegated cycle owns execution."
+archived_at: 2026-09-05T12:49:30.937Z

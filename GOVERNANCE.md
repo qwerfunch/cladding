@@ -52,9 +52,9 @@ Cladding follows [SemVer 2.0](https://semver.org/).
 |---|---|
 | **Patch** (`0.1.x`) | bug fix · doc · spec patch sync · refactor with no observable change |
 | **Minor** (`0.x.0`) | new stage runner · new detector · new agent persona · new CLI verb · breaking-but-additive spec sync |
-| **Major** (`x.0.0`) | breaking change to `StageResult` / `DriftFinding` / spec schema · removal of a public verb · v1.0 graduation (see §5) |
+| **Major** (`x.0.0`, at/after 1.0) | breaking public `StageResult` / `DriftFinding` change · removal of a public verb · v1.0 graduation (see §5) |
 
-Pre-1.0, minor versions may include backwards-incompatible internal changes. The CLI surface (`clad <verb>`) stays stable — that's the contract external adopters depend on.
+Pre-1.0, minor versions may include backwards-incompatible internal changes and explicit schema migrations; Spec 0.2 ships in 0.10.0. The CLI surface (`clad <verb>`) stays stable — that's the contract external adopters depend on.
 
 ## 3. Release Cadence
 
@@ -62,7 +62,9 @@ Pre-1.0, minor versions may include backwards-incompatible internal changes. The
 - **No fixed schedule.** There is no monthly / quarterly cadence. Cadence emerges from external dogfood signals and spec progress.
 - **Tag, then notes.** Every release creates an annotated git tag `vX.Y.Z` on `main`, then `gh release create` with `--notes-file CHANGELOG.md`. Tags are immutable; never re-point a published tag.
 
-The maintainer initiates a release with a single instruction (e.g. *"v0.1.0 release"*). The runtime takes over from there: fast-forward `develop → main`, tag, push, publish.
+The maintainer initiates a release with a single instruction (e.g. *"v0.1.0 release"*). Open a `develop → main` PR, merge it with a merge commit (never fast-forward, squash, or rebase), tag and push that merge commit, then mandatory back-merge `main → develop` before publishing. This keeps `develop` a release-commit superset and matches the maintainer ritual in [`CLAUDE.md`](CLAUDE.md).
+
+Pre-F6/current shipped releases retain their existing gate command. After F6, the 0.10.0 final release gate runs once as `node bin/clad check --profile release --strict`; legacy aliases have fixture parity and do not justify a repeated full gate. Release communication distinguishes self profile-complete L2 from separately reported L4 mechanism and reference-host evidence; this design does not rewrite current README assurance values.
 
 ## 4. Contributor Policy
 
@@ -76,7 +78,7 @@ The maintainer initiates a release with a single instruction (e.g. *"v0.1.0 rele
 
 ### 4.2 Out-of-scope contributions
 
-- PRs that regress Iron Law conformance below the current declared level. `iron-law` only goes up.
+- PRs that regress the assurance declared for the current release. A Schema 0.2 migration never infers L3/L4 from legacy history; release communication distinguishes self L2 from separately proven L4 evidence.
 - PRs that bypass the anti-self-cert guard. Tool / LLM evidence alone cannot clear stage_4 — by design.
 - PRs that fork the spec rather than implement it. If you want a different spec, start a different repo.
 - Cosmetic-only PRs that don't ship a new fixture or new test.

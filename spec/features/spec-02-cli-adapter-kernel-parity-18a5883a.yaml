@@ -1,0 +1,40 @@
+id: F-18a5883a
+title: Spec 0.2 CLI adapters relay kernel decisions like the MCP surface
+status: done
+purpose: "Two CLI adapters discard a kernel result that their MCP and gate
+  counterparts honor: the check command drops the reason when a one-run
+  assurance level is rejected and falls back to a legacy report with no cause,
+  and the ingest-receipt command ingests portable receipts against an empty
+  trust snapshot although the committed registry exists, so the CLI must relay
+  the kernel decisions the way the MCP surface already does."
+modules:
+  - src/cli/clad.ts
+  - src/cli/ingest-receipt.ts
+  - tests/cli/check-assurance-level-rejection.test.ts
+  - tests/cli/ingest-receipt-trust.test.ts
+depends_on: []
+capability_refs: []
+acceptance_criteria:
+  - id: AC-968bda1e
+    kind: behavior
+    statement: When the check command receives a one-run assurance level that the
+      kernel rejects, the check command shall print the rejection reason from
+      the kernel and exit nonzero without producing a legacy-tier report.
+  - id: AC-aa4eb80f
+    kind: behavior
+    statement: When the ingest-receipt command stores a portable receipt, the
+      ingest-receipt command shall verify the receipt against the committed
+      trust registry in the same way as the MCP ingest tool.
+  - id: AC-d4111f31
+    kind: constraint
+    statement: The repair shall leave the MCP tool catalog bytes and every gate
+      verdict reached without the assurance-level flag unchanged.
+    rationale: The deterministic side-table pins 16 gate outcomes and the catalog
+      byte budget against the shipped build; the repair only fires when a
+      one-run level was requested and rejected, or when the ingest verb runs.
+design_impact:
+  classification: none
+  rationale: "Adapter-only repair: the kernel functions
+    resolveRequestedAssuranceLevel and ingestPortableReceipt already carry the
+    decision; no design document, catalog, or contract changes."
+  status: resolved

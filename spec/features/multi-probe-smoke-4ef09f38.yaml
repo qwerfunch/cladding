@@ -1,45 +1,43 @@
 id: F-4ef09f38
-slug: multi-probe-smoke
-title: "Deliverable smoke runs every declared probe with worst-of aggregation and per-feature binding"
+title: Deliverable smoke runs every declared probe with worst-of aggregation and
+  per-feature binding
 status: done
 modules:
   - src/stages/deliverable-smoke.ts
   - src/stages/detectors/smoke-probe-demand.ts
   - src/spec/types.ts
+depends_on: []
+capability_refs: []
 acceptance_criteria:
   - id: AC-2a12fdf6
-    ears: event
-    condition: "when project.smoke declares more than one probe"
-    text: "When multiple probes are declared, stage_2.4 shall execute every probe within the stage time ceiling and report one result line per probe, with the stage disposition equal to the worst per-probe disposition under the ordering fail > pending_env > liveness > pass > na."
-    notes: "WHY: v1 ran only probes[0] — probes 2..N were silently non-executed, a latent vacuous green of exactly the class the Honest series forbids."
-    test_refs:
-      - tests/stages/multi-probe-smoke.test.ts
+    statement: When multiple probes are declared, the stage_2.4 smoke stage shall
+      execute every probe within the stage time ceiling, report one result line
+      per probe, and use the worst per-probe disposition ordering fail over
+      pending_env over liveness over pass over na.
+    kind: behavior
+    notes: "WHY: v1 ran only probes[0] — probes 2..N were silently non-executed, a
+      latent vacuous green of exactly the class the Honest series forbids."
   - id: AC-48ad9997
-    ears: unwanted
-    condition: "if any single probe fails by exit mismatch or missing expected token while other probes pass"
-    text: "If one probe fails, then the stage shall exit 1 naming the failing probe's argv and detail — one green probe shall never mask a red one."
+    statement: If one probe fails, then the smoke stage shall exit 1 naming the
+      failing probe's argv and detail and not allow a green probe to mask it.
+    kind: behavior
     notes: "WHY: worst-of is the only honest aggregate for a gate."
-    test_refs:
-      - tests/stages/multi-probe-smoke.test.ts
   - id: AC-f747836a
-    ears: state
-    condition: "while a probe declares feature: F-x and that feature's status is not done"
-    text: "While a probe's bound feature is not done, the system shall evaluate that probe as disposition na without executing its argv."
-    notes: "WHY: nothing shipped yet — nothing to smoke; binding makes probe demand per-feature instead of project-global (deferred F-c full)."
-    test_refs:
-      - tests/stages/multi-probe-smoke.test.ts
-      - tests/spec/validate.test.ts
+    statement: While a probe's bound feature is not done, the system shall evaluate
+      that probe as disposition na without executing its argv.
+    notes: "WHY: nothing shipped yet — nothing to smoke; binding makes probe demand
+      per-feature instead of project-global (deferred F-c full)."
   - id: AC-5e95db0b
-    ears: unwanted
-    condition: "if a probe's feature binding resolves to no feature in the spec"
-    text: "If a probe binds to a dangling feature id, then SMOKE_PROBE_DEMAND shall emit a warn finding naming the probe and the dangling id."
-    notes: "WHY: a dangling binding is annotation drift — same disease as stale test_refs."
-    test_refs:
-      - tests/stages/detectors/smoke-probe-demand.test.ts
+    statement: If a probe binds to a dangling feature id, then the
+      SMOKE_PROBE_DEMAND detector shall emit a warn finding naming the probe and
+      dangling id.
+    kind: behavior
+    notes: "WHY: a dangling binding is annotation drift — same disease as stale
+      test_refs."
   - id: AC-3770e5fa
-    ears: unwanted
-    condition: "if the per-stage time ceiling truncates probe execution"
-    text: "If the ceiling (min of probe count times per-probe timeout, 30 seconds) truncates execution, then each unexecuted probe shall report disposition pending_env with reason stage time ceiling — never disappear from the report."
+    statement: If the minimum of probe count times per-probe timeout and 30 seconds
+      truncates execution, then the smoke stage shall report each unexecuted
+      probe as pending_env with reason stage time ceiling and not omit it from
+      the report.
+    kind: behavior
     notes: "WHY: visible non-execution is the entire point of this feature."
-    test_refs:
-      - tests/stages/multi-probe-smoke.test.ts

@@ -1,0 +1,17 @@
+✓ Type
+✓ Lint
+✓ Drift
+✓ Architecture
+✓ Secret
+✓ Unit tests
+✓ Coverage
+· Spec conformance
+· Deliverable smoke
+✓ Smoke
+✓ Performance
+✓ Visual
+✓ Audit
+✓ UAT
+✓ done · F-032b6453  strict gate GREEN — status: in_progress → done
+ℹ done · F-032b6453  independence: self-certified — the implementation author signed, or no verified review exists yet
+ℹ done · F-032b6453  next: run clad check --tier=pre-push to re-attest sibling features, then commit spec/attestation.yaml

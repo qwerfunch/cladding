@@ -12,6 +12,7 @@ import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
 import {absenceOfGovernance} from '../../src/stages/detectors/absence-of-governance.js';
+import {runDrift} from '../../src/stages/drift.js';
 
 function touch(dir: string, relPath: string, body = ''): void {
   const abs = join(dir, relPath);
@@ -32,7 +33,7 @@ describe('ABSENCE_OF_GOVERNANCE (F-99c6e5, v0.3.49)', () => {
     rmSync(dir, {recursive: true, force: true});
   });
 
-  test('completely empty tree — every artifact absent, all severities present', () => {
+  test('[covers:F-99c6e5/AC-002] completely empty tree — every artifact absent, all severities present', () => {
     const findings = absenceOfGovernance.run({cwd: dir});
     expect(findings.length).toBe(6);
     const severities = findings.map((f) => f.severity);
@@ -108,6 +109,26 @@ describe('ABSENCE_OF_GOVERNANCE (F-99c6e5, v0.3.49)', () => {
     // A loadSpec-valid feature (schema-valid id/title/status) — not just YAML-parseable.
     touch(dir, 'spec/features/ok-abc123.yaml', 'id: F-abc123\nslug: ok\ntitle: ok\nstatus: planned\n');
     expect(absenceOfGovernance.run({cwd: dir}).filter((f) => f.severity === 'error')).toHaveLength(0);
+  });
+
+  test('run census never skips a malformed shard the loader did not consume', () => {
+    // An inline catalogue leaves feature shard files outside loadSpec's input.
+    // They remain independently parse-checked by ABSENCE_OF_GOVERNANCE even
+    // when the enclosing drift run has a successful immutable load census.
+    touch(
+      dir,
+      'spec.yaml',
+      'schema: "0.1"\nproject: {name: x, language: typescript}\nfeatures:\n  - {id: F-abc123, slug: inline, title: inline, status: planned}\n',
+    );
+    touch(dir, 'spec/features/ignored-bad.yaml', 'id: F-bad\ndup: 1\ndup: 2\n');
+
+    const finding = runDrift({cwd: dir}).findings.find(
+      (candidate) =>
+        candidate.detector === 'ABSENCE_OF_GOVERNANCE' &&
+        candidate.path === 'spec/features/ignored-bad.yaml',
+    );
+    expect(finding?.severity).toBe('error');
+    expect(finding?.message).toContain('unparseable');
   });
 
   test('master + shards parse but the assembled spec is SCHEMA-invalid (architecture.layers: null) → blocking error', () => {

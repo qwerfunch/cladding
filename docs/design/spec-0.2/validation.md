@@ -34,20 +34,20 @@ The initial harness validates:
   matching router navigation heading, and no normative heading in another
   routed document;
 - the P/L/B/C/T/U/A matrix contains 37 unique preregistered IDs documented by D16;
-- J01–J13 preserve model-simulated, implementation-pending, and reference-host-not-run journeys as different states;
+- J01–J13 preserve model-simulated, validation-active, implementation-pending, and evidence-decided journeys as different states, and a validation-active journey must name a test reference whose file and title the validator resolves, unless a named `evidence_from` scenario decides its state instead;
 - preregistration is not presented as 37 passing runtime cases;
 - current MCP identifiers equal the live in-memory tool/resource/prompt catalog;
 - dynamic tool discovery is negotiated and the real initialization path emits list-changed;
 - every shipped tool belongs to at least one candidate task profile;
 - exact catalog and document bytes use a named estimator and unknown cache by default;
 - legacy host-smoke evidence is labelled legacy read-surface evidence;
-- reference-host Spec 0.2 E2E, live token A/B, and unconfirmed adoption remain visibly unproven.
+- the live token A/B and unconfirmed adoption remain visibly unproven, and the reference-host Spec 0.2 E2E is decided by recorded host evidence rather than by a local test. The 0.10.0 records were produced through the CLI signing path with the confirmation entered by automation on the maintainer's instruction, so they are registered-issuer wire evidence for both hosts; neither host's confirmation form was exercised, and that remains unverified.
 
 The model simulations currently compare composite versus bare criterion identity, shared versus feature-local capability writes, proof provenance versus persona topology, directed versus undirected graph projection, required versus advisory scenario freshness, upstream report strictness versus Cladding blocking, and every-edit versus tiered/background assurance cadence. These establish design mechanics and expose token/merge trade-offs; they are not substitutes for the pending production adapters.
 
-AB01–AB12 is the bounded first comparison for the task-scoped MCP challenger and may support claims only on those tasks. D17 retains a separately preregistered larger retrieval study—40 tasks is the current optional candidate—only for later generalization; it is not a 0.10.0 gate and cannot prove adoption.
+AB01–AB12 is a Codex-only, at-most-24-call, non-blocking comparison for the task-scoped MCP challenger and may support claims only on those tasks. D17 retains a separately preregistered larger retrieval study—40 tasks is the current optional candidate—only for later generalization; it is not a 0.10.0 gate and cannot prove adoption.
 
-It does not validate the unimplemented 0.2 compiler, migration, transaction, GraphIR v2, receipt, assurance, scheduler, or attestation behavior. Those checks become executable beside F1–F9 and replace `implementation_pending` one decision/scenario at a time.
+The additive compiler and F6 assurance boundary now validate the F3 project policies, feature-owned capability catalog links, architecture candidates, in-memory `L = N` migration proof, D17 assurance contract/subject/verification/runtime closure slice, D21 registry-owned reducer membership, D22 foreground profile cadence and runner-control seals, and D23 v3 payload, per-feature compatibility, and completion-transaction boundaries. The F9d registered file-key issuer path is validation-active. This is not schema apply, disk cutover, F7 scenario delivery, F8 GraphIR v2 public cutover, or host-runtime evidence; those checks remain pending until their owning features add discriminating fixtures, and the F9 scheduler/cache runtime is deferred to 0.10.x.
 
 ## Independent-oracle rule
 
@@ -80,3 +80,7 @@ V0 is an additive pre-F1 safety boundary. Each later feature:
 6. completes through the ordinary contributor and `clad done` gates.
 
 The complete target is not one global “simulation passed” badge. It is a ledger in which every release-required scenario has discriminating evidence and no pending/not-run state remains inside that release boundary.
+
+That boundary is declared rather than narrated: `release_boundary` in the executable ledger names the release and the scenarios it blocks on, `npm run validate:spec-0.2` reports each blocking row as satisfied or unmet, and `npm run validate:spec-0.2:release` turns any unmet row into a failure and a nonzero exit. A reference-host row is satisfied only when each declared host has a recorded cycle under `docs/dogfood/mcp11-0.10.0/<host>/` — a copied receipt, the trust registry snapshot it was checked against, and the attestation row naming its feature — and the copied receipt is signed by an issuer registered in that recorded snapshot. The validator cannot recompute a foreign workspace's digests, so it never calls such a receipt current. Both declared hosts recorded their cycle for 0.10.0, so J13 and the two reference-host checks read that evidence and the boundary reports satisfied. A validation-active MCP row must name a test reference the validator resolves, unless it is the reference-host row carrying recorded evidence; MCP11 is that one row, and its label is bound to that evidence in both directions, so it can neither claim a cycle that is not recorded nor stay silent about one that is.
+
+A journey that names `evidence_from` is discriminated by that scenario's evidence instead of a test reference. Its promotion to validation-active is bound to that recorded evidence in both directions — active only when the named scenario is satisfied, and never silent when it is — so a second, weaker local witness would add no discrimination. Every other validation-active journey still has to name a test whose file and title the validator resolves.
