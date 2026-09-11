@@ -87,7 +87,9 @@ jobs:
         run: npm ci && npm run build
 
       - name: Pack
-        run: npm pack --pack-destination archive
+        # `npm pack` does not create the destination directory; without the mkdir
+        # it fails with ENOENT after the archive is already built.
+        run: mkdir -p archive && npm pack --pack-destination archive
 
       - uses: actions/upload-artifact@v4
         with:
