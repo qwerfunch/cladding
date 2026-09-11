@@ -347,7 +347,7 @@ clad update              # 3. プロジェクト接続と派生状態を更新�
 
 | Version | 準拠レベル | Tests | Gate | Features |
 |---|---|---|---|---|
-| v0.10.0（2026-09） | L4 · [自己申告](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 3855 / 3855 | 15 段階 · 41 detectors | 306（291 done） |
+| v0.10.1（2026-09） | L4 · [自己申告](https://github.com/qwerfunch/ironclad/blob/main/GOVERNANCE.md) | 3855 / 3855 | 15 段階 · 41 detectors | 306（291 done） |
 
 <sub>337 test files · capability 6 個 · カバレッジ低下は COVERAGE_DROP detector がブロック</sub>
 

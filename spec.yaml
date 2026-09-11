@@ -3,7 +3,7 @@ project:
   name: cladding
   language: typescript
   description: Reference implementation of the Ironclad harness for AI-coupled software.
-  version: 0.10.0
+  version: 0.10.1
   repository: https://github.com/qwerfunch/cladding
   deliverable:
     path: ./bin/clad.mjs
