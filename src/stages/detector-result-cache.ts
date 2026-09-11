@@ -15,7 +15,7 @@
 // runCheckStages and cli/hook.ts runStopGate — and callers MUST clear in a
 // `finally`. Detectors are synchronous by Iron Law, so a session primed around
 // the synchronous stage loop and cleared in finally cannot serve stale findings
-// mid-run. The MCP serve layer runs gates via a `bin/clad` subprocess
+// mid-run. The MCP serve layer runs gates via a `bin/clad.mjs` subprocess
 // (serve/server.ts spawnSync), so the session lives entirely inside one process
 // run and never crosses a request boundary; but tests drive these functions
 // in-process, so the finally-clear discipline is mandatory — a leaked session

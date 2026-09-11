@@ -64,7 +64,7 @@ Pre-1.0, minor versions may include backwards-incompatible internal changes and 
 
 The maintainer initiates a release with a single instruction (e.g. *"v0.1.0 release"*). Open a `develop → main` PR, merge it with a merge commit (never fast-forward, squash, or rebase), tag and push that merge commit, then mandatory back-merge `main → develop` before publishing. This keeps `develop` a release-commit superset and matches the maintainer ritual in [`CLAUDE.md`](CLAUDE.md).
 
-Pre-F6/current shipped releases retain their existing gate command. After F6, the 0.10.0 final release gate runs once as `node bin/clad check --profile release --strict`; legacy aliases have fixture parity and do not justify a repeated full gate. Release communication distinguishes self profile-complete L2 from separately reported L4 mechanism and reference-host evidence; this design does not rewrite current README assurance values.
+Pre-F6/current shipped releases retain their existing gate command. After F6, the 0.10.0 final release gate runs once as `node bin/clad.mjs check --profile release --strict`; legacy aliases have fixture parity and do not justify a repeated full gate. Release communication distinguishes self profile-complete L2 from separately reported L4 mechanism and reference-host evidence; this design does not rewrite current README assurance values.
 
 ## 4. Contributor Policy
 
@@ -98,10 +98,10 @@ A reviewer (the maintainer or a delegated independent agent — never the PR aut
 
 If this is your first time touching cladding, the path from clone to opened PR is intentionally short. Read this section once and you should be able to land a small fix without further hand-holding:
 
-1. **Clone and install.** `git clone https://github.com/qwerfunch/cladding && cd cladding && npm install`. Node ≥ 20.
+1. **Clone and install.** `git clone https://github.com/qwerfunch/cladding && cd cladding && npm install`. Node ≥ 20 for the development toolchain; the published tool runs on Node ≥ 16.
 2. **Pick a starting point.** Browse [issues tagged `good-first-issue`](https://github.com/qwerfunch/cladding/issues?q=is%3Aissue+is%3Aopen+label%3A%22good-first-issue%22) or, if you have your own idea, open an issue first to confirm the proposal fits §4.1 / §4.2 before writing code.
 3. **Branch off `develop`**, not `main`. Convention: `feature/<slug>` or `fix/<slug>`. Never push to `main` — releases ship via §3.
-4. **Run the four-check loop before pushing**: `npm test && npm run typecheck && npm run lint && node bin/clad check`. The first three must be clean; `clad check` must be green (15-stage gate) on a clean working tree.
+4. **Run the four-check loop before pushing**: `npm test && npm run typecheck && npm run lint && node bin/clad.mjs check`. The first three must be clean; `clad check` must be green (15-stage gate) on a clean working tree.
 5. **Open the PR against `develop`.** The repository's `.github/PULL_REQUEST_TEMPLATE.md` walks you through the §4.3 contract as a checkbox list. A maintainer (or a delegated independent reviewer) signs off before merge.
 
 For code style and comment policy across every language cladding supports, see [`AGENTS.md`](AGENTS.md) §4-5. For the broader first-PR experience, see `CONTRIBUTING.md`. For drift detector conventions specifically (especially the status-aware rule for `UNTESTED_AC` and `MISSING_TESTS`), see [`src/stages/detectors/README.md`](src/stages/detectors/README.md).

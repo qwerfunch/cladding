@@ -103,7 +103,7 @@ describe('F-2e28cc72 clad verdict — CLI contract (AC4/AC5)', () => {
         // still exercised, so the verdict-shape assertions still hold.
         stdout = execFileSync(
           process.execPath,
-          ['./bin/clad', 'verdict', '--tier=pre-commit', '--json'],
+          ['./bin/clad.mjs', 'verdict', '--tier=pre-commit', '--json'],
           {
             cwd: repoRoot,
             encoding: 'utf8',

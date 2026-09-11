@@ -32,7 +32,7 @@ assignees: ''
 
 ## Environment
 
-- cladding version: <!-- output of `node bin/clad --version` -->
+- cladding version: <!-- output of `node bin/clad.mjs --version` -->
 - Node version: <!-- `node --version` -->
 - OS: <!-- macOS / Linux / Windows + version -->
 - Toolchain languages in use: <!-- typescript · python · rust · go · java · php · ruby · elixir · dotnet — list any active for this repo -->

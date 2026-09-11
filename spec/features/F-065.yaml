@@ -26,7 +26,7 @@ acceptance_criteria:
     statement: The system shall preserve runtime behavior after the move — every
       code path that previously worked still works, with no semantic change.
     evidence_refs:
-      - bin/clad
+      - bin/clad.mjs
       - scripts/build.mjs
       - vitest.config.ts
   - id: AC-175

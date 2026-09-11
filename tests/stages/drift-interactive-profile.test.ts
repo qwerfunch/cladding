@@ -21,14 +21,14 @@ import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 import type {DriftDetector, DriftFinding} from '../../src/stages/types.js';
 
-vi.mock('execa', () => ({execaSync: vi.fn()}));
+vi.mock('../../src/core/run-sync.js', () => ({runSync: vi.fn()}));
 
 const {clearDetectors, registerDetector, runDrift} = await import('../../src/stages/drift.js');
 const {allDetectors} = await import('../../src/stages/detectors/index.js');
 const {architectureViolation} = await import('../../src/stages/detectors/architecture-violation.js');
 const {hardcodedSecret} = await import('../../src/stages/detectors/hardcoded-secret.js');
-const execaMod = await import('execa');
-const execaSyncMock = execaMod.execaSync as unknown as ReturnType<typeof vi.fn>;
+const runSyncMod = await import('../../src/core/run-sync.js');
+const runSyncMock = runSyncMod.runSync as unknown as ReturnType<typeof vi.fn>;
 
 /** A pure in-process detector emitting one warn finding when it runs. */
 function inproc(name: string): DriftDetector {
@@ -49,7 +49,7 @@ const detectorsOf = (findings: readonly DriftFinding[]): Set<string> => new Set(
 describe('runDrift interactive profile — in-process only + skip list (AC-870a2ed8)', () => {
   beforeEach(() => {
     clearDetectors();
-    execaSyncMock.mockReset();
+    runSyncMock.mockReset();
   });
   afterEach(() => clearDetectors());
 
@@ -110,14 +110,14 @@ describe('runDrift interactive profile — in-process only + skip list (AC-870a2
     expect(seen.has('ARCHITECTURE_VIOLATION')).toBe(false);
     expect(seen.has('HARDCODED_SECRET')).toBe(false);
     // interactive never crossed the subprocess boundary for the real detectors.
-    expect(execaSyncMock).not.toHaveBeenCalled();
+    expect(runSyncMock).not.toHaveBeenCalled();
   });
 });
 
 describe('runDrift never executes a subprocess-flagged detector under interactive (AC-7ecad295)', () => {
   beforeEach(() => {
     clearDetectors();
-    execaSyncMock.mockReset();
+    runSyncMock.mockReset();
   });
   afterEach(() => clearDetectors());
 
@@ -145,7 +145,7 @@ describe('runDrift never executes a subprocess-flagged detector under interactiv
     // secret gates, so under FULL the detectors reach execaSync (mocked — no real
     // child process). Under INTERACTIVE the filter excludes them before run(), so
     // execaSync is never reached — non-execution, not merely absence of findings.
-    execaSyncMock.mockReturnValue({exitCode: 0, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValue({exitCode: 0, stdout: '', stderr: ''});
     const dir = mkdtempSync(join(tmpdir(), 'clad-interactive-'));
     try {
       writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
@@ -155,12 +155,12 @@ describe('runDrift never executes a subprocess-flagged detector under interactiv
 
       // full → both detectors run → the subprocess primitive is invoked.
       runDrift({profile: 'full', cwd: dir});
-      expect(execaSyncMock).toHaveBeenCalled();
+      expect(runSyncMock).toHaveBeenCalled();
 
       // interactive → excluded before run → the subprocess primitive is never touched.
-      execaSyncMock.mockClear();
+      runSyncMock.mockClear();
       const report = runDrift({profile: 'interactive', cwd: dir});
-      expect(execaSyncMock).not.toHaveBeenCalled();
+      expect(runSyncMock).not.toHaveBeenCalled();
       expect([...report.skippedDetectors].sort()).toEqual(['ARCHITECTURE_VIOLATION', 'HARDCODED_SECRET']);
     } finally {
       clearDetectors();

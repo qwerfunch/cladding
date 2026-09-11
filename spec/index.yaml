@@ -116,6 +116,7 @@ features:
   F-1e7a10c3: {slug: adoption-report-surface, status: done, modules: 2}
   F-1e9ef827: {slug: measure-extract, status: done, modules: 2}
   F-1edb38: {slug: scan-refactor, status: done, modules: 13}
+  F-203a3114: {slug: node-16-runtime-support, status: done, modules: 4}
   F-208eaa79: {slug: spec-02-graphir-v2-cutover, status: done, modules: 56}
   F-24062d: {slug: spec-id-hash-filename-and-lookup, status: done, modules: 3}
   F-245bd5: {slug: dogfood-recovery-v0-3-16, status: done, modules: 2}
@@ -167,6 +168,7 @@ features:
   F-5d3ed2: {slug: postmortem-on-rollback, status: archived, modules: 0}
   F-5dfbac9c: {slug: review-packet-ac-delta, status: done, modules: 4}
   F-5f6b45: {slug: init-path-intent, status: done, modules: 2}
+  F-5fc112ad: {slug: node-floor-cli-entry, status: done, modules: 2}
   F-600272d7: {slug: orchestrator-contract-card, status: done, modules: 2}
   F-6349870d: {slug: spec-02-adopter-binding-guidance, status: done, modules: 6}
   F-63b989e5: {slug: impact-card-language-parity, status: done, modules: 2}

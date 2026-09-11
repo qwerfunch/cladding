@@ -18,7 +18,7 @@
 // interpreter. Such a deliverable is left undeclared (DELIVERABLE_INTEGRITY keeps warning) — the
 // impl-blind oracle (stage_2.3) or an author-provided smoke_args remains the answer there.
 
-import {execaSync} from 'execa';
+import {runSync} from '../core/run-sync.js';
 import {existsSync, readFileSync, readdirSync, statSync} from 'node:fs';
 import {join, relative, resolve} from 'node:path';
 
@@ -68,7 +68,7 @@ export function detectEntry(cwd: string): string | null {
  */
 function runsClean(cwd: string, entry: string, args: readonly string[]): boolean {
   try {
-    const proc = execaSync(resolve(cwd, entry), [...args], {cwd, reject: false, timeout: CALIBRATE_TIMEOUT_MS});
+    const proc = runSync(resolve(cwd, entry), [...args], {cwd, timeout: CALIBRATE_TIMEOUT_MS});
     return (proc.exitCode ?? 1) === 0 && !proc.timedOut;
   } catch {
     return false;

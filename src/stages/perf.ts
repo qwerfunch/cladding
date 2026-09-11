@@ -10,7 +10,7 @@
 
 import process from 'node:process';
 
-import {execaSync} from 'execa';
+import {runSync} from '../core/run-sync.js';
 
 import {detectToolchain} from './toolchain/detect.js';
 import type {CommandStageOptions, StageResult} from './types.js';
@@ -35,7 +35,7 @@ export function runPerf(opts: CommandStageOptions = {}): StageResult {
   if (cmd === 'npm' && args[0] === 'run' && !isNpmScriptDefined(cwd, args[args.length - 1])) {
     return {stage: STAGE, pass: false, exitCode: 2, stderr: 'perf npm script not defined'};
   }
-  const proc = execaSync(cmd, [...args], {cwd, reject: false});
+  const proc = runSync(cmd, [...args], {cwd});
   // execaSync(reject:false) RETURNS (does not throw) on a missing binary;
   // detect ENOENT on the result so a missing runner skips, not false-fails.
   const skip = missingToolSkip(STAGE, cmd, proc, args);

@@ -14,7 +14,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import process from 'node:process';
 
-import {execaSync} from 'execa';
+import {runSync} from '../core/run-sync.js';
 
 import {withFindings} from './finding-parser.js';
 import {captureCurrentJUnitProof, captureCurrentVitestProof, getOrRunSharedCoverage, isTestRunPrimed, shouldCaptureCurrentProof, unitActionFromCoverage} from './test-run-cache.js';
@@ -109,7 +109,7 @@ function tryReuseSharedRun(opts: UnitStageOptions, cwd: string, guardOn: boolean
     // reporters and its unique output file. Keep one argv object so capture
     // cannot accidentally describe the unaugmented coverage command.
     const executedArgs = Object.freeze([...baseArgs, '--reporter=default', '--reporter=json', `--outputFile=${jsonFile}`]);
-    const proc = execaSync(runCmd, [...executedArgs], {cwd, reject: false});
+    const proc = runSync(runCmd, [...executedArgs], {cwd});
     captureCurrentVitestProof(cwd, jsonFile, [runCmd, ...executedArgs]);
     return proc;
   });
@@ -155,7 +155,7 @@ function tryReuseSharedPytestRun(opts: UnitStageOptions, cwd: string): StageResu
   const runCmd = covCmd;
   const runArgs = covArgs;
   const shared = getOrRunSharedCoverage(cwd, () =>
-    execaSync(runCmd, [...runArgs], {cwd, reject: false}),
+    runSync(runCmd, [...runArgs], {cwd}),
   );
   if (!shared) return null;
   if (missingToolSkip(STAGE, runCmd, shared.proc, runArgs)) return null;
@@ -234,7 +234,7 @@ export function runUnit(opts: UnitStageOptions = {}): StageResult {
     runArgs = [...args, '--reporter=default', '--reporter=json', `--outputFile=${jsonFile}`];
   }
   try {
-    const proc = execaSync(cmd, [...runArgs], {cwd, reject: false});
+    const proc = runSync(cmd, [...runArgs], {cwd});
     if (captureProof && jsonFile) captureCurrentVitestProof(cwd, jsonFile, [cmd, ...runArgs]);
     if (!testIsVitest && shouldCaptureCurrentProof(cwd)) captureCurrentJUnitProof(cwd, [cmd, ...runArgs]);
     // execaSync(reject:false) RETURNS (does not throw) on a missing binary;

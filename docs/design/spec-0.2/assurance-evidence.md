@@ -23,8 +23,8 @@ it does not claim that the Spec 0.2 reducer is implemented.
 
 | Local cadence observation | Result | Reproduction |
 |---|---:|---|
-| Non-strict pre-commit, 3 shipped stages | 9.06 s real | `/usr/bin/time -p node bin/clad check --tier=pre-commit --json` |
-| Non-strict pre-push, 9 shipped stages | 29.73 s real | `/usr/bin/time -p node bin/clad check --tier=pre-push --json` |
+| Non-strict pre-commit, 3 shipped stages | 9.06 s real | `/usr/bin/time -p node bin/clad.mjs check --tier=pre-commit --json` |
+| Non-strict pre-push, 9 shipped stages | 29.73 s real | `/usr/bin/time -p node bin/clad.mjs check --tier=pre-push --json` |
 | Repository tests | 12.68 s real; 2,981/2,981 passed | `/usr/bin/time -p npm test` |
 
 These are 2026-08-28 single samples on Darwin 25.5.0 arm64, Node 26.0.0 and npm 11.12.1, not portable benchmarks. Capture stdout and `time -p` stderr separately, including failed runs.

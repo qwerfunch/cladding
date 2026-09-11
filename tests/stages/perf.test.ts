@@ -9,19 +9,19 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
-vi.mock('execa', () => ({
-  execaSync: vi.fn(),
+vi.mock('../../src/core/run-sync.js', () => ({
+  runSync: vi.fn(),
 }));
 
 const {runPerf} = await import('../../src/stages/perf.js');
-const execaMod = await import('execa');
-const execaSyncMock = execaMod.execaSync as unknown as ReturnType<typeof vi.fn>;
+const runSyncMod = await import('../../src/core/run-sync.js');
+const runSyncMock = runSyncMod.runSync as unknown as ReturnType<typeof vi.fn>;
 
 describe('runPerf (stage_3.2)', () => {
   let dir: string;
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'clad-perf-stage-'));
-    execaSyncMock.mockReset();
+    runSyncMock.mockReset();
   });
   afterEach(() => {
     rmSync(dir, {recursive: true, force: true});
@@ -32,7 +32,7 @@ describe('runPerf (stage_3.2)', () => {
     expect(r.exitCode).toBe(2);
     expect(r.stage).toBe('stage_3.2');
     expect(r.stderr).toContain('no perf runner registered');
-    expect(execaSyncMock).not.toHaveBeenCalled();
+    expect(runSyncMock).not.toHaveBeenCalled();
   });
 
   test('npm script missing from package.json → skipped (exitCode=2)', () => {
@@ -40,7 +40,7 @@ describe('runPerf (stage_3.2)', () => {
     const r = runPerf({cwd: dir});
     expect(r.exitCode).toBe(2);
     expect(r.stderr).toContain('perf npm script not defined');
-    expect(execaSyncMock).not.toHaveBeenCalled();
+    expect(runSyncMock).not.toHaveBeenCalled();
   });
 
   test('[covers:F-061/AC-149] performance descriptor reports a successful runner outcome', () => {
@@ -48,7 +48,7 @@ describe('runPerf (stage_3.2)', () => {
       join(dir, 'package.json'),
       JSON.stringify({name: 'x', scripts: {perf: 'echo ok'}}),
     );
-    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     expect(runPerf({cwd: dir}).pass).toBe(true);
   });
 
@@ -57,7 +57,7 @@ describe('runPerf (stage_3.2)', () => {
       join(dir, 'package.json'),
       JSON.stringify({name: 'x', scripts: {perf: 'false'}}),
     );
-    execaSyncMock.mockReturnValueOnce({
+    runSyncMock.mockReturnValueOnce({
       exitCode: 1,
       stdout: '',
       stderr: 'regression: p95 +20%',
@@ -74,7 +74,7 @@ describe('runPerf (stage_3.2)', () => {
     );
     // execaSync(reject:false) does NOT throw on a missing binary — it RETURNS
     // {exitCode: undefined, failed: true, code: 'ENOENT'} (verified empirically).
-    execaSyncMock.mockReturnValueOnce({exitCode: undefined, failed: true, code: 'ENOENT', stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: undefined, failed: true, code: 'ENOENT', stdout: '', stderr: ''});
     const r = runPerf({cwd: dir});
     expect(r.exitCode).toBe(2);
     expect(r.stderr).toContain('not installed');
@@ -87,7 +87,7 @@ describe('runPerf (stage_3.2)', () => {
     );
     const err = new Error('EACCES') as NodeJS.ErrnoException;
     err.code = 'EACCES';
-    execaSyncMock.mockImplementationOnce(() => {
+    runSyncMock.mockImplementationOnce(() => {
       throw err;
     });
     expect(() => runPerf({cwd: dir})).toThrow('EACCES');
@@ -98,13 +98,13 @@ describe('runPerf (stage_3.2)', () => {
       join(dir, 'package.json'),
       JSON.stringify({name: 'x', scripts: {perf: 'echo'}}),
     );
-    execaSyncMock.mockReturnValueOnce({exitCode: null, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: null, stdout: '', stderr: ''});
     expect(runPerf({cwd: dir}).exitCode).toBe(1);
   });
 
   test('[covers:F-061/AC-149] performance descriptor override bypasses fallback selection', () => {
-    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     runPerf({cwd: dir, cmd: 'myperf', args: ['run']});
-    expect(execaSyncMock).toHaveBeenCalledWith('myperf', ['run'], expect.any(Object));
+    expect(runSyncMock).toHaveBeenCalledWith('myperf', ['run'], expect.any(Object));
   });
 });

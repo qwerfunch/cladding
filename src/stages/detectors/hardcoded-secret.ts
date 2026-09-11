@@ -9,7 +9,7 @@
 // emit a single `info` finding rather than failing the run — a missing
 // scanner is a configuration gap, not a security finding.
 
-import {execaSync} from 'execa';
+import {runSync} from '../../core/run-sync.js';
 
 import {detectToolchain} from '../toolchain/detect.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
@@ -42,7 +42,7 @@ function runHardcodedSecret(opts: CommandStageOptions): readonly DriftFinding[] 
       },
     ];
   }
-  const proc = execaSync(spec.cmd, [...spec.args], {cwd, reject: false});
+  const proc = runSync(spec.cmd, [...spec.args], {cwd});
   // execaSync(reject:false) RETURNS (does not throw) on a missing binary, so
   // ENOENT must be detected on the RESULT — a try/catch here would be dead code
   // and let a registered-but-uninstalled scanner fall through to a FALSE

@@ -164,6 +164,31 @@ function createMcpDispatcher(
   };
 }
 
+/** Node releases before 18 have no built-in network fetch. */
+const FETCH_FLOOR = 18;
+
+/**
+ * Fails one model lane with a message naming the missing capability.
+ *
+ * Built-in network fetch arrived in Node 18, and only the direct HTTP model
+ * lanes need it. Scoping the refusal to the lane keeps every other command
+ * working on an older release (F-203a3114) — the alternative, refusing the whole
+ * tool, is the defect that feature exists to undo. The throw reaches the
+ * deterministic-fallback policy at the call site, so onboarding still completes.
+ *
+ * @param lane - Human-readable name of the model lane being attempted.
+ * @throws When the running release has no global fetch.
+ */
+function requireFetch(lane: string): void {
+  if (typeof fetch === 'undefined') {
+    throw new Error(
+      `${lane} needs built-in network fetch, which Node ${FETCH_FLOOR} and newer provide; `
+      + `this is Node ${process.versions.node}. Every other command works on this release — `
+      + 'upgrade Node, or set up a host-connected model instead of a direct API key.',
+    );
+  }
+}
+
 /**
  * Builds a flat prompt → flat text dispatcher backed by the
  * Anthropic Messages API. Errors propagate to the caller so the
@@ -176,6 +201,7 @@ function createMcpDispatcher(
  */
 function createOpenaiDispatcher(cfg: {apiKey: string; model: string}): ScanLlmDispatcher {
   return async (prompt) => {
+    requireFetch('The OpenAI model lane');
     const r = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -204,6 +230,7 @@ function createOpenaiDispatcher(cfg: {apiKey: string; model: string}): ScanLlmDi
  */
 function createGeminiDispatcher(cfg: {apiKey: string; model: string}): ScanLlmDispatcher {
   return async (prompt) => {
+    requireFetch('The Gemini model lane');
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(cfg.model)}:generateContent?key=${encodeURIComponent(cfg.apiKey)}`;
     const r = await fetch(url, {
       method: 'POST',
@@ -233,6 +260,10 @@ function createAnthropicDispatcher(cfg: {
     if (cfg.createClient) {
       return dispatchAnthropicMessage(cfg.createClient({apiKey: cfg.apiKey}), cfg.model, prompt);
     }
+    // Guarded here rather than at lane selection so an injected client (tests,
+    // embedders) keeps working without a global fetch; only the real SDK needs it,
+    // and it would otherwise throw its own unscoped error.
+    requireFetch('The Anthropic model lane');
     // Dynamic import so projects that never enable the LLM path
     // never load the SDK into the bundle's hot section.
     // eslint-disable-next-line @typescript-eslint/no-require-imports

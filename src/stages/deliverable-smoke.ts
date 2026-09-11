@@ -26,7 +26,7 @@ import {existsSync} from 'node:fs';
 import {resolve} from 'node:path';
 import process from 'node:process';
 
-import {execaSync} from 'execa';
+import {runSync} from '../core/run-sync.js';
 
 import {loadSpec} from '../spec/load.js';
 import type {Deliverable, SmokeProbe} from '../spec/types.js';
@@ -92,7 +92,7 @@ export function runDeliverableSmoke(opts: CommandStageOptions = {}): StageResult
   // thrown ExecaError (same shape) so both paths are handled uniformly.
   let proc: ProcLike;
   try {
-    proc = execaSync(entry, [...(deliverable.smoke_args ?? [])], {cwd, reject: false, timeout}) as ProcLike;
+    proc = runSync(entry, [...(deliverable.smoke_args ?? [])], {cwd, timeout}) as ProcLike;
   } catch (err) {
     proc = err as ProcLike;
   }
@@ -245,7 +245,7 @@ function evalProbe(cwd: string, probe: SmokeProbe, ctx: ProbeCtx): ProbeEval {
   const timeout = DEFAULT_TIMEOUT_MS;
   let proc: ProcLike;
   try {
-    proc = execaSync(exe, [...args], {cwd, reject: false, timeout}) as ProcLike;
+    proc = runSync(exe, [...args], {cwd, timeout}) as ProcLike;
   } catch (err) {
     proc = err as ProcLike;
   }

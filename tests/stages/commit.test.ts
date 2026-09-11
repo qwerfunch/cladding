@@ -16,26 +16,26 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
-vi.mock('execa', () => ({
-  execaSync: vi.fn(),
+vi.mock('../../src/core/run-sync.js', () => ({
+  runSync: vi.fn(),
 }));
 
 const {runCommit} = await import('../../src/stages/commit.js');
-const execaMod = await import('execa');
-const execaSyncMock = execaMod.execaSync as unknown as ReturnType<typeof vi.fn>;
+const runSyncMod = await import('../../src/core/run-sync.js');
+const runSyncMock = runSyncMod.runSync as unknown as ReturnType<typeof vi.fn>;
 
 describe('runCommit (stage_1.4)', () => {
   let dir: string;
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'clad-commit-stage-'));
-    execaSyncMock.mockReset();
+    runSyncMock.mockReset();
   });
   afterEach(() => {
     rmSync(dir, {recursive: true, force: true});
   });
 
   test('[covers:F-059/AC-142] clean working tree is a pass observation', () => {
-    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     const r = runCommit({cwd: dir});
     expect(r.pass).toBe(true);
     expect(r.exitCode).toBe(0);
@@ -43,7 +43,7 @@ describe('runCommit (stage_1.4)', () => {
   });
 
   test('[covers:F-059/AC-142] dirty working tree is a fail observation', () => {
-    execaSyncMock.mockReturnValueOnce({
+    runSyncMock.mockReturnValueOnce({
       exitCode: 0,
       stdout: ' M src/foo.ts\n?? new-file.ts\n',
       stderr: '',
@@ -57,7 +57,7 @@ describe('runCommit (stage_1.4)', () => {
   });
 
   test('non-git directory (git exits non-zero) → exitCode=2 (skipped)', () => {
-    execaSyncMock.mockReturnValueOnce({
+    runSyncMock.mockReturnValueOnce({
       exitCode: 128,
       stdout: '',
       stderr: 'fatal: not a git repository (or any of the parent directories)',
@@ -69,7 +69,7 @@ describe('runCommit (stage_1.4)', () => {
   });
 
   test('git non-zero exit with empty stderr → fallback message', () => {
-    execaSyncMock.mockReturnValueOnce({exitCode: 1, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 1, stdout: '', stderr: ''});
     const r = runCommit({cwd: dir});
     expect(r.exitCode).toBe(2);
     expect(r.stderr).toBe('not a git repository');
@@ -78,7 +78,7 @@ describe('runCommit (stage_1.4)', () => {
   test('[covers:F-059/AC-142] git ENOENT is an unobserved observation', () => {
     const err = new Error('spawn ENOENT') as NodeJS.ErrnoException;
     err.code = 'ENOENT';
-    execaSyncMock.mockImplementationOnce(() => {
+    runSyncMock.mockImplementationOnce(() => {
       throw err;
     });
     const r = runCommit({cwd: dir});
@@ -90,7 +90,7 @@ describe('runCommit (stage_1.4)', () => {
   test('git throws non-ENOENT → re-thrown', () => {
     const err = new Error('EACCES') as NodeJS.ErrnoException;
     err.code = 'EACCES';
-    execaSyncMock.mockImplementationOnce(() => {
+    runSyncMock.mockImplementationOnce(() => {
       throw err;
     });
     expect(() => runCommit({cwd: dir})).toThrow('EACCES');

@@ -11,7 +11,7 @@
 
 import process from 'node:process';
 
-import {execaSync} from 'execa';
+import {runSync} from '../core/run-sync.js';
 
 import {withFindings} from './finding-parser.js';
 import {resolveStageCommand} from './toolchain/scoped-command.js';
@@ -57,7 +57,7 @@ export function runType(opts: CommandStageOptions = {}): StageResult {
       skipReason: 'no-runner',
     };
   }
-  const proc = execaSync(cmd, [...args], {cwd, reject: false});
+  const proc = runSync(cmd, [...args], {cwd});
   // execaSync(reject:false) RETURNS (does not throw) on a missing binary;
   // detect ENOENT on the result so a missing tool skips, not false-fails.
   const skip = missingToolSkip(STAGE, cmd, proc, args);

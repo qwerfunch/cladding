@@ -11,20 +11,20 @@ import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 import {clearTestRunCache, getOrRunSharedCoverage, primeTestRunCache} from '../../src/stages/test-run-cache.js';
 
-vi.mock('execa', () => ({
-  execaSync: vi.fn(),
+vi.mock('../../src/core/run-sync.js', () => ({
+  runSync: vi.fn(),
 }));
 
 const {runCov} = await import('../../src/stages/cov.js');
-const execaMod = await import('execa');
-const execaSyncMock = execaMod.execaSync as unknown as ReturnType<typeof vi.fn>;
+const runSyncMod = await import('../../src/core/run-sync.js');
+const runSyncMock = runSyncMod.runSync as unknown as ReturnType<typeof vi.fn>;
 
 describe('runCov (stage_2.2)', () => {
   let dir: string;
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'clad-cov-stage-'));
     clearTestRunCache();
-    execaSyncMock.mockReset();
+    runSyncMock.mockReset();
   });
   afterEach(() => {
     clearTestRunCache();
@@ -33,7 +33,7 @@ describe('runCov (stage_2.2)', () => {
 
   test('[covers:F-060/AC-146] coverage runner preserves successful, failed, unavailable, and overridden execution outcomes', () => {
     const opts = {cwd: dir, cmd: 'coverage-runner', args: ['--focused']};
-    execaSyncMock
+    runSyncMock
       .mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''})
       .mockReturnValueOnce({exitCode: 9, stdout: '', stderr: 'coverage failure'})
       .mockReturnValueOnce({exitCode: null, stdout: '', stderr: ''})
@@ -45,7 +45,7 @@ describe('runCov (stage_2.2)', () => {
     const unavailable = runCov(opts);
     expect(unavailable).toMatchObject({pass: false, exitCode: 2, skipReason: 'tool-missing'});
     expect(unavailable).not.toHaveProperty('disposition');
-    expect(execaSyncMock).toHaveBeenCalledWith('coverage-runner', ['--focused'], expect.any(Object));
+    expect(runSyncMock).toHaveBeenCalledWith('coverage-runner', ['--focused'], expect.any(Object));
   });
 
   test('[covers:F-060/AC-146] coverage folds the current shared invocation instead of starting another runner', () => {
@@ -56,7 +56,7 @@ describe('runCov (stage_2.2)', () => {
 
     expect(shared).not.toBeNull();
     expect(result).toMatchObject({pass: true, exitCode: 0});
-    expect(execaSyncMock).not.toHaveBeenCalled();
+    expect(runSyncMock).not.toHaveBeenCalled();
   });
 
   test('unknown language + no override → skipped (exitCode=2)', () => {
@@ -69,13 +69,13 @@ describe('runCov (stage_2.2)', () => {
 
   test('package.json present + runner exits 0 → pass=true', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     expect(runCov({cwd: dir}).pass).toBe(true);
   });
 
   test('runner non-zero + stderr → pass=false with stderr', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    execaSyncMock.mockReturnValueOnce({
+    runSyncMock.mockReturnValueOnce({
       exitCode: 1,
       stdout: '',
       stderr: 'coverage below threshold',
@@ -87,19 +87,19 @@ describe('runCov (stage_2.2)', () => {
 
   test('runner non-zero + no stderr → no stderr field', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    execaSyncMock.mockReturnValueOnce({exitCode: 1, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 1, stdout: '', stderr: ''});
     expect(runCov({cwd: dir}).stderr).toBeUndefined();
   });
 
   test('explicit override bypasses toolchain', () => {
-    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     runCov({cwd: dir, cmd: 'mycov', args: ['--report']});
-    expect(execaSyncMock).toHaveBeenCalledWith('mycov', ['--report'], expect.any(Object));
+    expect(runSyncMock).toHaveBeenCalledWith('mycov', ['--report'], expect.any(Object));
   });
 
   test('null exit defaults to 1', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    execaSyncMock.mockReturnValueOnce({exitCode: null, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: null, stdout: '', stderr: ''});
     expect(runCov({cwd: dir}).exitCode).toBe(1);
   });
 });

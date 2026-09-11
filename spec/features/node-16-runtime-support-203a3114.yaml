@@ -1,0 +1,79 @@
+id: F-203a3114
+title: Runs on Node 16 — the command-line tool drops its newest-runtime
+  dependencies instead of refusing to start
+status: done
+purpose: "The declared Node 20 floor was not a real requirement: measured in
+  containers, the only surfaces the bundle needs above Node 16 are three from a
+  single dependency used for spawning (util.aborted,
+  stream.getDefaultHighWaterMark, events.addAbortListener) and one
+  promise-flavoured readline import in our own code. Users on older runtimes
+  should get a working tool, not a refusal, so the floor drops to Node 16 by
+  removing the dependency rather than by lowering a number."
+modules:
+  - src/core/run-sync.ts
+  - src/cli/signoff.ts
+  - scripts/build.mjs
+  - scripts/check-node-surface.mjs
+depends_on: []
+capability_refs: []
+acceptance_criteria:
+  - id: AC-545c8c83
+    kind: behavior
+    statement: "The synchronous command runner shall preserve the result shape its
+      callers read when spawning through the platform's own child-process
+      module: the exit status, a single final newline stripped from each
+      captured stream, a timed-out flag, a spawn error code when the binary is
+      missing, and a capture limit of 100 megabytes."
+    notes: >-
+      ## Why
+
+
+      The replaced dependency defaulted to a 100 MB capture limit while the
+      platform module defaults to 1 MB, and it stripped the final newline from
+      captured output. Either difference silently changes a stage verdict:
+      truncation turns a passing tool into a parse failure, and an unexpected
+      newline breaks exact-match comparisons. Characterised side by side before
+      the swap across success, non-zero exit, missing binary, signal kill and
+      timeout.
+  - id: AC-3c885475
+    kind: behavior
+    statement: While the running release provides every module surface the published
+      bundle imports, the command-line tool shall complete its work rather than
+      refuse to start, down to the declared floor of Node 16.
+    notes: >-
+      ## Why
+
+
+      Measured, not assumed. With the spawning dependency stubbed out, a Node 16
+      container ran version, help, spec validation over all 305 entries, the
+      status matrix and the gate. The previous floor of 20 came from a
+      dependency declaration, not from anything the code needed.
+  - id: AC-ff87f215
+    kind: constraint
+    statement: When the bundle imports a module surface the declared floor release
+      does not provide, the surface check shall fail and name both the missing
+      surface and the dependency that introduced it.
+    rationale: A floor that nothing verifies drifts back the moment a dependency
+      upgrade pulls in a newer platform surface, which is exactly how the
+      original defect shipped.
+    notes: >-
+      ## Why
+
+
+      The enumeration is deterministic: read every platform-module import out of
+      the bundle, then resolve each one on the floor release. No table of
+      versions to maintain and no agent involved. This is the regression guard
+      for the whole feature.
+  - id: AC-dfc9fd7b
+    kind: behavior
+    statement: When a single feature needs a platform capability the running release
+      lacks, the system shall name the missing capability and the release that
+      provides it while leaving every other command working.
+    notes: >-
+      ## Why
+
+
+      Network fetch is built in from Node 18 and is used only on the
+      model-assisted onboarding path. Refusing the whole tool for one optional
+      path would repeat the defect this work exists to fix, so the scope of a
+      missing capability stays the feature that needs it.

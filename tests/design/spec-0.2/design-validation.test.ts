@@ -212,7 +212,7 @@ describe('Spec 0.2 validation ledger', () => {
     expect(delivery).toContain('In the final F11 engine, 0.2+old is `relocation_required`');
     expect(delivery).toContain('does not retroactively block F7–F10 completion');
     expect(delivery).toContain('a stronger one-run feature completion');
-    expect(delivery).toContain('node bin/clad check --profile release --strict');
+    expect(delivery).toContain('node bin/clad.mjs check --profile release --strict');
     expect(delivery).toContain('Cladding persists L2 after migration');
     expect(context).toContain('It introduces `clad signoff`');
     expect(context).toContain('macOS Keychain, Windows Credential');

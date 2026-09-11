@@ -25,7 +25,7 @@ import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 import type {DriftFinding} from '../../src/stages/types.js';
 
-vi.mock('execa', () => ({execaSync: vi.fn(), execa: vi.fn()}));
+vi.mock('../../src/core/run-sync.js', () => ({runSync: vi.fn()}));
 
 const {
   primeDetectorResultCache,
@@ -36,8 +36,8 @@ const {
 const {runArch} = await import('../../src/stages/arch.js');
 const {runSecret} = await import('../../src/stages/secret.js');
 const {runDrift} = await import('../../src/stages/drift.js');
-const execaMod = await import('execa');
-const execaSyncMock = execaMod.execaSync as unknown as ReturnType<typeof vi.fn>;
+const runSyncMod = await import('../../src/core/run-sync.js');
+const runSyncMock = runSyncMod.runSync as unknown as ReturnType<typeof vi.fn>;
 
 /** Clean subprocess result — arch/secret detectors read this as "no findings". */
 const CLEAN = {exitCode: 0, stdout: '', stderr: ''};
@@ -68,7 +68,7 @@ function tsProject(prefix: string): string {
 // Global discipline: reset the spawn spy before each test, and — the load-bearing
 // no-leak guard — close any open session after each test so nothing survives into
 // the next (the harness runs these gates inside one long-lived Stop-hook process).
-beforeEach(() => execaSyncMock.mockReset());
+beforeEach(() => runSyncMock.mockReset());
 afterEach(() => clearDetectorResultCache());
 
 // ─── the cache primitives, in isolation ───
@@ -151,9 +151,9 @@ describe('runArch / runSecret consume a cache hit without spawning', () => {
   afterEach(() => rmSync(dir, {recursive: true, force: true}));
 
   test('[covers:F-e53596dd/AC-9bb78051] (1) no session → runArch spawns (unchanged default path)', () => {
-    execaSyncMock.mockReturnValue(CLEAN);
+    runSyncMock.mockReturnValue(CLEAN);
     const r = runArch({cwd: dir});
-    expect(execaSyncMock).toHaveBeenCalled();
+    expect(runSyncMock).toHaveBeenCalled();
     expect(r.pass).toBe(true);
     expect(r.stage).toBe('stage_1.5');
   });
@@ -162,7 +162,7 @@ describe('runArch / runSecret consume a cache hit without spawning', () => {
     primeDetectorResultCache(dir);
     storeDetectorResult('ARCHITECTURE_VIOLATION', dir, [ARCH_ERR]);
     const r = runArch({cwd: dir});
-    expect(execaSyncMock).not.toHaveBeenCalled(); // served from cache, madge not run
+    expect(runSyncMock).not.toHaveBeenCalled(); // served from cache, madge not run
     expect(r.pass).toBe(false);
     expect(r.exitCode).toBe(1);
     expect(r.stderr).toBe('circular dependency a -> b -> a');
@@ -173,7 +173,7 @@ describe('runArch / runSecret consume a cache hit without spawning', () => {
     primeDetectorResultCache(dir);
     storeDetectorResult('HARDCODED_SECRET', dir, [SECRET_ERR]);
     const r = runSecret({cwd: dir});
-    expect(execaSyncMock).not.toHaveBeenCalled(); // secretlint not run
+    expect(runSyncMock).not.toHaveBeenCalled(); // secretlint not run
     expect(r.pass).toBe(false);
     expect(r.exitCode).toBe(1);
     expect(r.stderr).toContain('api_key');
@@ -184,16 +184,16 @@ describe('runArch / runSecret consume a cache hit without spawning', () => {
     primeDetectorResultCache(dir);
     storeDetectorResult('HARDCODED_SECRET', dir, []); // a clean hit, not a miss
     const r = runSecret({cwd: dir});
-    expect(execaSyncMock).not.toHaveBeenCalled();
+    expect(runSyncMock).not.toHaveBeenCalled();
     expect(r.pass).toBe(true);
     expect(r.exitCode).toBe(0);
   });
 
   test('(3) primed but nothing stored (miss) → runArch spawns', () => {
     primeDetectorResultCache(dir);
-    execaSyncMock.mockReturnValue(CLEAN);
+    runSyncMock.mockReturnValue(CLEAN);
     const r = runArch({cwd: dir});
-    expect(execaSyncMock).toHaveBeenCalled();
+    expect(runSyncMock).toHaveBeenCalled();
     expect(r.pass).toBe(true);
   });
 
@@ -202,9 +202,9 @@ describe('runArch / runSecret consume a cache hit without spawning', () => {
     try {
       primeDetectorResultCache(dir);
       storeDetectorResult('ARCHITECTURE_VIOLATION', dir, [ARCH_ERR]); // error stored for A only
-      execaSyncMock.mockReturnValue(CLEAN);
+      runSyncMock.mockReturnValue(CLEAN);
       const r = runArch({cwd: dirB});
-      expect(execaSyncMock).toHaveBeenCalled(); // A's cache must not answer a B run
+      expect(runSyncMock).toHaveBeenCalled(); // A's cache must not answer a B run
       expect(r.pass).toBe(true); // reflects the clean spawn, NOT A's stored error
     } finally {
       rmSync(dirB, {recursive: true, force: true});
@@ -215,9 +215,9 @@ describe('runArch / runSecret consume a cache hit without spawning', () => {
     primeDetectorResultCache(dir);
     storeDetectorResult('ARCHITECTURE_VIOLATION', dir, [ARCH_ERR]);
     clearDetectorResultCache();
-    execaSyncMock.mockReturnValue(CLEAN);
+    runSyncMock.mockReturnValue(CLEAN);
     const r = runArch({cwd: dir});
-    expect(execaSyncMock).toHaveBeenCalled(); // session gone → miss → spawn
+    expect(runSyncMock).toHaveBeenCalled(); // session gone → miss → spawn
     expect(r.pass).toBe(true); // the stored error must not survive the clear
   });
 });
@@ -244,7 +244,7 @@ describe('real seam: runDrift stores arch+secret findings; stages fold them with
   test('[covers:F-e53596dd/AC-f4163677] drift publishes arch+secret findings; runArch/runSecret consume them, no new spawn', () => {
     // Non-zero exit → both the arch and secret detectors emit a deterministic
     // error finding during the drift pass.
-    execaSyncMock.mockReturnValue({
+    runSyncMock.mockReturnValue({
       exitCode: 1,
       stdout: 'circular a -> b -> a ; api_key found at config.ts:5',
       stderr: '',
@@ -252,7 +252,7 @@ describe('real seam: runDrift stores arch+secret findings; stages fold them with
 
     primeDetectorResultCache(dir);
     const report = runDrift({cwd: dir});
-    const spawnsAfterDrift = execaSyncMock.mock.calls.length;
+    const spawnsAfterDrift = runSyncMock.mock.calls.length;
     // Only the arch + secret detectors shell out, so drift spawned at least twice.
     expect(spawnsAfterDrift).toBeGreaterThanOrEqual(2);
 
@@ -274,7 +274,7 @@ describe('real seam: runDrift stores arch+secret findings; stages fold them with
 
     // Miss-transparent hit: served entirely from the session runDrift primed —
     // the spawn count did not grow.
-    expect(execaSyncMock.mock.calls.length).toBe(spawnsAfterDrift);
+    expect(runSyncMock.mock.calls.length).toBe(spawnsAfterDrift);
     // …and the folded StageResults equal the drift findings.
     expect(arch.pass).toBe(false);
     expect(arch.stderr).toBe(driftArchStderr);

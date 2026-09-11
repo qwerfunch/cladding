@@ -1,6 +1,6 @@
 {
   "name": "cladding",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "Spec-driven verification layer for AI coding agents — Claude Code · Codex · Gemini · Antigravity · Cursor. Intent in before it writes, result verified against your spec after. Reference implementation of the Ironclad standard.",
   "type": "module",
   "license": "MIT",
@@ -14,15 +14,31 @@
     "url": "https://github.com/qwerfunch/cladding/issues"
   },
   "keywords": [
-    "harness", "harness-engineering",
-    "spec-driven-development", "governance", "ironclad",
-    "drift-detection", "multi-agent", "loop-engineering", "verification",
-    "ai-coding", "compliance", "architecture-enforcement",
-    "claude-code", "codex-cli", "gemini-cli", "antigravity-cli", "cursor",
-    "mcp-server", "claude-code-plugin"
+    "harness",
+    "harness-engineering",
+    "spec-driven-development",
+    "governance",
+    "ironclad",
+    "drift-detection",
+    "multi-agent",
+    "loop-engineering",
+    "verification",
+    "ai-coding",
+    "compliance",
+    "architecture-enforcement",
+    "claude-code",
+    "codex-cli",
+    "gemini-cli",
+    "antigravity-cli",
+    "cursor",
+    "mcp-server",
+    "claude-code-plugin"
   ],
   "bin": {
-    "clad": "./bin/clad"
+    "clad": "./bin/clad.mjs"
+  },
+  "engines": {
+    "node": ">=16"
   },
   "files": [
     "bin/",
@@ -58,7 +74,7 @@
     "validate:spec-0.2:release": "tsx scripts/spec-0.2-validate.ts --release",
     "conformance": "tsx conformance/runner.ts",
     "benchmark": "tsx src/cli/benchmark.ts",
-    "clad": "node bin/clad",
+    "clad": "node bin/clad.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
@@ -73,19 +89,20 @@
   "devDependencies": {
     "@babel/parser": "^7.29.3",
     "@secretlint/secretlint-rule-preset-recommend": "^13.0.2",
+    "@types/cross-spawn": "^6.0.6",
     "@types/node": "^22.0.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "@vitest/coverage-v8": "^4.1.6",
     "commander": "^14.0.3",
+    "cross-spawn": "^7.0.6",
     "esbuild": "^0.28.0",
     "eslint": "^9.0.0",
-    "execa": "^9.6.1",
     "jsonschema": "^1.5.0",
     "madge": "^8.0.0",
     "secretlint": "^13.0.2",
-    "tinyglobby": "^0.2.16",
     "three": "0.183.0",
+    "tinyglobby": "^0.2.16",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
     "typescript-eslint": "^8.0.0",

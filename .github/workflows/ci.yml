@@ -52,8 +52,144 @@ jobs:
         # class the header warns about. Run them on every change.
         run: npm run conformance
 
+      - name: Platform-surface floor
+        # The published bundle must not import a platform surface the declared
+        # floor lacks. A dependency upgrade that reaches above it is how the
+        # original defect shipped, so enumerate the bundle's imports and resolve
+        # each one. This step runs on the build Node; the floor release itself is
+        # covered by the `entry` job's floor cell.
+        run: node scripts/check-node-surface.mjs
+
       - name: Self-drift gate (spec-native, strict)
         # cladding dogfoods its OWN drift gate under --strict: stale module
         # paths, hollow `done` features, and archived-but-live modules fail
         # CI instead of accumulating silently. Deterministic, no toolchain.
-        run: node bin/clad check --tier=pre-commit --strict
+        run: node bin/clad.mjs check --tier=pre-commit --strict
+
+  pack:
+    # Builds the published archive ONCE, on a platform and release that can run
+    # the full toolchain, and hands the exact same bytes to every entry cell.
+    # Building per cell was wrong twice over: it is slow, and it made each cell
+    # depend on the public test-count guard, which legitimately varies by
+    # platform (one transaction test cannot run on Windows). That guard belongs
+    # in the verify job, where it runs on one known platform.
+    name: pack the published archive
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install and build
+        run: npm ci && npm run build
+
+      - name: Pack
+        # `npm pack` does not create the destination directory; without the mkdir
+        # it fails with ENOENT after the archive is already built.
+        run: mkdir -p archive && npm pack --pack-destination archive
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: published-archive
+          path: archive/*.tgz
+          retention-days: 1
+
+  entry:
+    # The published entry point, exercised through npm's own bin shim — the path
+    # a user hits, which `node bin/clad.mjs` never covers. It exists because an
+    # extensionless entry shipped and died inside Node's ESM loader on an
+    # unsupported release, on a platform and a Node version this workflow tested
+    # on neither axis. The floor cell is the release a user actually reported
+    # from; the Node 14 cell sits below the floor, proving the refusal still
+    # speaks instead of crashing for a release the tool genuinely cannot support.
+    # Every cell installs the SAME archive the pack job produced.
+    name: entry · ${{ matrix.os }} · node ${{ matrix.node }}
+    needs: pack
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-latest, node: 16, expect: version}
+          - {os: ubuntu-latest, node: 20, expect: version}
+          - {os: ubuntu-latest, node: 22, expect: version}
+          - {os: windows-latest, node: 22, expect: version}
+          - {os: ubuntu-latest, node: 14, expect: refusal}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: published-archive
+          path: archive
+
+      - name: Install the published archive globally
+        shell: bash
+        # The `./` prefix is load-bearing: without it npm reads `archive/<file>`
+        # as a GitHub owner/repo shorthand and tries to clone it over SSH.
+        run: npm install -g ./archive/*.tgz
+
+      - name: Unpack the archive so the surface check reads the shipped bundle
+        shell: bash
+        run: tar -xzf ./archive/*.tgz
+
+      - name: The entry point reports its version
+        if: matrix.expect == 'version'
+        shell: bash
+        run: |
+          set -euo pipefail
+          clad --version
+
+      - name: Every platform surface the shipped bundle needs exists here
+        if: matrix.expect == 'version'
+        shell: bash
+        run: node scripts/check-node-surface.mjs package/dist/clad.js
+
+      - name: Real work on the floor release, not just a version string
+        # The surface check reads static imports only, so a bundled CommonJS
+        # dependency reaching for a newer surface through `require` slips past it.
+        # Running actual commands on the floor release is what catches that. The
+        # gate is deliberately not run here: this project's own eslint needs
+        # Node 18, which is the user's toolchain rather than cladding's floor.
+        if: matrix.expect == 'version' && matrix.node == 16
+        shell: bash
+        run: |
+          set -euo pipefail
+          clad sync
+          # Not `clad status | head -3`: head closes the pipe, the writer takes
+          # EPIPE, and pipefail turns a healthy run red.
+          clad status > status.txt
+          head -3 status.txt
+
+      - name: Install dev dependencies for the runner tests
+        # --ignore-scripts on purpose: the prepare hook would run the full build,
+        # and with it the public test-count guard, which cannot hold on Windows.
+        if: matrix.expect == 'version' && runner.os == 'Windows'
+        run: npm ci --ignore-scripts
+
+      - name: The spawn runner behaves the same on this platform
+        # `npm` is `npm.cmd` on Windows and the previous spawning dependency hid
+        # that. These tests drive real child processes, so this cell is the only
+        # place the Windows path is actually executed.
+        if: matrix.expect == 'version' && runner.os == 'Windows'
+        run: npx vitest run tests/core/run-sync.test.ts
+
+      - name: The entry point refuses an unsupported Node with a sentence
+        if: matrix.expect == 'refusal'
+        shell: bash
+        run: |
+          set +e
+          output=$(clad --version 2>&1)
+          status=$?
+          set -e
+          echo "$output"
+          test "$status" -ne 0 || { echo "expected a non-zero exit below the floor"; exit 1; }
+          grep -q 'requires Node 16 or newer' <<<"$output"
+          grep -q 'Upgrade Node' <<<"$output"

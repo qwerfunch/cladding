@@ -9,19 +9,19 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
-vi.mock('execa', () => ({
-  execaSync: vi.fn(),
+vi.mock('../../src/core/run-sync.js', () => ({
+  runSync: vi.fn(),
 }));
 
 const {runUnit} = await import('../../src/stages/unit.js');
-const execaMod = await import('execa');
-const execaSyncMock = execaMod.execaSync as unknown as ReturnType<typeof vi.fn>;
+const runSyncMod = await import('../../src/core/run-sync.js');
+const runSyncMock = runSyncMod.runSync as unknown as ReturnType<typeof vi.fn>;
 
 describe('runUnit (stage_2.1)', () => {
   let dir: string;
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'clad-unit-stage-'));
-    execaSyncMock.mockReset();
+    runSyncMock.mockReset();
   });
   afterEach(() => {
     rmSync(dir, {recursive: true, force: true});
@@ -29,7 +29,7 @@ describe('runUnit (stage_2.1)', () => {
 
   test('[covers:F-060/AC-146] unit runner preserves successful, failed, unavailable, and overridden execution outcomes', () => {
     const opts = {cwd: dir, cmd: 'unit-runner', args: ['--focused']};
-    execaSyncMock
+    runSyncMock
       .mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''})
       .mockReturnValueOnce({exitCode: 9, stdout: '', stderr: 'failing assertion'})
       .mockReturnValueOnce({exitCode: null, stdout: '', stderr: ''})
@@ -41,7 +41,7 @@ describe('runUnit (stage_2.1)', () => {
     const unavailable = runUnit(opts);
     expect(unavailable).toMatchObject({pass: false, exitCode: 2, skipReason: 'tool-missing'});
     expect(unavailable).not.toHaveProperty('disposition');
-    expect(execaSyncMock).toHaveBeenCalledWith('unit-runner', ['--focused'], expect.any(Object));
+    expect(runSyncMock).toHaveBeenCalledWith('unit-runner', ['--focused'], expect.any(Object));
   });
 
   test('unknown language + no override → skipped (exitCode=2)', () => {
@@ -50,18 +50,18 @@ describe('runUnit (stage_2.1)', () => {
     expect(r.exitCode).toBe(2);
     expect(r.stage).toBe('stage_2.1');
     expect(r.stderr).toContain('no unit test runner registered');
-    expect(execaSyncMock).not.toHaveBeenCalled();
+    expect(runSyncMock).not.toHaveBeenCalled();
   });
 
   test('package.json present + runner exits 0 → pass=true', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     expect(runUnit({cwd: dir}).pass).toBe(true);
   });
 
   test('runner non-zero + stderr → pass=false with stderr', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    execaSyncMock.mockReturnValueOnce({
+    runSyncMock.mockReturnValueOnce({
       exitCode: 1,
       stdout: '',
       stderr: 'FAIL  tests/a.test.ts',
@@ -73,24 +73,24 @@ describe('runUnit (stage_2.1)', () => {
 
   test('runner non-zero + no stderr → pass=false, no stderr field', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    execaSyncMock.mockReturnValueOnce({exitCode: 1, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 1, stdout: '', stderr: ''});
     expect(runUnit({cwd: dir}).stderr).toBeUndefined();
   });
 
   test('explicit cmd/args override → bypasses toolchain', () => {
-    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     runUnit({cwd: dir, cmd: 'mytest', args: ['run']});
-    expect(execaSyncMock).toHaveBeenCalledWith('mytest', ['run'], expect.any(Object));
+    expect(runSyncMock).toHaveBeenCalledWith('mytest', ['run'], expect.any(Object));
   });
 
   test('null exit defaults to 1', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    execaSyncMock.mockReturnValueOnce({exitCode: null, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: null, stdout: '', stderr: ''});
     expect(runUnit({cwd: dir}).exitCode).toBe(1);
   });
 
   test('[covers:F-b81d203e/AC-0e76a1b2] strict mode rejects a successful runner that definitively reports zero tests', () => {
-    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '# tests 0\n# pass 0', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '# tests 0\n# pass 0', stderr: ''});
     const r = runUnit({cwd: dir, cmd: 'npm', args: ['test'], strict: true});
     expect(r.pass).toBe(false);
     expect(r.exitCode).toBe(1);
@@ -98,12 +98,12 @@ describe('runUnit (stage_2.1)', () => {
   });
 
   test('zero-test summary remains backward-compatible outside strict mode', () => {
-    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '# tests 0', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '# tests 0', stderr: ''});
     expect(runUnit({cwd: dir, cmd: 'npm', args: ['test']}).pass).toBe(true);
   });
 
   test('multiple workspace summaries do not false-fail when any tests executed', () => {
-    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '# tests 0\n# tests 3', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '# tests 0\n# tests 3', stderr: ''});
     expect(runUnit({cwd: dir, cmd: 'npm', args: ['test'], strict: true}).pass).toBe(true);
   });
 });
