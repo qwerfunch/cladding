@@ -223,7 +223,7 @@ export function buildServer(opts: ServerOptions = {}): McpServer {
   const server = new McpServer(
     {
       name: opts.name ?? 'cladding',
-      version: opts.version ?? '0.10.0',
+      version: opts.version ?? '0.10.1',
     },
     {
       instructions:
@@ -428,7 +428,7 @@ function recordServe(
 function engineShim(): string | null {
   let dir = dirname(fileURLToPath(import.meta.url));
   for (let i = 0; i < 5; i++) {
-    const candidate = join(dir, 'bin', 'clad');
+    const candidate = join(dir, 'bin', 'clad.mjs');
     if (existsSync(candidate)) return candidate;
     dir = dirname(dir);
   }
@@ -1312,7 +1312,7 @@ function registerInitializedTools(
       if (!shim) {
         return {
           isError: true,
-          content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, error: 'cladding engine shim (bin/clad) not found relative to the running server'})}],
+          content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, error: 'cladding engine shim (bin/clad.mjs) not found relative to the running server'})}],
         };
       }
       const strict = args.strict !== false;
@@ -1382,7 +1382,7 @@ function registerInitializedTools(
       if (!shim) {
         return {
           isError: true,
-          content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, error: 'cladding engine shim (bin/clad) not found relative to the running server'})}],
+          content: [{type: 'text', text: JSON.stringify({schema_version: PAYLOAD_SCHEMA_VERSION, error: 'cladding engine shim (bin/clad.mjs) not found relative to the running server'})}],
         };
       }
       const res = spawnSync(shim, ['verdict', '--json', ...(args.tier ? [`--tier=${args.tier}`] : [])], {

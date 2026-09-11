@@ -20,19 +20,19 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
-vi.mock('execa', () => ({
-  execaSync: vi.fn(),
+vi.mock('../../src/core/run-sync.js', () => ({
+  runSync: vi.fn(),
 }));
 
 const {runType} = await import('../../src/stages/type.js');
-const execaMod = await import('execa');
-const execaSyncMock = execaMod.execaSync as unknown as ReturnType<typeof vi.fn>;
+const runSyncMod = await import('../../src/core/run-sync.js');
+const runSyncMock = runSyncMod.runSync as unknown as ReturnType<typeof vi.fn>;
 
 describe('runType (stage_1.1)', () => {
   let dir: string;
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'clad-type-stage-'));
-    execaSyncMock.mockReset();
+    runSyncMock.mockReset();
   });
   afterEach(() => {
     rmSync(dir, {recursive: true, force: true});
@@ -45,12 +45,12 @@ describe('runType (stage_1.1)', () => {
     expect(r.exitCode).toBe(2);
     expect(r.stage).toBe('stage_1.1');
     expect(r.stderr).toContain('no type checker registered');
-    expect(execaSyncMock).not.toHaveBeenCalled();
+    expect(runSyncMock).not.toHaveBeenCalled();
   });
 
   test('package.json present + tool exits 0 → pass=true', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     const r = runType({cwd: dir});
     expect(r.pass).toBe(true);
     expect(r.exitCode).toBe(0);
@@ -59,7 +59,7 @@ describe('runType (stage_1.1)', () => {
 
   test('[covers:F-059/AC-141] tool non-zero exit + stderr → pass=false with stderr attached', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    execaSyncMock.mockReturnValueOnce({
+    runSyncMock.mockReturnValueOnce({
       exitCode: 1,
       stdout: '',
       stderr: 'foo.ts(3,5): error TS2322: type mismatch',
@@ -77,7 +77,7 @@ describe('runType (stage_1.1)', () => {
     // type failure as a non-blocking skip (the canonical Vacuous Green that left
     // 3 real type errors masked in cladding's own repo for multiple releases).
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    execaSyncMock.mockReturnValueOnce({exitCode: 2, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 2, stdout: '', stderr: ''});
     const r = runType({cwd: dir});
     expect(r.pass).toBe(false);
     expect(r.exitCode).toBe(1);
@@ -86,7 +86,7 @@ describe('runType (stage_1.1)', () => {
 
   test('tsc writes diagnostics to stdout (empty stderr) → surfaced as stderr so the gate shows WHY', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    execaSyncMock.mockReturnValueOnce({
+    runSyncMock.mockReturnValueOnce({
       exitCode: 2,
       stdout: 'src/x.ts(3,5): error TS2322: type mismatch',
       stderr: '',
@@ -99,15 +99,15 @@ describe('runType (stage_1.1)', () => {
 
   test('explicit cmd/args override → bypasses toolchain', () => {
     // Empty dir would normally skip, but the override forces the tool.
-    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     const r = runType({cwd: dir, cmd: 'mytsc', args: ['--check']});
     expect(r.pass).toBe(true);
-    expect(execaSyncMock).toHaveBeenCalledWith('mytsc', ['--check'], expect.any(Object));
+    expect(runSyncMock).toHaveBeenCalledWith('mytsc', ['--check'], expect.any(Object));
   });
 
   test('null exit code defaults to 1 (defensive)', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    execaSyncMock.mockReturnValueOnce({exitCode: null, stdout: '', stderr: 'killed'});
+    runSyncMock.mockReturnValueOnce({exitCode: null, stdout: '', stderr: 'killed'});
     const r = runType({cwd: dir});
     expect(r.exitCode).toBe(1);
     expect(r.pass).toBe(false);
@@ -120,7 +120,7 @@ describe('runType (stage_1.1)', () => {
     // throw on a missing binary — it RETURNS {exitCode: undefined,
     // failed: true, code: 'ENOENT'}. The stage detects ENOENT on the result.
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    execaSyncMock.mockReturnValueOnce({exitCode: undefined, failed: true, code: 'ENOENT', stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: undefined, failed: true, code: 'ENOENT', stdout: '', stderr: ''});
     const r = runType({cwd: dir});
     expect(r.pass).toBe(false);
     expect(r.exitCode).toBe(2);

@@ -5,6 +5,27 @@ All notable changes to Cladding are documented here.
 Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
 Versioning: [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.1] — Runs on Node 16, and says so honestly (2026-09-11)
+
+**In one line:** A global install on Node 16 used to die inside Node's own module loader before printing anything; the command-line entry point now loads on every release, and the supported floor drops from Node 20 to Node 16 because the dependency that was holding it up has been removed.
+
+> Heads-up: nothing changes if you are on Node 18 or newer — that already worked. If you are on Node 16 or 17, cladding now runs where it previously refused or crashed. Below Node 16 it stops with one sentence naming the version it needs instead of a stack trace. Two things stay outside the floor: the model-assisted onboarding path needs the network client built into Node 18, so on an older release it names that one missing capability and leaves every other command working; and a check that delegates to your own linter or type-checker still depends on what *those* tools require, which is reported as a tool finding, not a crash.
+
+### Fixed
+
+- **A global install on Node 16 crashed before producing any message.** The published entry file had no file extension, and the module loader refuses such a file in a package that declares modules. The failure happened inside Node, before a single line of cladding ran, so nothing could explain it. The entry file now carries an extension and loads on every release. This was never specific to Windows — the same rejection reproduces on Linux.
+- **The supported floor was higher than anything actually required.** It had been set from a dependency's own declaration rather than from measurement. Measured against running releases, the published engine already worked on Node 18, and exactly four runtime surfaces stood between it and Node 16 — three of them from a single dependency used only to launch external commands, and one promise-flavoured module import of our own. Because the engine ships as one bundled file, that dependency's requirement had silently become the whole tool's requirement.
+- **External commands now go through one small launcher of our own**, which keeps the behaviour the old dependency provided: the Windows resolution of commands that are really batch files, a single trailing newline trimmed from captured output, a capture limit large enough that a verbose tool's output is not truncated, and an absent exit status when a command could not be started at all. Getting any of those wrong changes a check's verdict silently, so each was measured against the old behaviour before the swap.
+- **One interactive prompt no longer decides whether the whole tool loads.** It imported a promise-flavoured module that only exists from Node 17, and that single import made the entire bundle unloadable on Node 16.
+
+### Added
+
+- **A check that the supported floor cannot quietly rise again.** It reads every runtime module the published bundle imports and confirms each one exists on the release being tested. That is how the original problem shipped unnoticed, so continuous integration now runs the check on the floor release itself, alongside a real install from a packed archive on several releases and on Windows.
+
+### Changed
+
+- **The contributor and user requirements are now stated separately.** Running cladding needs Node 16; working on cladding needs Node 20, because its test runner and linter do.
+
 ## [0.10.0] — Every acceptance criterion has an address a test can claim (2026-09-10)
 
 **In one line:** Spec schema 0.2 — a feature says what it is for before what it does, every acceptance criterion has an address you can point at, a test claims a criterion by naming it in its own title, one compiled model answers questions about how the pieces relate, each level of assurance has a named check profile recorded in a new attestation format, and a reviewed path carries an old project across.

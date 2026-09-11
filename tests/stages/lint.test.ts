@@ -18,13 +18,13 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
-vi.mock('execa', () => ({
-  execaSync: vi.fn(),
+vi.mock('../../src/core/run-sync.js', () => ({
+  runSync: vi.fn(),
 }));
 
 const {runLint} = await import('../../src/stages/lint.js');
-const execaMod = await import('execa');
-const execaSyncMock = execaMod.execaSync as unknown as ReturnType<typeof vi.fn>;
+const runSyncMod = await import('../../src/core/run-sync.js');
+const runSyncMock = runSyncMod.runSync as unknown as ReturnType<typeof vi.fn>;
 
 describe('runLint (stage_1.2)', () => {
   let dir: string;
@@ -33,7 +33,7 @@ describe('runLint (stage_1.2)', () => {
   };
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'clad-lint-stage-'));
-    execaSyncMock.mockReset();
+    runSyncMock.mockReset();
   });
   afterEach(() => {
     rmSync(dir, {recursive: true, force: true});
@@ -45,12 +45,12 @@ describe('runLint (stage_1.2)', () => {
     expect(r.exitCode).toBe(2);
     expect(r.stage).toBe('stage_1.2');
     expect(r.stderr).toContain('no linter registered');
-    expect(execaSyncMock).not.toHaveBeenCalled();
+    expect(runSyncMock).not.toHaveBeenCalled();
   });
 
   test('declared lint workflow + tool exits 0 → pass=true', () => {
     seedLintProject();
-    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     const r = runLint({cwd: dir});
     expect(r.pass).toBe(true);
     expect(r.exitCode).toBe(0);
@@ -58,7 +58,7 @@ describe('runLint (stage_1.2)', () => {
 
   test('[covers:F-059/AC-141] tool non-zero exit + stderr → pass=false with stderr', () => {
     seedLintProject();
-    execaSyncMock.mockReturnValueOnce({
+    runSyncMock.mockReturnValueOnce({
       exitCode: 1,
       stdout: '',
       stderr: 'foo.ts:3:5  error  no-unused-vars',
@@ -70,22 +70,22 @@ describe('runLint (stage_1.2)', () => {
 
   test('tool non-zero exit + no stderr → pass=false, no stderr field', () => {
     seedLintProject();
-    execaSyncMock.mockReturnValueOnce({exitCode: 1, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 1, stdout: '', stderr: ''});
     const r = runLint({cwd: dir});
     expect(r.pass).toBe(false);
     expect(r.stderr).toBeUndefined();
   });
 
   test('explicit cmd/args override → bypasses toolchain', () => {
-    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     const r = runLint({cwd: dir, cmd: 'mylint', args: ['.']});
     expect(r.pass).toBe(true);
-    expect(execaSyncMock).toHaveBeenCalledWith('mylint', ['.'], expect.any(Object));
+    expect(runSyncMock).toHaveBeenCalledWith('mylint', ['.'], expect.any(Object));
   });
 
   test('null exit code defaults to 1', () => {
     seedLintProject();
-    execaSyncMock.mockReturnValueOnce({exitCode: null, stdout: '', stderr: 'killed'});
+    runSyncMock.mockReturnValueOnce({exitCode: null, stdout: '', stderr: 'killed'});
     expect(runLint({cwd: dir}).exitCode).toBe(1);
   });
 });

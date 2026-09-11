@@ -19,13 +19,13 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
-vi.mock('execa', () => ({
-  execaSync: vi.fn(),
+vi.mock('../../src/core/run-sync.js', () => ({
+  runSync: vi.fn(),
 }));
 
 const {runSpecConformance, ORACLE_DIR} = await import('../../src/stages/spec-conformance.js');
-const execaMod = await import('execa');
-const execaSyncMock = execaMod.execaSync as unknown as ReturnType<typeof vi.fn>;
+const runSyncMod = await import('../../src/core/run-sync.js');
+const runSyncMock = runSyncMod.runSync as unknown as ReturnType<typeof vi.fn>;
 
 function seedTs(dir: string): void {
   writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
@@ -40,7 +40,7 @@ describe('runSpecConformance (stage_2.3)', () => {
   let dir: string;
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'clad-spec-conf-'));
-    execaSyncMock.mockReset();
+    runSyncMock.mockReset();
   });
   afterEach(() => {
     rmSync(dir, {recursive: true, force: true});
@@ -53,7 +53,7 @@ describe('runSpecConformance (stage_2.3)', () => {
     expect(r.exitCode).toBe(2);
     expect(r.stage).toBe('stage_2.3');
     expect(r.stderr).toContain('no spec-conformance oracles');
-    expect(execaSyncMock).not.toHaveBeenCalled();
+    expect(runSyncMock).not.toHaveBeenCalled();
   });
 
   test('oracle dir present but empty → skipped (no test files = nothing to run)', () => {
@@ -61,13 +61,13 @@ describe('runSpecConformance (stage_2.3)', () => {
     mkdirSync(join(dir, ORACLE_DIR), {recursive: true});
     const r = runSpecConformance({cwd: dir});
     expect(r.exitCode).toBe(2);
-    expect(execaSyncMock).not.toHaveBeenCalled();
+    expect(runSyncMock).not.toHaveBeenCalled();
   });
 
   test('oracle present + suite exits 0 → pass=true', () => {
     seedTs(dir);
     seedOracle(dir);
-    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     expect(runSpecConformance({cwd: dir}).pass).toBe(true);
   });
 
@@ -81,7 +81,7 @@ describe('runSpecConformance (stage_2.3)', () => {
     utimesSync(report, fixedTime, fixedTime);
     const original = readFileSync(report);
     const originalMtime = statSync(report).mtimeMs;
-    execaSyncMock.mockImplementationOnce(() => {
+    runSyncMock.mockImplementationOnce(() => {
       writeFileSync(report, '<testsuites tests="36"><testcase classname="tests/oracle/x.test.ts"/></testsuites>\n');
       return {exitCode: 0, stdout: '', stderr: ''};
     });
@@ -96,7 +96,7 @@ describe('runSpecConformance (stage_2.3)', () => {
     seedTs(dir);
     seedOracle(dir);
     const report = join(dir, '.cladding', 'test-report.junit.xml');
-    execaSyncMock.mockImplementationOnce(() => {
+    runSyncMock.mockImplementationOnce(() => {
       mkdirSync(join(dir, '.cladding'), {recursive: true});
       writeFileSync(report, '<testsuites tests="1"/>\n');
       return {exitCode: 0, stdout: '', stderr: ''};
@@ -122,7 +122,7 @@ describe('runSpecConformance (stage_2.3)', () => {
     writeFileSync(conventional, '<testsuites tests="2540" name="framework-default"/>\n');
     const configuredBefore = readFileSync(configured);
     const conventionalBefore = readFileSync(conventional);
-    execaSyncMock.mockImplementationOnce(() => {
+    runSyncMock.mockImplementationOnce(() => {
       writeFileSync(configured, '<testsuites tests="36"/>\n');
       writeFileSync(conventional, '<testsuites tests="36"/>\n');
       return {exitCode: 0, stdout: '', stderr: ''};
@@ -137,7 +137,7 @@ describe('runSpecConformance (stage_2.3)', () => {
   test('[covers:F-c4c5ae/AC-001] oracle present + suite fails → blocking exit 1 with stderr (GREEN can fail)', () => {
     seedTs(dir);
     seedOracle(dir);
-    execaSyncMock.mockReturnValueOnce({exitCode: 1, stdout: '', stderr: 'FAIL tests/oracle/x.test.ts'});
+    runSyncMock.mockReturnValueOnce({exitCode: 1, stdout: '', stderr: 'FAIL tests/oracle/x.test.ts'});
     const r = runSpecConformance({cwd: dir});
     expect(r.pass).toBe(false);
     expect(r.exitCode).toBe(1);
@@ -147,9 +147,9 @@ describe('runSpecConformance (stage_2.3)', () => {
   test('runner is pointed at the oracle dir ONLY (never the whole suite)', () => {
     seedTs(dir);
     seedOracle(dir);
-    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     runSpecConformance({cwd: dir});
-    expect(execaSyncMock).toHaveBeenCalledWith(
+    expect(runSyncMock).toHaveBeenCalledWith(
       'npx',
       ['--offline', '--no-install', 'vitest', 'run', ORACLE_DIR],
       expect.any(Object),
@@ -159,7 +159,7 @@ describe('runSpecConformance (stage_2.3)', () => {
   test('[covers:F-c4c5ae/AC-003] missing runner binary (ENOENT) → skipped, not a false failure', () => {
     seedTs(dir);
     seedOracle(dir);
-    execaSyncMock.mockReturnValueOnce({code: 'ENOENT', exitCode: undefined});
+    runSyncMock.mockReturnValueOnce({code: 'ENOENT', exitCode: undefined});
     expect(runSpecConformance({cwd: dir}).exitCode).toBe(2);
   });
 
@@ -167,6 +167,6 @@ describe('runSpecConformance (stage_2.3)', () => {
     seedOracle(dir);
     const r = runSpecConformance({cwd: dir});
     expect(r.exitCode).toBe(2);
-    expect(execaSyncMock).not.toHaveBeenCalled();
+    expect(runSyncMock).not.toHaveBeenCalled();
   });
 });

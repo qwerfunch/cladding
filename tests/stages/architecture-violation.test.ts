@@ -9,7 +9,7 @@
 //   - validator binary absent     → info  (ENOENT)
 //   - validator throws otherwise  → re-thrown
 //
-// Most subprocess branches use vi.mock('execa'); the generated-output
+// Most subprocess branches mock the shared runner; the generated-output
 // regression below deliberately drives local Madge through this detector.
 
 import {mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
@@ -18,23 +18,25 @@ import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
-vi.mock('execa', () => ({
-  execaSync: vi.fn(),
+vi.mock('../../src/core/run-sync.js', () => ({
+  runSync: vi.fn(),
 }));
 
 const {architectureViolation} = await import(
   '../../src/stages/detectors/architecture-violation.js'
 );
-const execaMod = await import('execa');
-const execaSyncMock = execaMod.execaSync as unknown as ReturnType<typeof vi.fn>;
-const actualExeca = await vi.importActual<typeof import('execa')>('execa');
+const runSyncMod = await import('../../src/core/run-sync.js');
+const runSyncMock = runSyncMod.runSync as unknown as ReturnType<typeof vi.fn>;
+const actualRunSync = await vi.importActual<typeof import('../../src/core/run-sync.js')>(
+  '../../src/core/run-sync.js',
+);
 const madgeBin = resolve(dirname(fileURLToPath(import.meta.url)), '../../node_modules/.bin/madge');
 
 describe('ARCHITECTURE_VIOLATION detector', () => {
   let dir: string;
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'clad-arch-'));
-    execaSyncMock.mockReset();
+    runSyncMock.mockReset();
   });
   afterEach(() => {
     rmSync(dir, {recursive: true, force: true});
@@ -49,19 +51,19 @@ describe('ARCHITECTURE_VIOLATION detector', () => {
     expect(findings[0].severity).toBe('info');
     expect(findings[0].message).toContain('no architecture validator');
     expect(findings[0].message).toContain('acyclic imports');
-    expect(execaSyncMock).not.toHaveBeenCalled();
+    expect(runSyncMock).not.toHaveBeenCalled();
   });
 
   test('validator exits 0 → silent', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     expect(architectureViolation.run({cwd: dir})).toEqual([]);
-    expect(execaSyncMock).toHaveBeenCalledOnce();
+    expect(runSyncMock).toHaveBeenCalledOnce();
   });
 
   test('[covers:F-058/AC-138] validator non-zero exit → error finding (with tool output)', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    execaSyncMock.mockReturnValueOnce({
+    runSyncMock.mockReturnValueOnce({
       exitCode: 1,
       stdout: 'Circular dependency: a -> b -> a',
       stderr: '',
@@ -78,7 +80,7 @@ describe('ARCHITECTURE_VIOLATION detector', () => {
     // missing binary — it does NOT throw. A registered-but-uninstalled validator
     // must yield an info skip, never a false architecture-violation error.
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    execaSyncMock.mockReturnValueOnce({code: 'ENOENT', exitCode: undefined, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({code: 'ENOENT', exitCode: undefined, stdout: '', stderr: ''});
     const findings = architectureViolation.run({cwd: dir});
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe('info');
@@ -89,7 +91,7 @@ describe('ARCHITECTURE_VIOLATION detector', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
     const err = new Error('EACCES') as NodeJS.ErrnoException;
     err.code = 'EACCES';
-    execaSyncMock.mockImplementationOnce(() => {
+    runSyncMock.mockImplementationOnce(() => {
       throw err;
     });
     expect(() => architectureViolation.run({cwd: dir})).toThrow('EACCES');
@@ -97,7 +99,7 @@ describe('ARCHITECTURE_VIOLATION detector', () => {
 
   test('non-zero exit with only stderr → error message draws from stderr', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    execaSyncMock.mockReturnValueOnce({
+    runSyncMock.mockReturnValueOnce({
       exitCode: 1,
       stdout: '',
       stderr: 'rule violation via stderr',
@@ -108,7 +110,7 @@ describe('ARCHITECTURE_VIOLATION detector', () => {
 
   test('non-zero exit with no output → exit-code fallback', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    execaSyncMock.mockReturnValueOnce({exitCode: 3, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 3, stdout: '', stderr: ''});
     const findings = architectureViolation.run({cwd: dir});
     expect(findings[0].message).toContain('exit 3');
   });
@@ -130,14 +132,14 @@ describe('ARCHITECTURE_VIOLATION detector', () => {
     mkdirSync(home);
     vi.stubEnv('HOME', home);
     try {
-      execaSyncMock.mockImplementation(
-        actualExeca.execaSync as unknown as (...args: unknown[]) => unknown,
+      runSyncMock.mockImplementation(
+        actualRunSync.runSync as unknown as (...args: unknown[]) => unknown,
       );
 
       const findings = architectureViolation.run({cwd: dir});
 
-      expect(execaSyncMock).toHaveBeenCalledOnce();
-      const [, args] = execaSyncMock.mock.calls[0] as [string, string[]];
+      expect(runSyncMock).toHaveBeenCalledOnce();
+      const [, args] = runSyncMock.mock.calls[0] as [string, string[]];
       const exclude = args[args.indexOf('--exclude') + 1];
       expect(exclude).toBeTypeOf('string');
       expect(new RegExp(exclude).test('dist/a.js')).toBe(true);

@@ -7,7 +7,7 @@
 // imports (rust, go, java) do not register an arch gate — the detector
 // emits a single `info` finding for them.
 
-import {execaSync} from 'execa';
+import {runSync} from '../../core/run-sync.js';
 
 import {detectToolchain} from '../toolchain/detect.js';
 import type {CommandStageOptions, DriftDetector, DriftFinding} from '../types.js';
@@ -40,7 +40,7 @@ function runArchitectureViolation(opts: CommandStageOptions): readonly DriftFind
       },
     ];
   }
-  const proc = execaSync(spec.cmd, [...spec.args], {cwd, reject: false});
+  const proc = runSync(spec.cmd, [...spec.args], {cwd});
   // execaSync(reject:false) RETURNS (does not throw) on a missing binary, so
   // ENOENT must be detected on the RESULT — a try/catch here would be dead code
   // and let a registered-but-uninstalled validator fall through to a FALSE

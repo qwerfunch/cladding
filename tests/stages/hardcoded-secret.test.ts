@@ -19,19 +19,19 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
-vi.mock('execa', () => ({
-  execaSync: vi.fn(),
+vi.mock('../../src/core/run-sync.js', () => ({
+  runSync: vi.fn(),
 }));
 
 const {hardcodedSecret} = await import('../../src/stages/detectors/hardcoded-secret.js');
-const execaMod = await import('execa');
-const execaSyncMock = execaMod.execaSync as unknown as ReturnType<typeof vi.fn>;
+const runSyncMod = await import('../../src/core/run-sync.js');
+const runSyncMock = runSyncMod.runSync as unknown as ReturnType<typeof vi.fn>;
 
 describe('HARDCODED_SECRET detector', () => {
   let dir: string;
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'clad-secret-'));
-    execaSyncMock.mockReset();
+    runSyncMock.mockReset();
   });
   afterEach(() => {
     rmSync(dir, {recursive: true, force: true});
@@ -44,19 +44,19 @@ describe('HARDCODED_SECRET detector', () => {
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe('info');
     expect(findings[0].message).toContain('no secret scanner registered');
-    expect(execaSyncMock).not.toHaveBeenCalled();
+    expect(runSyncMock).not.toHaveBeenCalled();
   });
 
   test('[covers:F-058/AC-137] scanner exit 0 produces no finding', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    execaSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 0, stdout: '', stderr: ''});
     expect(hardcodedSecret.run({cwd: dir})).toEqual([]);
-    expect(execaSyncMock).toHaveBeenCalledOnce();
+    expect(runSyncMock).toHaveBeenCalledOnce();
   });
 
   test('[covers:F-058/AC-137] scanner non-zero output produces an error finding', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    execaSyncMock.mockReturnValueOnce({
+    runSyncMock.mockReturnValueOnce({
       exitCode: 1,
       stdout: '',
       stderr: 'secretlint: api_key found at config.ts:5',
@@ -73,7 +73,7 @@ describe('HARDCODED_SECRET detector', () => {
     // missing binary — it does NOT throw. A registered-but-uninstalled scanner
     // must yield an info skip, never a false error finding.
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    execaSyncMock.mockReturnValueOnce({code: 'ENOENT', exitCode: undefined, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({code: 'ENOENT', exitCode: undefined, stdout: '', stderr: ''});
     const findings = hardcodedSecret.run({cwd: dir});
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe('info');
@@ -84,7 +84,7 @@ describe('HARDCODED_SECRET detector', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
     const err = new Error('EACCES') as NodeJS.ErrnoException;
     err.code = 'EACCES';
-    execaSyncMock.mockImplementationOnce(() => {
+    runSyncMock.mockImplementationOnce(() => {
       throw err;
     });
     expect(() => hardcodedSecret.run({cwd: dir})).toThrow('EACCES');
@@ -92,7 +92,7 @@ describe('HARDCODED_SECRET detector', () => {
 
   test('non-zero exit with only stdout (no stderr) → error using stdout', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    execaSyncMock.mockReturnValueOnce({
+    runSyncMock.mockReturnValueOnce({
       exitCode: 1,
       stdout: 'finding via stdout',
       stderr: '',
@@ -103,7 +103,7 @@ describe('HARDCODED_SECRET detector', () => {
 
   test('non-zero exit with no output → falls back to exit-code message', () => {
     writeFileSync(join(dir, 'package.json'), '{"name":"x"}\n');
-    execaSyncMock.mockReturnValueOnce({exitCode: 2, stdout: '', stderr: ''});
+    runSyncMock.mockReturnValueOnce({exitCode: 2, stdout: '', stderr: ''});
     const findings = hardcodedSecret.run({cwd: dir});
     expect(findings[0].message).toContain('exit 2');
   });

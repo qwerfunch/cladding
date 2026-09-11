@@ -25,7 +25,7 @@ const DETECTORS_DIR = join(ROOT, 'src', 'stages', 'detectors');
 // An import of the subprocess spawn primitive — the honest signal that a
 // detector shells out. Matches `from 'execa'` and `from 'node:child_process'`
 // (execFileSync / spawnSync / execSync all enter a module via child_process).
-const SPAWNER_IMPORT = /(^|\n)\s*import\b[^\n;]*\bfrom\s+['"](execa|(?:node:)?child_process)['"]/;
+const SPAWNER_IMPORT = /(^|\n)\s*import\b[^\n;]*\bfrom\s+['"](execa|(?:node:)?child_process|[^'"]*core\/run-sync\.js)['"]/;
 
 // The `subprocess: true` flag on an exported detector literal.
 const SUBPROCESS_FLAG = /\bsubprocess\s*:\s*true\b/;

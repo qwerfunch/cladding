@@ -3,7 +3,7 @@
 // "Release gates must be re-runnable commands, not manual rituals." Each seed
 // below is a deterministic fixture reproducing one vacuous-green (or false-RED)
 // class the A/B benchmarks exposed, run through the REAL gate as a subprocess
-// (`bin/clad check --tier=<t> --strict --json`) — exactly what a release
+// (`bin/clad.mjs check --tier=<t> --strict --json`) — exactly what a release
 // engineer would run. If a future change re-opens one of these holes, this
 // suite goes RED before the release does.
 //
@@ -46,7 +46,7 @@ import {afterAll, describe, expect, test} from 'vitest';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 /** The repo's real CLI shim — the same command a release engineer runs. */
-const CLAD_BIN = resolve(HERE, '..', '..', 'bin', 'clad');
+const CLAD_BIN = resolve(HERE, '..', '..', 'bin', 'clad.mjs');
 
 const TIMEOUT = 30_000;
 

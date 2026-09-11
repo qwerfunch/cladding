@@ -12,7 +12,7 @@
 
 import process from 'node:process';
 
-import {execaSync} from 'execa';
+import {runSync} from '../core/run-sync.js';
 
 import type {CommandStageOptions, StageResult} from './types.js';
 
@@ -35,7 +35,7 @@ export function runCommit(opts: CommandStageOptions = {}): StageResult {
   const {cwd = '.'} = opts;
   let proc;
   try {
-    proc = execaSync('git', ['status', '--porcelain'], {cwd, reject: false});
+    proc = runSync('git', ['status', '--porcelain'], {cwd});
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code;
     if (code === 'ENOENT') {

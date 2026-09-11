@@ -2040,7 +2040,7 @@ export function runRouteCommand(prompt: string): void {
  */
 export function createProgram(): Command {
   const program = new Command();
-  program.name('clad').description('Reference Ironclad CLI').version('0.10.0');
+  program.name('clad').description('Reference Ironclad CLI').version('0.10.1');
 
   program
     .command('init [intent...]')
@@ -2372,7 +2372,7 @@ export function createProgram(): Command {
   return program;
 }
 
-// CLI entry — `tsx cli/clad.ts ...` or `node bin/clad ...`.
+// CLI entry — `tsx cli/clad.ts ...` or `node bin/clad.mjs ...`.
 //
 // Unlike helper modules, this file IS the CLI entry, so the bundled
 // build (esbuild → dist/clad.js) must always trigger parsing. The

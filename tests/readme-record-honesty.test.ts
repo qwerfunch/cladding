@@ -32,12 +32,12 @@ test('[covers:F-b8d77abf/AC-e2c6b5f8] current worktree feature counts match the 
     /^status:\s*done\s*$/m.test(read(`spec/features/${name}`)),
   ).length;
   const claims: Readonly<Record<string, readonly string[]>> = {
-    'README.md': [`${done} of its ${total} features`, 'v0.10.0 (2026-09)', `${total} (${done} done)`],
-    'README.ko.md': [`기능 ${total}개 중 ${done}개`, 'v0.10.0 · 2026-09', `${total} · ${done} done`],
-    'README.ja.md': [`${total} 個の feature のうち ${done} 個`, 'v0.10.0（2026-09）', `${total}（${done} done）`],
-    'README.zh.md': [`${total} 个 feature 里有 ${done} 个`, 'v0.10.0（2026-09）', `${total}（${done} done）`],
-    'README.html': [`${done} of its ${total} features`, '>v0.10.0</div>', '>2026-09</div>', `>${total}</div>`, `>${done} done · self-spec</div>`],
-    'README.ko.html': [`기능 ${total}개 중 ${done}개`, '>v0.10.0</div>', '>2026-09</div>', `>${total}</div>`, `>${done} done · 자기 스펙</div>`],
+    'README.md': [`${done} of its ${total} features`, 'v0.10.1 (2026-09)', `${total} (${done} done)`],
+    'README.ko.md': [`기능 ${total}개 중 ${done}개`, 'v0.10.1 · 2026-09', `${total} · ${done} done`],
+    'README.ja.md': [`${total} 個の feature のうち ${done} 個`, 'v0.10.1（2026-09）', `${total}（${done} done）`],
+    'README.zh.md': [`${total} 个 feature 里有 ${done} 个`, 'v0.10.1（2026-09）', `${total}（${done} done）`],
+    'README.html': [`${done} of its ${total} features`, '>v0.10.1</div>', '>2026-09</div>', `>${total}</div>`, `>${done} done · self-spec</div>`],
+    'README.ko.html': [`기능 ${total}개 중 ${done}개`, '>v0.10.1</div>', '>2026-09</div>', `>${total}</div>`, `>${done} done · 자기 스펙</div>`],
   };
   for (const [file, expected] of Object.entries(claims)) {
     const body = read(file);

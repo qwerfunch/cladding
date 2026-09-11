@@ -100,4 +100,4 @@ console.log('1. Renaming files + writing new ids:');
 for (const m of MIGRATIONS) migrateFile(m);
 console.log('\n2. Rewriting depends_on cross-references:');
 rewriteCrossReferences();
-console.log('\nDone. Verify with: node bin/clad sync && node bin/clad check --strict');
+console.log('\nDone. Verify with: node bin/clad.mjs sync && node bin/clad.mjs check --strict');
