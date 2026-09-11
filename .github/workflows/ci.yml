@@ -66,16 +66,46 @@ jobs:
         # CI instead of accumulating silently. Deterministic, no toolchain.
         run: node bin/clad.mjs check --tier=pre-commit --strict
 
+  pack:
+    # Builds the published archive ONCE, on a platform and release that can run
+    # the full toolchain, and hands the exact same bytes to every entry cell.
+    # Building per cell was wrong twice over: it is slow, and it made each cell
+    # depend on the public test-count guard, which legitimately varies by
+    # platform (one transaction test cannot run on Windows). That guard belongs
+    # in the verify job, where it runs on one known platform.
+    name: pack the published archive
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install and build
+        run: npm ci && npm run build
+
+      - name: Pack
+        run: npm pack --pack-destination archive
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: published-archive
+          path: archive/*.tgz
+          retention-days: 1
+
   entry:
-    # The published entry point, exercised through npm's own bin shim — the
-    # path a user hits, which `node bin/clad.mjs` never covers. It exists
-    # because an extensionless entry shipped and died inside Node's ESM loader
-    # on an unsupported release, on a platform and a Node version this
-    # workflow tested on neither axis. Smoke only: pack, global install, one
-    # command. The floor cell is the release a user actually reported from;
-    # the Node 14 cell sits below the floor, proving the refusal still speaks
-    # instead of crashing for a release the tool genuinely cannot support.
+    # The published entry point, exercised through npm's own bin shim — the path
+    # a user hits, which `node bin/clad.mjs` never covers. It exists because an
+    # extensionless entry shipped and died inside Node's ESM loader on an
+    # unsupported release, on a platform and a Node version this workflow tested
+    # on neither axis. The floor cell is the release a user actually reported
+    # from; the Node 14 cell sits below the floor, proving the refusal still
+    # speaks instead of crashing for a release the tool genuinely cannot support.
+    # Every cell installs the SAME archive the pack job produced.
     name: entry · ${{ matrix.os }} · node ${{ matrix.node }}
+    needs: pack
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -91,25 +121,20 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: npm
-
-      - name: Install and build
-        run: npm ci && npm run build
-
-      - name: Pack
-        run: npm pack --pack-destination .
-
-      # The tarball is built on a supported Node, then installed and run on the
-      # matrix Node — otherwise `npm ci` itself would fail below the floor and
-      # the entry point would never be reached.
-      - uses: actions/setup-node@v4
-        with:
           node-version: ${{ matrix.node }}
 
-      - name: Install the tarball globally
+      - uses: actions/download-artifact@v4
+        with:
+          name: published-archive
+          path: archive
+
+      - name: Install the published archive globally
         shell: bash
-        run: npm install -g ./cladding-*.tgz
+        run: npm install -g archive/*.tgz
+
+      - name: Unpack the archive so the surface check reads the shipped bundle
+        shell: bash
+        run: tar -xzf archive/*.tgz
 
       - name: The entry point reports its version
         if: matrix.expect == 'version'
@@ -118,10 +143,10 @@ jobs:
           set -euo pipefail
           clad --version
 
-      - name: Every platform surface the bundle needs exists on this release
+      - name: Every platform surface the shipped bundle needs exists here
         if: matrix.expect == 'version'
         shell: bash
-        run: node scripts/check-node-surface.mjs dist/clad.js
+        run: node scripts/check-node-surface.mjs package/dist/clad.js
 
       - name: Real work on the floor release, not just a version string
         # The surface check reads static imports only, so a bundled CommonJS
@@ -138,6 +163,12 @@ jobs:
           # EPIPE, and pipefail turns a healthy run red.
           clad status > status.txt
           head -3 status.txt
+
+      - name: Install dev dependencies for the runner tests
+        # --ignore-scripts on purpose: the prepare hook would run the full build,
+        # and with it the public test-count guard, which cannot hold on Windows.
+        if: matrix.expect == 'version' && runner.os == 'Windows'
+        run: npm ci --ignore-scripts
 
       - name: The spawn runner behaves the same on this platform
         # `npm` is `npm.cmd` on Windows and the previous spawning dependency hid
