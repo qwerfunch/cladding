@@ -132,11 +132,13 @@ jobs:
 
       - name: Install the published archive globally
         shell: bash
-        run: npm install -g archive/*.tgz
+        # The `./` prefix is load-bearing: without it npm reads `archive/<file>`
+        # as a GitHub owner/repo shorthand and tries to clone it over SSH.
+        run: npm install -g ./archive/*.tgz
 
       - name: Unpack the archive so the surface check reads the shipped bundle
         shell: bash
-        run: tar -xzf archive/*.tgz
+        run: tar -xzf ./archive/*.tgz
 
       - name: The entry point reports its version
         if: matrix.expect == 'version'
